@@ -1,5 +1,7 @@
 ## 快捷输入补全
 ![alt text](PixPin_2025-07-18_21-44-00.png)
+![20210606180518](https://github.com/user-attachments/assets/0bc6ec2c-1acf-4160-aed1-0abb8a31b836)
+
 ### 1. 用户手册
 
 #### 1.1 工具简介
