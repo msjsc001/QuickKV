@@ -21,7 +21,7 @@ import configparser
 from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLineEdit,
                              QListWidget, QSystemTrayIcon, QMenu, QSizeGrip,
                              QGraphicsDropShadowEffect, QPushButton,
-                             QInputDialog, QMessageBox)
+                             QInputDialog, QMessageBox, QStyledItemDelegate, QStyle)
 from PySide6.QtCore import (Qt, Signal, Slot, QObject, QFileSystemWatcher,
                           QTimer, QEvent, QRect)
 from PySide6.QtGui import QIcon, QAction, QCursor, QPixmap, QPainter, QColor
@@ -42,9 +42,9 @@ def log(message):
 # --- 主题颜色定义 ---
 THEMES = {
     "dark": {
-        "bg_color": "#282c34", "border_color": "#444", "text_color": "#abb2bf",
-        "input_bg_color": "#3a3f4b", "item_hover_bg": "#383c4a",
-        "item_selected_bg": "#0288d1", "item_selected_text": "#ffffff"
+        "bg_color": "#21252b", "border_color": "#3c424b", "text_color": "#d1d5db",
+        "input_bg_color": "#2c313a", "item_hover_bg": "#3a3f4b",
+        "item_selected_bg": "#09a2f1", "item_selected_text": "#ffffff"
     },
     "light": {
         "bg_color": "#fdfdfd", "border_color": "#cccccc", "text_color": "#202020",
@@ -52,6 +52,42 @@ THEMES = {
         "item_selected_bg": "#0078d7", "item_selected_text": "#ffffff"
     }
 }
+
+# --- 自定义列表项绘制代理 ---
+class StyledItemDelegate(QStyledItemDelegate):
+    def __init__(self, themes, settings):
+        super().__init__()
+        self.themes = themes
+        self.settings = settings
+
+    def paint(self, painter, option, index):
+        theme = self.themes[self.settings.theme]
+        painter.save()
+        rect = option.rect
+        text = index.data(Qt.DisplayRole)
+
+        # 根据状态绘制背景
+        if option.state & QStyle.State_Selected:
+            painter.fillRect(rect, QColor(theme['item_selected_bg']))
+            painter.setPen(QColor(theme['item_selected_text']))
+        elif option.state & QStyle.State_MouseOver:
+            painter.fillRect(rect, QColor(theme['item_hover_bg']))
+            painter.setPen(QColor(theme['text_color']))
+        else:
+            # 恢复为最稳妥的方案：为普通状态明确绘制背景
+            painter.fillRect(rect, QColor(theme['bg_color']))
+            painter.setPen(QColor(theme['text_color']))
+
+        # 绘制文字 (带内边距)
+        # QListWidget::item 的 padding 已经包含在 option.rect 中，我们只需对齐
+        painter.drawText(rect, Qt.AlignVCenter | Qt.AlignLeft, "  " + text)
+        painter.restore()
+
+    def sizeHint(self, option, index):
+        # 确保项目有足够的高度
+        size = super().sizeHint(option, index)
+        size.setHeight(36) # 可以根据字体大小动态调整
+        return size
 
 # --- 设置管理器 ---
 class SettingsManager:
@@ -126,16 +162,16 @@ class SearchPopup(QWidget):
         self.resize_start_geom = None
 
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
-        self.setAttribute(Qt.WA_TranslucentBackground)
+        # self.setAttribute(Qt.WA_TranslucentBackground) # 【终极修复】移除透明属性，根除渲染冲突
         self.setMouseTracking(True) # 启用鼠标跟踪以更新光标
-        self.container = QWidget()
+        self.container = QWidget(self) # 将 container 直接作为子控件
         self.container.setMouseTracking(True)
         
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(10, 10, 10, 10)
+        main_layout.setContentsMargins(0, 0, 0, 0) # 移除边距，让 container 填满窗口
         main_layout.addWidget(self.container)
-        shadow = QGraphicsDropShadowEffect(self); shadow.setBlurRadius(15); shadow.setColor(QColor(0, 0, 0, 80)); shadow.setOffset(0, 2)
-        self.container.setGraphicsEffect(shadow)
+        # shadow = QGraphicsDropShadowEffect(self); shadow.setBlurRadius(15); shadow.setColor(QColor(0, 0, 0, 80)); shadow.setOffset(0, 2)
+        # self.container.setGraphicsEffect(shadow) # 移除阴影
         
         container_layout = QVBoxLayout(self.container)
         container_layout.setContentsMargins(1, 1, 1, 1)
@@ -160,6 +196,7 @@ class SearchPopup(QWidget):
         
         self.search_box = QLineEdit(placeholderText="搜索...")
         self.list_widget = QListWidget(); self.list_widget.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded); self.list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        # self.list_widget.setAutoFillBackground(True) # 移除此行，因为它无效
         self.search_box.setMouseTracking(True)
         self.list_widget.setMouseTracking(True)
 
@@ -167,12 +204,23 @@ class SearchPopup(QWidget):
         container_layout.addWidget(self.search_box)
         container_layout.addWidget(self.list_widget, 1)
         
+        # 设置自定义的绘图代理来完全控制项目渲染
+        self.delegate = StyledItemDelegate(THEMES, self.settings)
+        self.list_widget.setItemDelegate(self.delegate)
+        
         self.apply_theme()
         self.resize(self.settings.width, self.settings.height)
         self.setMinimumSize(250, 150) # 设置一个合理的最小尺寸
         self.search_box.textChanged.connect(self.update_list)
         self.list_widget.itemClicked.connect(self.on_item_selected)
         self.list_widget.itemActivated.connect(self.on_item_selected)
+        # 【终极修复】连接信号，在选中项改变时强制刷新整个列表，杜绝一切渲染残留
+        self.list_widget.currentItemChanged.connect(self.force_list_update)
+
+    @Slot()
+    def force_list_update(self):
+        """强制列表视口刷新"""
+        self.list_widget.viewport().update()
 
     def _update_resize_cursor(self, pos):
         m = self.resize_margin
@@ -247,6 +295,7 @@ class SearchPopup(QWidget):
             self.pin_button.setStyleSheet(f"QPushButton {{ background-color: {theme['item_selected_bg']}; color: {theme['item_selected_text']}; border: none; font-size: 16px; font-weight: bold; border-radius: 4px; }} QPushButton:hover {{ background-color: {theme['item_selected_bg']}; color: {theme['item_selected_text']}; }}")
         else:
             self.pin_button.setStyleSheet(f"QPushButton {{ background-color: transparent; color: {theme['text_color']}; border: none; font-size: 16px; font-weight: bold; }} QPushButton:hover {{ background-color: {theme['item_hover_bg']}; border-radius: 4px; }}")
+        self.pin_button.update() # 【修复】强制按钮刷新，消除切换主题后的残留
 
 
     def eventFilter(self, watched, event):
@@ -269,9 +318,18 @@ class SearchPopup(QWidget):
         font_size = self.settings.font_size
         self.container.setStyleSheet(f"background-color: {theme['bg_color']}; border: 1px solid {theme['border_color']}; border-radius: 8px;")
         self.search_box.setStyleSheet(f"background-color: {theme['input_bg_color']}; color: {theme['text_color']}; border: 1px solid {theme['border_color']}; border-radius: 4px; padding: 8px; font-size: {font_size}px; margin: 0px 8px 4px 8px;")
-        self.list_widget.setStyleSheet(f"color: {theme['text_color']}; border: none; padding-left: 8px; font-size: {font_size}px; QListWidget::item {{ padding: 8px; border-radius: 4px;}} QListWidget::item:hover {{ background-color: {theme['item_hover_bg']}; }} QListWidget::item:selected {{ background-color: {theme['item_selected_bg']}; color: {theme['item_selected_text']}; }}")
+        # 绘图代理接管了 item 的样式，这里只需设置基础样式
+        self.list_widget.setStyleSheet(f"""
+            QListWidget {{
+                background-color: {theme['bg_color']}; /* 【最终修复】确保列表自身有坚实的背景色 */
+                color: {theme['text_color']};
+                border: none;
+                font-size: {font_size}px;
+            }}
+        """)
         self.close_button.setStyleSheet(f"QPushButton {{ background-color: transparent; color: {theme['text_color']}; border: none; font-size: 16px; font-weight: bold; }} QPushButton:hover {{ color: white; background-color: #E81123; border-radius: 4px; }}")
         self._update_pin_button_style() # 应用主题时更新图钉按钮样式
+        self.list_widget.viewport().update() # 强制列表刷新以应用新主题
 
     def show_and_focus(self):
         log("显示并聚焦搜索窗口。")
@@ -293,6 +351,7 @@ class SearchPopup(QWidget):
         self.search_box.setFocus()
         self.search_box.clear()
         self.update_list("")
+        self.list_widget.viewport().update() # 【修复】确保窗口出现时列表被完全重绘
     
     @Slot(str)
     def update_list(self, text):
