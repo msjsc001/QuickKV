@@ -1,6 +1,8 @@
 ## 快捷输入补全
 ![alt text](PixPin_2025-07-18_21-44-00.png)
 
+<img width="1203" height="1089" alt="PixPin_2025-07-19_01-47-50" src="https://github.com/user-attachments/assets/9255c361-4c86-420f-bfa3-5ba5aa0554cc" />
+
 ![20210606180518](https://github.com/user-attachments/assets/0bc6ec2c-1acf-4160-aed1-0abb8a31b836)
 
 新写的补全软件，我发现中文软件因为输入法的自定义短语本来就比较便捷的关系，国外流行的“自动补全方式”软件国内几乎没有，国外有非常多的自动补全软件也都几乎清一色不支持中文且都比较囊肿，autohotkey之类方案我写下来也不是很理想，最后还是选择自己动手用python来实现且为开源项目。
