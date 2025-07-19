@@ -104,6 +104,40 @@ pip install PySide6 keyboard pyperclip
 
 ---
 
+### 3. 项目结构
+
+```
+.
+├── quick_kv.py         # 主程序脚本
+├── 词库.md             # 用户词库文件
+├── config.ini          # 配置文件
+├── icon.png            # 应用程序图标
+└── README.md           # 项目说明文档
+```
+
+### 4. 构建可执行文件 (Windows)
+
+本项目使用 PyInstaller 进行打包。
+
+1.  **安装 PyInstaller**:
+    ```bash
+    pip install pyinstaller
+    ```
+
+2.  **执行打包命令**:
+    在项目根目录下，运行以下命令来创建一个独立的 `.exe` 文件：
+    ```bash
+    pyinstaller --noconsole --icon="icon.png" --add-data "词库.md;." --add-data "config.ini;." --add-data "icon.png;." quick_kv.py
+    ```
+    *   `--noconsole`: 运行时不显示命令行窗口。
+    *   `--icon`: 为 `.exe` 文件指定图标。
+    *   `--add-data`: 将外部文件（词库、配置、图标）打包到程序中。
+
+3.  **获取结果**:
+    打包成功后，您可以在 `dist/quick_kv` 目录下找到生成的 `quick_kv.exe` 文件及其所有依赖项。
+
+---
+
 ## 功能清单 (v1.0)
 
 *   [x] **核心交互**

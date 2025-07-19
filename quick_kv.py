@@ -17,11 +17,35 @@ import keyboard
 import pyperclip
 
 # --- 全局配置 ---
-WORD_FILE = "词库.md"
-CONFIG_FILE = "config.ini"
+def get_base_path():
+    """获取基础路径，用于定位外部文件（如config和词库）"""
+    if getattr(sys, 'frozen', False):
+        # 如果是打包后的 exe
+        return os.path.dirname(sys.executable)
+    else:
+        # 如果是直接运行的 .py
+        return os.path.abspath(".")
+
+def resource_path(relative_path):
+    """获取内部资源的路径（如图标），这部分会被打包进exe"""
+    try:
+        # PyInstaller 创建一个临时文件夹，并将路径存储在 _MEIPASS 中
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+# --- 外部数据文件（可读写，放在exe旁边） ---
+BASE_PATH = get_base_path()
+WORD_FILE = os.path.join(BASE_PATH, "词库.md")
+CONFIG_FILE = os.path.join(BASE_PATH, "config.ini")
+
+# --- 内部资源（只读，打包进exe） ---
+ICON_PATH = resource_path("icon.png")
+
+# --- 其他配置 ---
 HOTKEY = "ctrl+space"
 DEBUG_MODE = True
-ICON_PATH = "icon.png"
 VERSION = "1.0"
 
 def log(message):
@@ -524,15 +548,9 @@ class MainController(QObject):
         """)
 
 # --- main入口 ---
-def create_default_icon(path):
-    # ... (代码无变化)
-    if not os.path.exists(path):
-        pixmap = QPixmap(64, 64); pixmap.fill(Qt.transparent); painter = QPainter(pixmap); painter.setRenderHint(QPainter.Antialiasing); painter.setBrush(QColor("#0078d7")); painter.setPen(Qt.NoPen); painter.drawRoundedRect(12, 12, 40, 40, 10, 10); painter.end(); pixmap.save(path)
-
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
-    create_default_icon(ICON_PATH)
     
     settings_manager = SettingsManager(CONFIG_FILE)
     word_manager = WordManager(WORD_FILE)
