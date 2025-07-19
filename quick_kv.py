@@ -1,18 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-一个轻量级的、系统级的中文联想输入工具 (v17.0 - 滚动条修复版)。
-
-核心功能:
-- [修复] 修正了列表控件的布局策略，确保在内容过多时能正确显示滚动条。
-- 基于稳定版v7.0，保留了可靠的右下角八向缩放功能。
-- 调整了夜间模式的选中项颜色，使其更清晰、更易分辨。
-- 在系统托盘菜单中新增“设置字体大小”功能，实时生效并自动保存。
-- 界面回归极简设计，无左上角图标。
-
-依赖库:
-- PySide6
-- keyboard
-- pyperclip
+QuickKV v1.0.0
 """
 import sys
 import os
@@ -34,6 +22,7 @@ CONFIG_FILE = "config.ini"
 HOTKEY = "ctrl+space"
 DEBUG_MODE = True
 ICON_PATH = "icon.png"
+VERSION = "1.0"
 
 def log(message):
     if DEBUG_MODE:
@@ -101,17 +90,20 @@ class SettingsManager:
         if not self.config.has_section('Window'): self.config.add_section('Window')
         if not self.config.has_section('Theme'): self.config.add_section('Theme')
         if not self.config.has_section('Font'): self.config.add_section('Font')
+        if not self.config.has_section('Search'): self.config.add_section('Search')
         
         self.width = self.config.getint('Window', 'width', fallback=450)
         self.height = self.config.getint('Window', 'height', fallback=300)
         self.theme = self.config.get('Theme', 'mode', fallback='dark')
         self.font_size = self.config.getint('Font', 'size', fallback=14)
+        self.multi_word_search = self.config.getboolean('Search', 'multi_word_search', fallback=True)
 
     def save(self):
         self.config['Window']['width'] = str(self.width)
         self.config['Window']['height'] = str(self.height)
         self.config['Theme']['mode'] = self.theme
         self.config['Font']['size'] = str(self.font_size)
+        self.config['Search']['multi_word_search'] = str(self.multi_word_search)
         
         with open(self.file_path, 'w', encoding='utf-8') as configfile:
             self.config.write(configfile)
@@ -140,10 +132,20 @@ class WordManager:
             log(f"加载词库时发生错误: {e}")
             self.words = []
 
-    def find_matches(self, query):
+    def find_matches(self, query, multi_word_search_enabled=False):
         if not query: return self.words
         query_lower = query.lower()
-        return [word for word in self.words if query_lower in word.lower()]
+        
+        if multi_word_search_enabled and ' ' in query_lower.strip():
+            keywords = [k for k in query_lower.split(' ') if k]
+            if not keywords: return [word for word in self.words if query_lower in word.lower()]
+            
+            return [
+                word for word in self.words
+                if all(keyword in word.lower() for keyword in keywords)
+            ]
+        else:
+            return [word for word in self.words if query_lower in word.lower()]
 
 
 # --- 搜索弹出窗口UI (滚动条修复) ---
@@ -162,7 +164,7 @@ class SearchPopup(QWidget):
         self.resize_start_geom = None
 
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
-        # self.setAttribute(Qt.WA_TranslucentBackground) # 【终极修复】移除透明属性，根除渲染冲突
+        # self.setAttribute(Qt.WA_TranslucentBackground) # 重新禁用透明属性
         self.setMouseTracking(True) # 启用鼠标跟踪以更新光标
         self.container = QWidget(self) # 将 container 直接作为子控件
         self.container.setMouseTracking(True)
@@ -174,7 +176,7 @@ class SearchPopup(QWidget):
         # self.container.setGraphicsEffect(shadow) # 移除阴影
         
         container_layout = QVBoxLayout(self.container)
-        container_layout.setContentsMargins(1, 1, 1, 1)
+        container_layout.setContentsMargins(1, 1, 1, 1) # 恢复紧凑的边距
         container_layout.setSpacing(4)
         
         title_bar_layout = QHBoxLayout()
@@ -203,6 +205,10 @@ class SearchPopup(QWidget):
         container_layout.addLayout(title_bar_layout)
         container_layout.addWidget(self.search_box)
         container_layout.addWidget(self.list_widget, 1)
+
+        # 添加 QSizeGrip 用于右下角缩放
+        self.size_grip = QSizeGrip(self)
+        container_layout.addWidget(self.size_grip, 0, Qt.AlignBottom | Qt.AlignRight)
         
         # 设置自定义的绘图代理来完全控制项目渲染
         self.delegate = StyledItemDelegate(THEMES, self.settings)
@@ -225,37 +231,53 @@ class SearchPopup(QWidget):
     def _update_resize_cursor(self, pos):
         m = self.resize_margin
         rect = self.rect()
-        self.resize_edge["top"] = abs(pos.y()) < m
-        self.resize_edge["bottom"] = abs(pos.y() - rect.height()) < m
-        self.resize_edge["left"] = abs(pos.x()) < m
-        self.resize_edge["right"] = abs(pos.x() - rect.width()) < m
+        
+        on_top = abs(pos.y()) < m
+        on_bottom = abs(pos.y() - rect.height()) < m
+        on_left = abs(pos.x()) < m
+        on_right = abs(pos.x() - rect.width()) < m
 
-        if self.resize_edge["top"] and self.resize_edge["left"]: self.setCursor(Qt.SizeFDiagCursor)
-        elif self.resize_edge["top"] and self.resize_edge["right"]: self.setCursor(Qt.SizeBDiagCursor)
-        elif self.resize_edge["bottom"] and self.resize_edge["left"]: self.setCursor(Qt.SizeBDiagCursor)
-        elif self.resize_edge["bottom"] and self.resize_edge["right"]: self.setCursor(Qt.SizeFDiagCursor)
-        elif self.resize_edge["top"]: self.setCursor(Qt.SizeVerCursor)
-        elif self.resize_edge["bottom"]: self.setCursor(Qt.SizeVerCursor)
-        elif self.resize_edge["left"]: self.setCursor(Qt.SizeHorCursor)
-        elif self.resize_edge["right"]: self.setCursor(Qt.SizeHorCursor)
-        else: self.unsetCursor()
+        self.resize_edge["top"] = on_top
+        self.resize_edge["bottom"] = on_bottom
+        self.resize_edge["left"] = on_left
+        self.resize_edge["right"] = on_right
+
+        if (on_top and on_left) or (on_bottom and on_right):
+            self.setCursor(Qt.SizeFDiagCursor)
+        elif (on_top and on_right) or (on_bottom and on_left):
+            self.setCursor(Qt.SizeBDiagCursor)
+        elif on_top or on_bottom:
+            self.setCursor(Qt.SizeVerCursor)
+        elif on_left or on_right:
+            self.setCursor(Qt.SizeHorCursor)
+        else:
+            self.unsetCursor()
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             pos = event.position().toPoint()
+            global_pos = event.globalPosition().toPoint()
+            log(f"mousePressEvent: pos={pos}, global_pos={global_pos}")
+            self._update_resize_cursor(pos) # 在按下时就判断是否在边缘
+
             if any(self.resize_edge.values()):
                 self.resizing = True
-                self.resize_start_pos = event.globalPosition().toPoint()
+                self.resize_start_pos = global_pos
                 self.resize_start_geom = self.geometry()
+                log(f"开始缩放: resize_edge={self.resize_edge}")
             elif pos.y() < 35:
-                self.drag_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+                self.drag_position = global_pos - self.frameGeometry().topLeft()
+                log(f"开始拖动: drag_position={self.drag_position}")
             event.accept()
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
         pos = event.position().toPoint()
+        global_pos = event.globalPosition().toPoint()
+        # log(f"mouseMoveEvent: pos={pos}, global_pos={global_pos}, resizing={self.resizing}, drag_position={self.drag_position}")
+
         if self.resizing:
-            delta = event.globalPosition().toPoint() - self.resize_start_pos
+            delta = global_pos - self.resize_start_pos
             geom = self.resize_start_geom
             new_geom = QRect(geom)
 
@@ -264,24 +286,34 @@ class SearchPopup(QWidget):
             if self.resize_edge["left"]: new_geom.setLeft(geom.left() + delta.x())
             if self.resize_edge["right"]: new_geom.setRight(geom.right() + delta.x())
             
-            if new_geom.width() < self.minimumWidth() or new_geom.height() < self.minimumHeight():
-                return
-            self.setGeometry(new_geom)
+            # 确保尺寸不会小于最小值
+            if new_geom.width() < self.minimumWidth():
+                if self.resize_edge["left"]: new_geom.setLeft(geom.right() - self.minimumWidth())
+                else: new_geom.setWidth(self.minimumWidth())
 
-        elif event.buttons() == Qt.LeftButton and self.drag_position is not None:
-            self.move(event.globalPosition().toPoint() - self.drag_position)
+            if new_geom.height() < self.minimumHeight():
+                if self.resize_edge["top"]: new_geom.setTop(geom.bottom() - self.minimumHeight())
+                else: new_geom.setHeight(self.minimumHeight())
+
+            self.setGeometry(new_geom)
+            # log(f"缩放中: new_geom={new_geom}")
+
+        elif event.buttons() & Qt.LeftButton and self.drag_position is not None:
+            self.move(global_pos - self.drag_position)
+            # log(f"拖动中: new_pos={global_pos - self.drag_position}")
         else:
             self._update_resize_cursor(pos)
-        event.accept()
+        
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
+        # 重置所有状态
         self.resizing = False
         self.drag_position = None
         self.resize_start_pos = None
         self.resize_start_geom = None
+        for k in self.resize_edge: self.resize_edge[k] = False
         self.unsetCursor()
-        event.accept()
         super().mouseReleaseEvent(event)
 
     def toggle_pin(self):
@@ -298,20 +330,11 @@ class SearchPopup(QWidget):
         self.pin_button.update() # 【修复】强制按钮刷新，消除切换主题后的残留
 
 
-    def eventFilter(self, watched, event):
-        if event.type() == QEvent.MouseButtonPress:
-            is_outside = not self.geometry().contains(event.globalPosition().toPoint())
-            is_input_empty = self.search_box.text() == ""
-            if is_outside and is_input_empty and not self.pinned: # 增加对pinned状态的判断
-                log("检测到在窗口外单击，且输入框为空，自动隐藏。")
-                self.hide(); return True
-        return super().eventFilter(watched, event)
-
     def showEvent(self, event):
-        QApplication.instance().installEventFilter(self); super().showEvent(event)
+        super().showEvent(event)
 
     def hideEvent(self, event):
-        QApplication.instance().removeEventFilter(self); self.settings.width = self.width(); self.settings.height = self.height(); self.settings.save(); super().hideEvent(event)
+        self.settings.width = self.width(); self.settings.height = self.height(); self.settings.save(); super().hideEvent(event)
 
     def apply_theme(self):
         theme = THEMES[self.settings.theme]
@@ -325,6 +348,15 @@ class SearchPopup(QWidget):
                 color: {theme['text_color']};
                 border: none;
                 font-size: {font_size}px;
+            }}
+        """)
+        # 设置 QSizeGrip 的样式，使其背景色与窗口背景色一致
+        self.size_grip.setStyleSheet(f"""
+            QSizeGrip {{
+                background-color: transparent; /* 设置为完全透明 */
+                border: none;
+                padding: 8px; /* 增加内边距，使其向内移动 */
+                margin: -8px; /* 负外边距抵消部分 padding，使其不占用额外空间 */
             }}
         """)
         self.close_button.setStyleSheet(f"QPushButton {{ background-color: transparent; color: {theme['text_color']}; border: none; font-size: 16px; font-weight: bold; }} QPushButton:hover {{ color: white; background-color: #E81123; border-radius: 4px; }}")
@@ -355,7 +387,9 @@ class SearchPopup(QWidget):
     
     @Slot(str)
     def update_list(self, text):
-        self.list_widget.clear(); self.list_widget.addItems(self.word_manager.find_matches(text))
+        matches = self.word_manager.find_matches(text, self.settings.multi_word_search)
+        self.list_widget.clear()
+        self.list_widget.addItems(matches)
         if self.list_widget.count() > 0: self.list_widget.setCurrentRow(0)
     
     @Slot("QListWidgetItem")
@@ -384,7 +418,7 @@ class MainController(QObject):
     hide_popup_signal = Signal()
 
     def __init__(self, app, word_manager, settings_manager, hotkey):
-        super().__init__(); self.app = app; self.word_manager = word_manager; self.settings = settings_manager
+        super().__init__(); self.app = app; self.word_manager = word_manager; self.settings = settings_manager; self.menu = None
         self.popup = SearchPopup(self.word_manager, self.settings)
         self.show_popup_signal.connect(self.popup.show_and_focus)
         self.hide_popup_signal.connect(self.popup.hide)
@@ -436,8 +470,16 @@ class MainController(QObject):
     def toggle_theme(self):
         new_theme = "light" if self.settings.theme == "dark" else "dark"
         self.settings.theme = new_theme; self.settings.save()
-        log(f"切换主题为: {new_theme}"); self.popup.apply_theme()
+        log(f"切换主题为: {new_theme}"); self.popup.apply_theme(); self.apply_menu_theme()
         if hasattr(self, 'toggle_theme_action'): self.toggle_theme_action.setText(f"切换到 {'夜间' if new_theme == 'light' else '日间'} 模式")
+
+    @Slot()
+    def toggle_multi_word_search(self):
+        self.settings.multi_word_search = not self.settings.multi_word_search
+        self.settings.save()
+        log(f"多词搜索模式: {'开启' if self.settings.multi_word_search else '关闭'}")
+        if hasattr(self, 'multi_word_search_action'):
+            self.multi_word_search_action.setChecked(self.settings.multi_word_search)
         
     @Slot()
     def set_font_size(self):
@@ -450,6 +492,36 @@ class MainController(QObject):
             log(f"字体大小已更新为: {new_size}")
             self.popup.apply_theme()
             QMessageBox.information(None, "成功", f"字体大小已设置为 {new_size}！")
+
+    def apply_menu_theme(self):
+        if not self.menu: return
+        theme = THEMES[self.settings.theme]
+        self.menu.setStyleSheet(f"""
+            QMenu {{
+                background-color: {theme['bg_color']};
+                border: 1px solid {theme['border_color']};
+                border-radius: 8px;
+                color: {theme['text_color']};
+                font-size: {self.settings.font_size}px;
+                padding: 5px;
+            }}
+            QMenu::item {{
+                padding: 8px 20px;
+                border-radius: 4px;
+            }}
+            QMenu::item:selected {{
+                background-color: {theme['item_selected_bg']};
+                color: {theme['item_selected_text']};
+            }}
+            QMenu::item:disabled {{
+                color: #888;
+            }}
+            QMenu::separator {{
+                height: 1px;
+                background-color: {theme['border_color']};
+                margin: 5px 0;
+            }}
+        """)
 
 # --- main入口 ---
 def create_default_icon(path):
@@ -466,16 +538,33 @@ if __name__ == "__main__":
     word_manager = WordManager(WORD_FILE)
     controller = MainController(app, word_manager, settings_manager, HOTKEY)
     
-    tray_icon = QSystemTrayIcon(QIcon(ICON_PATH), app); tray_icon.setToolTip("快捷联想输入工具")
+    tray_icon = QSystemTrayIcon(QIcon(ICON_PATH), app); tray_icon.setToolTip("QuickKV")
     menu = QMenu()
+    controller.menu = menu # 将menu实例传递给controller
+    controller.apply_menu_theme() # 初始化时应用主题
     
+    # --- 版本号标题 ---
+    version_action = QAction(f"QuickKV v{VERSION}")
+    version_action.setEnabled(False)
+    menu.addAction(version_action)
+    menu.addSeparator()
+    
+    # --- 主要功能 ---
     open_action = QAction("打开词库文件(&O)"); open_action.triggered.connect(lambda: webbrowser.open(os.path.abspath(WORD_FILE))); menu.addAction(open_action)
     
+    # --- 设置 ---
+    menu.addSeparator()
+    controller.multi_word_search_action = QAction("打空格多词包含搜索", checkable=True)
+    controller.multi_word_search_action.setChecked(settings_manager.multi_word_search)
+    controller.multi_word_search_action.triggered.connect(controller.toggle_multi_word_search)
+    menu.addAction(controller.multi_word_search_action)
+
     initial_toggle_text = f"切换到 {'夜间' if settings_manager.theme == 'light' else '日间'} 模式"
     controller.toggle_theme_action = QAction(initial_toggle_text); controller.toggle_theme_action.triggered.connect(controller.toggle_theme); menu.addAction(controller.toggle_theme_action)
     
     font_size_action = QAction("设置字体大小(&F)..."); font_size_action.triggered.connect(controller.set_font_size); menu.addAction(font_size_action)
 
+    # --- 退出 ---
     menu.addSeparator()
     quit_action = QAction("退出(&Q)"); quit_action.triggered.connect(app.quit); menu.addAction(quit_action)
     
