@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-QuickKV v1.0.2
+QuickKV v1.0.3
 """
 import sys
 import os
@@ -48,7 +48,7 @@ ICON_PATH = resource_path("icon.png")
 # --- 其他配置 ---
 HOTKEY = "ctrl+space"
 DEBUG_MODE = True
-VERSION = "1.0.2" # 版本号
+VERSION = "1.0.3" # 版本号
 
 def log(message):
     if DEBUG_MODE:
@@ -118,24 +118,25 @@ class SettingsManager:
         if not self.config.has_section('Font'): self.config.add_section('Font')
         if not self.config.has_section('Search'): self.config.add_section('Search')
         if not self.config.has_section('Data'): self.config.add_section('Data')
-        
+        if not self.config.has_section('General'): self.config.add_section('General')
+
+        self.hotkeys_enabled = self.config.getboolean('General', 'hotkeys_enabled', fallback=True)
         self.width = self.config.getint('Window', 'width', fallback=450)
         self.height = self.config.getint('Window', 'height', fallback=300)
         self.theme = self.config.get('Theme', 'mode', fallback='dark')
         self.font_size = self.config.getint('Font', 'size', fallback=14)
         self.multi_word_search = self.config.getboolean('Search', 'multi_word_search', fallback=True)
         self.pinyin_initial_search = self.config.getboolean('Search', 'pinyin_initial_search', fallback=True)
-        self.semicolon_hotkey = self.config.getboolean('Search', 'semicolon_hotkey', fallback=True)
         self.last_sorted_hash = self.config.get('Data', 'last_sorted_hash', fallback='')
 
     def save(self):
+        self.config['General']['hotkeys_enabled'] = str(self.hotkeys_enabled)
         self.config['Window']['width'] = str(self.width)
         self.config['Window']['height'] = str(self.height)
         self.config['Theme']['mode'] = self.theme
         self.config['Font']['size'] = str(self.font_size)
         self.config['Search']['multi_word_search'] = str(self.multi_word_search)
         self.config['Search']['pinyin_initial_search'] = str(self.pinyin_initial_search)
-        self.config['Search']['semicolon_hotkey'] = str(self.semicolon_hotkey)
         self.config['Data']['last_sorted_hash'] = str(self.last_sorted_hash)
         
         with open(self.file_path, 'w', encoding='utf-8') as configfile:
@@ -518,7 +519,6 @@ class MainController(QObject):
     # ... (代码无变化)
     show_popup_signal = Signal()
     hide_popup_signal = Signal()
-    semicolon_hotkey_signal = Signal() # 用于从热键线程安全地触发操作
 
     def __init__(self, app, word_manager, settings_manager, hotkey):
         super().__init__(); self.app = app; self.word_manager = word_manager; self.settings = settings_manager; self.menu = None
@@ -526,66 +526,35 @@ class MainController(QObject):
         self.show_popup_signal.connect(self.popup.show_and_focus)
         self.hide_popup_signal.connect(self.popup.hide)
         self.popup.suggestion_selected.connect(self.on_suggestion_selected)
-        self.semicolon_hotkey_signal.connect(self.execute_semicolon_action)
-        try:
-            keyboard.add_hotkey(hotkey, self.on_hotkey_triggered)
-            log(f"全局热键 '{hotkey}' 注册成功。")
-        except Exception as e:
-            log(f"注册热键失败，可能是权限问题: {e}")
-
-        try:
-            # 使用 suppress=True 来阻止原始的分号输入，由我们的逻辑决定是否重新发送它
-            keyboard.add_hotkey(";", self.on_semicolon_triggered, suppress=True)
-            log("分号快捷键 ';' 注册成功。")
-        except Exception as e:
-            log(f"注册分号快捷键失败: {e}")
+        
+        self.hotkey = hotkey
+        if self.settings.hotkeys_enabled:
+            self.register_hotkeys()
 
         self.file_watcher = QFileSystemWatcher([self.word_manager.file_path])
         self.file_watcher.fileChanged.connect(self.schedule_reload)
         self.reload_timer = QTimer(self); self.reload_timer.setSingleShot(True); self.reload_timer.setInterval(300); self.reload_timer.timeout.connect(self.reload_word_file)
 
+    def register_hotkeys(self):
+        try:
+            keyboard.add_hotkey(self.hotkey, self.on_hotkey_triggered)
+            log("全局快捷键已注册。")
+        except Exception as e:
+            log(f"注册快捷键时发生错误: {e}")
+
+    def unregister_hotkeys(self):
+        try:
+            keyboard.remove_hotkey(self.hotkey)
+            log("全局快捷键已移除。")
+        except Exception as e:
+            log(f"移除快捷键时发生错误: {e}")
+
     def on_hotkey_triggered(self):
+        if not self.settings.hotkeys_enabled: return
         if self.popup.isVisible():
             log("热键触发：关闭窗口。"); self.hide_popup_signal.emit()
         else:
             log("热键触发：打开窗口。"); self.show_popup_signal.emit()
-
-    def on_semicolon_triggered(self):
-        """热键回调（在非GUI线程中运行）。仅发出信号以将工作传递给主线程。"""
-        self.semicolon_hotkey_signal.emit()
-
-    @Slot()
-    def execute_semicolon_action(self):
-        """此槽在主GUI线程中安全执行。"""
-        if not self.settings.semicolon_hotkey:
-            keyboard.send(";")  # 功能已关闭，重新发送被抑制的按键
-            return
-
-        log("分号快捷键动作执行。")
-        # 1. 模拟复制操作
-        keyboard.press_and_release('ctrl+shift+left')
-        QTimer.singleShot(50, self.copy_and_show)  # 后续所有操作现在都是安全的
-
-    def copy_and_show(self):
-        pyperclip.copy('') # 清空剪贴板以备后续检查
-        keyboard.press_and_release('ctrl+c')
-        QTimer.singleShot(50, self.show_with_clipboard_content)
-
-    def show_with_clipboard_content(self):
-        keyboard.press_and_release('delete') # 删除选中的文本
-        
-        # 延迟获取剪贴板内容
-        QTimer.singleShot(100, self.fetch_clipboard_and_show)
-
-    def fetch_clipboard_and_show(self):
-        copied_text = pyperclip.paste()
-        log(f"已复制内容: '{copied_text}'")
-        
-        if copied_text:
-            self.show_popup_signal.emit()
-            # 再次延迟以确保窗口已显示
-            QTimer.singleShot(50, lambda: self.popup.search_box.setText(copied_text))
-            QTimer.singleShot(60, lambda: self.popup.search_box.setFocus()) # 确保焦点
 
     @Slot()
     def schedule_reload(self):
@@ -645,6 +614,19 @@ class MainController(QObject):
             log(f"执行退出清理时发生错误: {e}")
 
     @Slot()
+    def toggle_hotkeys_enabled(self):
+        self.settings.hotkeys_enabled = not self.settings.hotkeys_enabled
+        self.settings.save()
+        if self.settings.hotkeys_enabled:
+            self.register_hotkeys()
+            log("快捷键已启用。")
+        else:
+            self.unregister_hotkeys()
+            log("快捷键已禁用。")
+        if hasattr(self, 'toggle_hotkeys_action'):
+            self.toggle_hotkeys_action.setChecked(self.settings.hotkeys_enabled)
+
+    @Slot()
     def toggle_theme(self):
         new_theme = "light" if self.settings.theme == "dark" else "dark"
         self.settings.theme = new_theme; self.settings.save()
@@ -678,14 +660,6 @@ class MainController(QObject):
         log(f"拼音首字母匹配: {'开启' if self.settings.pinyin_initial_search else '关闭'}")
         if hasattr(self, 'pinyin_search_action'):
             self.pinyin_search_action.setChecked(self.settings.pinyin_initial_search)
-
-    @Slot()
-    def toggle_semicolon_hotkey(self):
-        self.settings.semicolon_hotkey = not self.settings.semicolon_hotkey
-        self.settings.save()
-        log(f"分号键复制查询: {'开启' if self.settings.semicolon_hotkey else '关闭'}")
-        if hasattr(self, 'semicolon_hotkey_action'):
-            self.semicolon_hotkey_action.setChecked(self.settings.semicolon_hotkey)
 
     def apply_menu_theme(self):
         if not self.menu: return
@@ -738,10 +712,15 @@ if __name__ == "__main__":
     menu.addSeparator()
     
     # --- 主要功能 ---
+    controller.toggle_hotkeys_action = QAction("启用快捷键", checkable=True)
+    controller.toggle_hotkeys_action.setChecked(settings_manager.hotkeys_enabled)
+    controller.toggle_hotkeys_action.triggered.connect(controller.toggle_hotkeys_enabled)
+    menu.addAction(controller.toggle_hotkeys_action)
+    menu.addSeparator()
+
     open_action = QAction("打开词库文件(&O)"); open_action.triggered.connect(lambda: webbrowser.open(os.path.abspath(WORD_FILE))); menu.addAction(open_action)
     
     # --- 设置 ---
-    menu.addSeparator()
     controller.multi_word_search_action = QAction("打空格多词包含搜索", checkable=True)
     controller.multi_word_search_action.setChecked(settings_manager.multi_word_search)
     controller.multi_word_search_action.triggered.connect(controller.toggle_multi_word_search)
@@ -752,12 +731,6 @@ if __name__ == "__main__":
     controller.pinyin_search_action.triggered.connect(controller.toggle_pinyin_initial_search)
     menu.addAction(controller.pinyin_search_action)
 
-    controller.semicolon_hotkey_action = QAction("；键复制查询", checkable=True)
-    controller.semicolon_hotkey_action.setChecked(settings_manager.semicolon_hotkey)
-    controller.semicolon_hotkey_action.triggered.connect(controller.toggle_semicolon_hotkey)
-    menu.addAction(controller.semicolon_hotkey_action)
-
-    menu.addSeparator()
 
     initial_toggle_text = f"切换到 {'夜间' if settings_manager.theme == 'light' else '日间'} 模式"
     controller.toggle_theme_action = QAction(initial_toggle_text); controller.toggle_theme_action.triggered.connect(controller.toggle_theme); menu.addAction(controller.toggle_theme_action)
