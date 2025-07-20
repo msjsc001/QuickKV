@@ -1,7 +1,6 @@
 # QuickKV - 轻量级快捷输入补全工具
 
-![alt text](PixPin_2025-07-19_11-57-58.png)
-![PixPin_2025-07-20_22-31-31](https://github.com/user-attachments/assets/9e9714b5-c619-431a-a2b3-9b784be9ef67)
+**QuickKV是一款轻量、高效、零门槛、易迁移、高度可定制的中文联自动补全输快捷输入增强工具**。它能让您将所有常用的文本片段（如邮箱、代码、模板、常用回复等）保存在一个简单的 Markdown 文件中，并通过全局热键 `Ctrl+Space` 在任何应用程序中即时搜索并粘贴它们，极大地提升您的输入效率。
 
 <p align="center">
   <a href="https://github.com/msjsc001/QuickKV/releases/latest"><img src="https://img.shields.io/github/v/release/msjsc001/QuickKV"></a>
@@ -9,7 +8,9 @@
   <a href="https://github.com/msjsc001/QuickKV/releases"><img src="https://img.shields.io/github/downloads/msjsc001/QuickKV/total?label=Downloads&color=brightgreen"></a>
 </p>
 
-**QuickKV是一款轻量、高效、零门槛、易迁移、高度可定制的中文联自动补全输快捷输入增强工具**。它能让您将所有常用的文本片段（如邮箱、代码、模板、常用回复等）保存在一个简单的 Markdown 文件中，并通过全局热键 `Ctrl+Space` 在任何应用程序中即时搜索并粘贴它们，极大地提升您的输入效率。
+![alt text](PixPin_2025-07-19_11-57-58.png)
+![PixPin_2025-07-20_22-31-31](https://github.com/user-attachments/assets/9e9714b5-c619-431a-a2b3-9b784be9ef67)
+![alt text](20210606180518.gif)
 
 ---
 
@@ -154,7 +155,7 @@ pip install PySide6 keyboard pyperclip pypinyin
     pyinstaller --noconsole --icon="icon.png" --add-data "icon.png;." quick_kv.py
     ```
     *   `--noconsole`: 运行时不显示命令行窗口。
-    *   `--icon`: 为 `.exe` 文件指定图标。
+    *   `--icon`: 为 `.exe` 文件和系统托盘指定图标。
     *   `--add-data`: 将图标资源打包。`词库.md` 和 `config.ini` 会在首次运行时自动生成，无需打包。
 
 3.  **获取结果**:
