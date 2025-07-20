@@ -154,7 +154,7 @@ pip install PySide6 keyboard pyperclip pypinyin
     pyinstaller --noconsole --icon="icon.png" --add-data "icon.png;." quick_kv.py
     ```
     *   `--noconsole`: 运行时不显示命令行窗口。
-    *   `--icon`: 为 `.exe` 文件指定图标。
+    *   `--icon`: 为 `.exe` 文件和系统托盘指定图标。
     *   `--add-data`: 将图标资源打包。`词库.md` 和 `config.ini` 会在首次运行时自动生成，无需打包。
 
 3.  **获取结果**:
