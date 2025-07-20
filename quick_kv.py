@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-QuickKV v1.0.0
+QuickKV v1.0.2
 """
 import sys
 import os
 import webbrowser
 import configparser
+import hashlib
 from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLineEdit,
                              QListWidget, QSystemTrayIcon, QMenu, QSizeGrip,
                              QGraphicsDropShadowEffect, QPushButton,
@@ -15,6 +16,7 @@ from PySide6.QtCore import (Qt, Signal, Slot, QObject, QFileSystemWatcher,
 from PySide6.QtGui import QIcon, QAction, QCursor, QPixmap, QPainter, QColor
 import keyboard
 import pyperclip
+from pypinyin import pinyin, Style
 
 # --- 全局配置 ---
 def get_base_path():
@@ -46,7 +48,7 @@ ICON_PATH = resource_path("icon.png")
 # --- 其他配置 ---
 HOTKEY = "ctrl+space"
 DEBUG_MODE = True
-VERSION = "1.0"
+VERSION = "1.0.2" # 版本号
 
 def log(message):
     if DEBUG_MODE:
@@ -115,12 +117,16 @@ class SettingsManager:
         if not self.config.has_section('Theme'): self.config.add_section('Theme')
         if not self.config.has_section('Font'): self.config.add_section('Font')
         if not self.config.has_section('Search'): self.config.add_section('Search')
+        if not self.config.has_section('Data'): self.config.add_section('Data')
         
         self.width = self.config.getint('Window', 'width', fallback=450)
         self.height = self.config.getint('Window', 'height', fallback=300)
         self.theme = self.config.get('Theme', 'mode', fallback='dark')
         self.font_size = self.config.getint('Font', 'size', fallback=14)
         self.multi_word_search = self.config.getboolean('Search', 'multi_word_search', fallback=True)
+        self.pinyin_initial_search = self.config.getboolean('Search', 'pinyin_initial_search', fallback=True)
+        self.semicolon_hotkey = self.config.getboolean('Search', 'semicolon_hotkey', fallback=True)
+        self.last_sorted_hash = self.config.get('Data', 'last_sorted_hash', fallback='')
 
     def save(self):
         self.config['Window']['width'] = str(self.width)
@@ -128,6 +134,9 @@ class SettingsManager:
         self.config['Theme']['mode'] = self.theme
         self.config['Font']['size'] = str(self.font_size)
         self.config['Search']['multi_word_search'] = str(self.multi_word_search)
+        self.config['Search']['pinyin_initial_search'] = str(self.pinyin_initial_search)
+        self.config['Search']['semicolon_hotkey'] = str(self.semicolon_hotkey)
+        self.config['Data']['last_sorted_hash'] = str(self.last_sorted_hash)
         
         with open(self.file_path, 'w', encoding='utf-8') as configfile:
             self.config.write(configfile)
@@ -141,12 +150,24 @@ class WordManager:
         self.words = []
         self.load_words()
 
+    def _get_pinyin_sort_key(self, text):
+        """获取用于排序的拼音key（辅助函数）"""
+        return "".join(item[0] for item in pinyin(text, style=Style.NORMAL))
+
+    def _get_pinyin_initials(self, text):
+        """获取文本的拼音首字母（小写）"""
+        return "".join(item[0] for item in pinyin(text, style=Style.FIRST_LETTER))
+
     def load_words(self):
         log(f"开始从 {self.file_path} 加载词库...")
         try:
-            with open(self.file_path, 'r', encoding='utf-8') as f: lines = f.readlines()
-            self.words = sorted([line.strip()[2:].strip() for line in lines if line.strip().startswith('- ')])
-            log(f"成功加载 {len(self.words)} 个词条。")
+            with open(self.file_path, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+            
+            raw_words = [line.strip()[2:].strip() for line in lines if line.strip().startswith('- ')]
+            # 加载时就按拼音排序
+            self.words = sorted(raw_words, key=self._get_pinyin_sort_key)
+            log(f"成功加载并排序 {len(self.words)} 个词条。")
         except FileNotFoundError:
             log(f"词库文件不存在，在 {self.file_path} 创建一个新文件。")
             with open(self.file_path, 'w', encoding='utf-8') as f:
@@ -156,20 +177,77 @@ class WordManager:
             log(f"加载词库时发生错误: {e}")
             self.words = []
 
-    def find_matches(self, query, multi_word_search_enabled=False):
-        if not query: return self.words
+    def find_matches(self, query, multi_word_search_enabled=False, pinyin_search_enabled=False):
+        if not query:
+            return self.words
+
         query_lower = query.lower()
-        
+        matches = []
+
         if multi_word_search_enabled and ' ' in query_lower.strip():
             keywords = [k for k in query_lower.split(' ') if k]
-            if not keywords: return [word for word in self.words if query_lower in word.lower()]
-            
-            return [
-                word for word in self.words
-                if all(keyword in word.lower() for keyword in keywords)
-            ]
+            if not keywords:
+                matches = [word for word in self.words if query_lower in word.lower()]
+            else:
+                if pinyin_search_enabled:
+                    # 模式: 多词 + 拼音
+                    matches = [
+                        word for word in self.words
+                        if all(
+                            (keyword in word.lower() or keyword in self._get_pinyin_initials(word))
+                            for keyword in keywords
+                        )
+                    ]
+                else:
+                    # 模式: 仅多词
+                    matches = [
+                        word for word in self.words
+                        if all(keyword in word.lower() for keyword in keywords)
+                    ]
         else:
-            return [word for word in self.words if query_lower in word.lower()]
+            # 模式: 单短语搜索 (无论多词开关是否开启)
+            if pinyin_search_enabled:
+                # 模式: 单短语 + 拼音
+                matches = [
+                    word for word in self.words
+                    if query_lower in word.lower() or query_lower in self._get_pinyin_initials(word)
+                ]
+            else:
+                # 模式: 仅单短语
+                matches = [word for word in self.words if query_lower in word.lower()]
+
+        return sorted(matches, key=self._get_pinyin_sort_key)
+
+    def _calculate_sorted_hash(self, lines):
+        """计算排序后内容的哈希值"""
+        valid_lines = [line.strip() for line in lines if line.strip().startswith('- ')]
+        sorted_lines = sorted(valid_lines, key=lambda line: self._get_pinyin_sort_key(line[2:].strip()))
+        # 将所有行连接成一个字符串，然后计算哈希
+        content_string = "\n".join(sorted_lines)
+        return hashlib.sha256(content_string.encode('utf-8')).hexdigest()
+
+    def sort_and_save_words(self):
+        """读取、按拼音排序并保存词库文件，返回新内容的哈希值"""
+        log(f"开始按拼音排序并保存词库文件: {self.file_path}")
+        try:
+            with open(self.file_path, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+
+            valid_lines = [line.strip() for line in lines if line.strip().startswith('- ')]
+            sorted_lines = sorted(valid_lines, key=lambda line: self._get_pinyin_sort_key(line[2:].strip()))
+            
+            # 写入文件
+            sorted_content = '\n'.join(sorted_lines) + '\n'
+            with open(self.file_path, 'w', encoding='utf-8') as f:
+                f.write(sorted_content)
+            
+            # 计算并返回新内容的哈希值
+            new_hash = hashlib.sha256(sorted_content.encode('utf-8')).hexdigest()
+            log(f"词库文件按拼音排序并保存成功。新哈希: {new_hash}")
+            return new_hash
+        except Exception as e:
+            log(f"按拼音排序和保存词库时发生错误: {e}")
+            return None
 
 
 # --- 搜索弹出窗口UI (滚动条修复) ---
@@ -411,7 +489,7 @@ class SearchPopup(QWidget):
     
     @Slot(str)
     def update_list(self, text):
-        matches = self.word_manager.find_matches(text, self.settings.multi_word_search)
+        matches = self.word_manager.find_matches(text, self.settings.multi_word_search, self.settings.pinyin_initial_search)
         self.list_widget.clear()
         self.list_widget.addItems(matches)
         if self.list_widget.count() > 0: self.list_widget.setCurrentRow(0)
@@ -440,6 +518,7 @@ class MainController(QObject):
     # ... (代码无变化)
     show_popup_signal = Signal()
     hide_popup_signal = Signal()
+    semicolon_hotkey_signal = Signal() # 用于从热键线程安全地触发操作
 
     def __init__(self, app, word_manager, settings_manager, hotkey):
         super().__init__(); self.app = app; self.word_manager = word_manager; self.settings = settings_manager; self.menu = None
@@ -447,11 +526,20 @@ class MainController(QObject):
         self.show_popup_signal.connect(self.popup.show_and_focus)
         self.hide_popup_signal.connect(self.popup.hide)
         self.popup.suggestion_selected.connect(self.on_suggestion_selected)
+        self.semicolon_hotkey_signal.connect(self.execute_semicolon_action)
         try:
             keyboard.add_hotkey(hotkey, self.on_hotkey_triggered)
             log(f"全局热键 '{hotkey}' 注册成功。")
         except Exception as e:
             log(f"注册热键失败，可能是权限问题: {e}")
+
+        try:
+            # 使用 suppress=True 来阻止原始的分号输入，由我们的逻辑决定是否重新发送它
+            keyboard.add_hotkey(";", self.on_semicolon_triggered, suppress=True)
+            log("分号快捷键 ';' 注册成功。")
+        except Exception as e:
+            log(f"注册分号快捷键失败: {e}")
+
         self.file_watcher = QFileSystemWatcher([self.word_manager.file_path])
         self.file_watcher.fileChanged.connect(self.schedule_reload)
         self.reload_timer = QTimer(self); self.reload_timer.setSingleShot(True); self.reload_timer.setInterval(300); self.reload_timer.timeout.connect(self.reload_word_file)
@@ -462,8 +550,47 @@ class MainController(QObject):
         else:
             log("热键触发：打开窗口。"); self.show_popup_signal.emit()
 
+    def on_semicolon_triggered(self):
+        """热键回调（在非GUI线程中运行）。仅发出信号以将工作传递给主线程。"""
+        self.semicolon_hotkey_signal.emit()
+
     @Slot()
-    def schedule_reload(self): log("检测到文件变化，安排重载..."); self.reload_timer.start()
+    def execute_semicolon_action(self):
+        """此槽在主GUI线程中安全执行。"""
+        if not self.settings.semicolon_hotkey:
+            keyboard.send(";")  # 功能已关闭，重新发送被抑制的按键
+            return
+
+        log("分号快捷键动作执行。")
+        # 1. 模拟复制操作
+        keyboard.press_and_release('ctrl+shift+left')
+        QTimer.singleShot(50, self.copy_and_show)  # 后续所有操作现在都是安全的
+
+    def copy_and_show(self):
+        pyperclip.copy('') # 清空剪贴板以备后续检查
+        keyboard.press_and_release('ctrl+c')
+        QTimer.singleShot(50, self.show_with_clipboard_content)
+
+    def show_with_clipboard_content(self):
+        keyboard.press_and_release('delete') # 删除选中的文本
+        
+        # 延迟获取剪贴板内容
+        QTimer.singleShot(100, self.fetch_clipboard_and_show)
+
+    def fetch_clipboard_and_show(self):
+        copied_text = pyperclip.paste()
+        log(f"已复制内容: '{copied_text}'")
+        
+        if copied_text:
+            self.show_popup_signal.emit()
+            # 再次延迟以确保窗口已显示
+            QTimer.singleShot(50, lambda: self.popup.search_box.setText(copied_text))
+            QTimer.singleShot(60, lambda: self.popup.search_box.setFocus()) # 确保焦点
+
+    @Slot()
+    def schedule_reload(self):
+        log("检测到文件变化，安排重载...");
+        self.reload_timer.start()
     @Slot()
     def reload_word_file(self):
         log("执行词库重载。"); self.word_manager.load_words()
@@ -491,6 +618,33 @@ class MainController(QObject):
             # 再次延迟以确保粘贴完成
             QTimer.singleShot(50, self.popup.reappear_in_place)
     @Slot()
+    def cleanup_and_exit(self):
+        """在退出前执行清理工作，基于内容哈希校验来决定是否排序。"""
+        try:
+            with open(self.word_manager.file_path, 'r', encoding='utf-8') as f:
+                current_lines = f.readlines()
+            
+            # 计算当前文件内容排序后的哈希值
+            current_sorted_hash = self.word_manager._calculate_sorted_hash(current_lines)
+            
+            log(f"退出检查：当前排序后哈希 {current_sorted_hash}, 上次保存的哈希 {self.settings.last_sorted_hash}")
+
+            # 如果当前排序后的哈希与上次保存的哈希不一致，说明文件内容有变动
+            if current_sorted_hash != self.settings.last_sorted_hash:
+                log("检测到词库内容已更改，正在执行退出前排序...")
+                new_hash = self.word_manager.sort_and_save_words()
+                if new_hash:
+                    self.settings.last_sorted_hash = new_hash
+                    self.settings.save()
+                    log(f"新的排序哈希 {new_hash} 已保存。")
+            else:
+                log("词库内容未更改，无需排序，直接退出。")
+        except FileNotFoundError:
+            log("词库文件不存在，无需执行退出排序。")
+        except Exception as e:
+            log(f"执行退出清理时发生错误: {e}")
+
+    @Slot()
     def toggle_theme(self):
         new_theme = "light" if self.settings.theme == "dark" else "dark"
         self.settings.theme = new_theme; self.settings.save()
@@ -516,6 +670,22 @@ class MainController(QObject):
             log(f"字体大小已更新为: {new_size}")
             self.popup.apply_theme()
             QMessageBox.information(None, "成功", f"字体大小已设置为 {new_size}！")
+
+    @Slot()
+    def toggle_pinyin_initial_search(self):
+        self.settings.pinyin_initial_search = not self.settings.pinyin_initial_search
+        self.settings.save()
+        log(f"拼音首字母匹配: {'开启' if self.settings.pinyin_initial_search else '关闭'}")
+        if hasattr(self, 'pinyin_search_action'):
+            self.pinyin_search_action.setChecked(self.settings.pinyin_initial_search)
+
+    @Slot()
+    def toggle_semicolon_hotkey(self):
+        self.settings.semicolon_hotkey = not self.settings.semicolon_hotkey
+        self.settings.save()
+        log(f"分号键复制查询: {'开启' if self.settings.semicolon_hotkey else '关闭'}")
+        if hasattr(self, 'semicolon_hotkey_action'):
+            self.semicolon_hotkey_action.setChecked(self.settings.semicolon_hotkey)
 
     def apply_menu_theme(self):
         if not self.menu: return
@@ -577,6 +747,18 @@ if __name__ == "__main__":
     controller.multi_word_search_action.triggered.connect(controller.toggle_multi_word_search)
     menu.addAction(controller.multi_word_search_action)
 
+    controller.pinyin_search_action = QAction("拼音首字母匹配", checkable=True)
+    controller.pinyin_search_action.setChecked(settings_manager.pinyin_initial_search)
+    controller.pinyin_search_action.triggered.connect(controller.toggle_pinyin_initial_search)
+    menu.addAction(controller.pinyin_search_action)
+
+    controller.semicolon_hotkey_action = QAction("；键复制查询", checkable=True)
+    controller.semicolon_hotkey_action.setChecked(settings_manager.semicolon_hotkey)
+    controller.semicolon_hotkey_action.triggered.connect(controller.toggle_semicolon_hotkey)
+    menu.addAction(controller.semicolon_hotkey_action)
+
+    menu.addSeparator()
+
     initial_toggle_text = f"切换到 {'夜间' if settings_manager.theme == 'light' else '日间'} 模式"
     controller.toggle_theme_action = QAction(initial_toggle_text); controller.toggle_theme_action.triggered.connect(controller.toggle_theme); menu.addAction(controller.toggle_theme_action)
     
@@ -591,5 +773,8 @@ if __name__ == "__main__":
     log("程序启动成功，正在后台运行。")
     print(f"按下 '{HOTKEY}' 来激活或关闭窗口。")
     print(f"当前主题: {settings_manager.theme}。右键点击托盘图标可进行设置。")
+    
+    # 连接 aboutToQuit 信号到清理函数
+    app.aboutToQuit.connect(controller.cleanup_and_exit)
     
     sys.exit(app.exec())
