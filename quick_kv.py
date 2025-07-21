@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-QuickKV v1.0.3
+QuickKV v1.0.4
 """
 import sys
 import os
@@ -48,7 +48,7 @@ ICON_PATH = resource_path("icon.png")
 # --- 其他配置 ---
 HOTKEY = "ctrl+space"
 DEBUG_MODE = True
-VERSION = "1.0.3" # 版本号
+VERSION = "1.0.4" # 版本号
 
 def log(message):
     if DEBUG_MODE:
@@ -79,29 +79,54 @@ class StyledItemDelegate(QStyledItemDelegate):
         theme = self.themes[self.settings.theme]
         painter.save()
         rect = option.rect
-        text = index.data(Qt.DisplayRole)
-
-        # 根据状态绘制背景
+        full_text = index.data(Qt.DisplayRole)
+        lines = full_text.split('\n')
+        
+        # 绘制背景
         if option.state & QStyle.State_Selected:
             painter.fillRect(rect, QColor(theme['item_selected_bg']))
-            painter.setPen(QColor(theme['item_selected_text']))
         elif option.state & QStyle.State_MouseOver:
             painter.fillRect(rect, QColor(theme['item_hover_bg']))
-            painter.setPen(QColor(theme['text_color']))
         else:
-            # 恢复为最稳妥的方案：为普通状态明确绘制背景
             painter.fillRect(rect, QColor(theme['bg_color']))
-            painter.setPen(QColor(theme['text_color']))
 
-        # 绘制文字 (带内边距)
-        # QListWidget::item 的 padding 已经包含在 option.rect 中，我们只需对齐
-        painter.drawText(rect, Qt.AlignVCenter | Qt.AlignLeft, "  " + text)
+        # 准备绘制文本
+        fm = option.fontMetrics
+        line_height = fm.height()
+        padding_v = 5 # 垂直内边距
+        padding_h = 8 # 水平内边距
+        
+        # 绘制每一行
+        for i, line in enumerate(lines):
+            text_rect = QRect(rect.x() + padding_h, rect.y() + padding_v + i * line_height, rect.width() - (padding_h * 2), line_height)
+            
+            # 设置颜色
+            if i == 0: # 父级
+                parent_text = line[2:].strip() if line.startswith('- ') else line
+                if option.state & QStyle.State_Selected:
+                    painter.setPen(QColor(theme['item_selected_text']))
+                else:
+                    painter.setPen(QColor(theme['text_color']))
+                painter.drawText(text_rect, Qt.AlignVCenter | Qt.AlignLeft, parent_text)
+            else: # 子级
+                child_color_base = QColor(theme['item_selected_text']) if option.state & QStyle.State_Selected else QColor(theme['text_color'])
+                child_color_base.setAlpha(150) # 统一设置为半透明灰色效果
+                painter.setPen(child_color_base)
+                painter.drawText(text_rect, Qt.AlignVCenter | Qt.AlignLeft, line)
+
         painter.restore()
 
     def sizeHint(self, option, index):
-        # 确保项目有足够的高度
+        full_text = index.data(Qt.DisplayRole)
+        lines = full_text.split('\n')
+        fm = option.fontMetrics
+        line_height = fm.height()
+        padding = 10 # 上下总内边距
+        
+        height = len(lines) * line_height + padding
+        
         size = super().sizeHint(option, index)
-        size.setHeight(36) # 可以根据字体大小动态调整
+        size.setHeight(height)
         return size
 
 # --- 设置管理器 ---
@@ -148,7 +173,7 @@ class WordManager:
     # ... (代码无变化)
     def __init__(self, file_path):
         self.file_path = file_path
-        self.words = []
+        self.word_blocks = [] # 新的数据结构
         self.load_words()
 
     def _get_pinyin_sort_key(self, text):
@@ -161,70 +186,109 @@ class WordManager:
 
     def load_words(self):
         log(f"开始从 {self.file_path} 加载词库...")
+        self.word_blocks = []
         try:
             with open(self.file_path, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
-            
-            raw_words = [line.strip()[2:].strip() for line in lines if line.strip().startswith('- ')]
-            # 加载时就按拼音排序
-            self.words = sorted(raw_words, key=self._get_pinyin_sort_key)
-            log(f"成功加载并排序 {len(self.words)} 个词条。")
+
+            current_block = None
+            for line in lines:
+                # 修复：直接检查行首，而不是strip()之后，以正确处理空行和缩进行
+                if line.startswith('- '):
+                    # 发现新的父级，保存上一个块
+                    if current_block:
+                        current_block['full_content'] = '\n'.join(current_block['raw_lines'])
+                        self.word_blocks.append(current_block)
+                    
+                    # 开始一个新块
+                    parent_text = line.strip()[2:].strip()
+                    exclude_parent_tag = '``不出现``'
+                    should_exclude = exclude_parent_tag in parent_text
+                    
+                    if should_exclude:
+                        parent_text = parent_text.replace(exclude_parent_tag, '').strip()
+
+                    current_block = {
+                        'parent': parent_text,
+                        'raw_lines': [line.rstrip()],
+                        'exclude_parent': should_exclude
+                    }
+                elif current_block:
+                    # 如果是子内容行（包括空行），添加到当前块
+                    current_block['raw_lines'].append(line.rstrip())
+
+            # 保存最后一个块
+            if current_block:
+                current_block['full_content'] = '\n'.join(current_block['raw_lines'])
+                self.word_blocks.append(current_block)
+
+            # 按父级拼音排序
+            self.word_blocks.sort(key=lambda block: self._get_pinyin_sort_key(block['parent']))
+            log(f"成功加载并排序 {len(self.word_blocks)} 个词条块。")
+
         except FileNotFoundError:
             log(f"词库文件不存在，在 {self.file_path} 创建一个新文件。")
             with open(self.file_path, 'w', encoding='utf-8') as f:
-                f.write("- 这是一个示例词条\n- Hello World\n" + "\n".join([f"- 示例词条 {i}" for i in range(30)]))
-            self.words = ["这是一个示例词条", "Hello World"] + [f"示例词条 {i}" for i in range(30)]
+                f.write("- 这是一个示例父级\n  这是它的子内容\n- Hello World")
+            self.load_words() # 重新加载
         except Exception as e:
             log(f"加载词库时发生错误: {e}")
-            self.words = []
+            self.word_blocks = []
 
     def find_matches(self, query, multi_word_search_enabled=False, pinyin_search_enabled=False):
         if not query:
-            return self.words
+            return self.word_blocks
 
         query_lower = query.lower()
-        matches = []
+        matched_blocks = []
 
         if multi_word_search_enabled and ' ' in query_lower.strip():
             keywords = [k for k in query_lower.split(' ') if k]
             if not keywords:
-                matches = [word for word in self.words if query_lower in word.lower()]
+                matched_blocks = [block for block in self.word_blocks if query_lower in block['parent'].lower()]
             else:
                 if pinyin_search_enabled:
                     # 模式: 多词 + 拼音
-                    matches = [
-                        word for word in self.words
+                    matched_blocks = [
+                        block for block in self.word_blocks
                         if all(
-                            (keyword in word.lower() or keyword in self._get_pinyin_initials(word))
+                            (keyword in block['parent'].lower() or keyword in self._get_pinyin_initials(block['parent']))
                             for keyword in keywords
                         )
                     ]
                 else:
                     # 模式: 仅多词
-                    matches = [
-                        word for word in self.words
-                        if all(keyword in word.lower() for keyword in keywords)
+                    matched_blocks = [
+                        block for block in self.word_blocks
+                        if all(keyword in block['parent'].lower() for keyword in keywords)
                     ]
         else:
-            # 模式: 单短语搜索 (无论多词开关是否开启)
+            # 模式: 单短语搜索
             if pinyin_search_enabled:
                 # 模式: 单短语 + 拼音
-                matches = [
-                    word for word in self.words
-                    if query_lower in word.lower() or query_lower in self._get_pinyin_initials(word)
+                matched_blocks = [
+                    block for block in self.word_blocks
+                    if query_lower in block['parent'].lower() or query_lower in self._get_pinyin_initials(block['parent'])
                 ]
             else:
                 # 模式: 仅单短语
-                matches = [word for word in self.words if query_lower in word.lower()]
-
-        return sorted(matches, key=self._get_pinyin_sort_key)
+                matched_blocks = [block for block in self.word_blocks if query_lower in block['parent'].lower()]
+        
+        # 排序并返回完整块对象的列表
+        matched_blocks.sort(key=lambda block: self._get_pinyin_sort_key(block['parent']))
+        return matched_blocks
 
     def _calculate_sorted_hash(self, lines):
         """计算排序后内容的哈希值"""
-        valid_lines = [line.strip() for line in lines if line.strip().startswith('- ')]
-        sorted_lines = sorted(valid_lines, key=lambda line: self._get_pinyin_sort_key(line[2:].strip()))
-        # 将所有行连接成一个字符串，然后计算哈希
-        content_string = "\n".join(sorted_lines)
+        # 我们现在需要处理整个块，而不仅仅是父行
+        # 为了简化，我们直接比较原始行
+        # 修复：哈希计算应基于稳定的、排序后的内容，而不是原始文件行
+        # 重新加载以获取正确的、排序后的块结构
+        self.load_words()
+        sorted_lines_for_hash = []
+        for block in self.word_blocks:
+            sorted_lines_for_hash.extend(block['raw_lines'])
+        content_string = "\n".join(sorted_lines_for_hash)
         return hashlib.sha256(content_string.encode('utf-8')).hexdigest()
 
     def sort_and_save_words(self):
@@ -234,11 +298,16 @@ class WordManager:
             with open(self.file_path, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
 
-            valid_lines = [line.strip() for line in lines if line.strip().startswith('- ')]
-            sorted_lines = sorted(valid_lines, key=lambda line: self._get_pinyin_sort_key(line[2:].strip()))
+            # 重新加载以获取正确的块结构
+            # self.load_words() 已经在 cleanup_and_exit 的哈希检查部分被间接调用
+            # self.word_blocks 此时已经是排序好的
             
-            # 写入文件
-            sorted_content = '\n'.join(sorted_lines) + '\n'
+            # 从排序好的块中重建文件内容
+            sorted_content_lines = []
+            for block in self.word_blocks:
+                sorted_content_lines.extend(block['raw_lines'])
+            
+            sorted_content = '\n'.join(sorted_content_lines) + '\n'
             with open(self.file_path, 'w', encoding='utf-8') as f:
                 f.write(sorted_content)
             
@@ -490,9 +559,12 @@ class SearchPopup(QWidget):
     
     @Slot(str)
     def update_list(self, text):
-        matches = self.word_manager.find_matches(text, self.settings.multi_word_search, self.settings.pinyin_initial_search)
+        matched_blocks = self.word_manager.find_matches(text, self.settings.multi_word_search, self.settings.pinyin_initial_search)
         self.list_widget.clear()
-        self.list_widget.addItems(matches)
+        for block in matched_blocks:
+            # 将完整内容（包括父级和子级）作为一项添加到列表中
+            # 渲染将由 delegate 处理
+            self.list_widget.addItem(block['full_content'])
         if self.list_widget.count() > 0: self.list_widget.setCurrentRow(0)
     
     @Slot("QListWidgetItem")
@@ -566,8 +638,31 @@ class MainController(QObject):
         if self.popup.isVisible(): self.popup.update_list(self.popup.search_box.text())
     @Slot(str)
     def on_suggestion_selected(self, text):
-        log(f"已选择词条: '{text}'")
-        pyperclip.copy(text)
+        log(f"已选择词条块: '{text}'")
+        
+        content_to_paste = "" # 初始化为空
+        
+        # text 是 full_content，我们需要通过它找到原始块
+        found_block = None
+        for block in self.word_manager.word_blocks:
+            if block['full_content'] == text:
+                found_block = block
+                break
+        
+        if found_block:
+            if found_block['exclude_parent']:
+                # 只输出子内容
+                content_to_paste = '\n'.join(found_block['raw_lines'][1:])
+            else:
+                # 输出父级（移除- ）+ 子内容
+                first_line = found_block['raw_lines'][0].replace('- ', '', 1)
+                content_to_paste = '\n'.join([first_line] + found_block['raw_lines'][1:])
+        else:
+            # 如果找不到块，作为备用方案，按旧方式处理
+            content_to_paste = text.replace('- ', '', 1)
+
+        pyperclip.copy(content_to_paste)
+        log(f"已复制处理后的内容到剪贴板。")
         
         # 延迟执行粘贴，确保焦点已切换
         QTimer.singleShot(200, self.perform_paste)
@@ -731,6 +826,8 @@ if __name__ == "__main__":
     controller.pinyin_search_action.triggered.connect(controller.toggle_pinyin_initial_search)
     menu.addAction(controller.pinyin_search_action)
 
+
+    menu.addSeparator()
 
     initial_toggle_text = f"切换到 {'夜间' if settings_manager.theme == 'light' else '日间'} 模式"
     controller.toggle_theme_action = QAction(initial_toggle_text); controller.toggle_theme_action.triggered.connect(controller.toggle_theme); menu.addAction(controller.toggle_theme_action)
