@@ -9,7 +9,16 @@
   <a href="https://github.com/msjsc001/QuickKV/releases"><img src="https://img.shields.io/github/downloads/msjsc001/QuickKV/total?label=Downloads&color=brightgreen"></a>
 </p>
 
-![alt text](PixPin_2025-07-19_11-57-58.png)![PixPin_2025-07-20_22-31-31](https://github.com/user-attachments/assets/9e9714b5-c619-431a-a2b3-9b784be9ef67)![alt text](20210606180518.gif)
+<img width="1169" height="1045" alt="PixPin_2025-07-19_11-57-58" src="https://github.com/user-attachments/assets/c63fb704-32e6-4d74-98d0-a508e156c0f9" />
+
+![PixPin_2025-07-20_22-31-31](https://github.com/user-attachments/assets/9e9714b5-c619-431a-a2b3-9b784be9ef67)
+（注：方式2已经在1.0.3取消）
+
+![PixPin_2025-07-21_19-09-56](https://github.com/user-attachments/assets/8a85521a-a8d9-4288-9b00-b61229b5bb71)
+
+
+![20210606180518](https://github.com/user-attachments/assets/57899cd2-30d2-4fdc-8c74-33f18cad5ff4)
+
 
 ---
 
