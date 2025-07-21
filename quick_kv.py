@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-QuickKV v1.0.4
+QuickKV v1.0.4.1
 """
 import sys
 import os
@@ -48,7 +48,7 @@ ICON_PATH = resource_path("icon.png")
 # --- 其他配置 ---
 HOTKEY = "ctrl+space"
 DEBUG_MODE = True
-VERSION = "1.0.4" # 版本号
+VERSION = "1.0.4.1" # 版本号
 
 def log(message):
     if DEBUG_MODE:
@@ -146,6 +146,7 @@ class SettingsManager:
         if not self.config.has_section('General'): self.config.add_section('General')
 
         self.hotkeys_enabled = self.config.getboolean('General', 'hotkeys_enabled', fallback=True)
+        self.hook_refresh_interval = self.config.getint('General', 'hook_refresh_interval', fallback=5)
         self.width = self.config.getint('Window', 'width', fallback=450)
         self.height = self.config.getint('Window', 'height', fallback=300)
         self.theme = self.config.get('Theme', 'mode', fallback='dark')
@@ -156,6 +157,7 @@ class SettingsManager:
 
     def save(self):
         self.config['General']['hotkeys_enabled'] = str(self.hotkeys_enabled)
+        self.config['General']['hook_refresh_interval'] = str(self.hook_refresh_interval)
         self.config['Window']['width'] = str(self.width)
         self.config['Window']['height'] = str(self.height)
         self.config['Theme']['mode'] = self.theme
@@ -607,6 +609,11 @@ class MainController(QObject):
         self.file_watcher.fileChanged.connect(self.schedule_reload)
         self.reload_timer = QTimer(self); self.reload_timer.setSingleShot(True); self.reload_timer.setInterval(300); self.reload_timer.timeout.connect(self.reload_word_file)
 
+        # 初始化钩子重建定时器
+        self.rebuild_timer = QTimer(self)
+        self.rebuild_timer.timeout.connect(self.rebuild_hotkeys)
+        self.update_rebuild_interval()
+
     def register_hotkeys(self):
         try:
             keyboard.add_hotkey(self.hotkey, self.on_hotkey_triggered)
@@ -620,6 +627,25 @@ class MainController(QObject):
             log("全局快捷键已移除。")
         except Exception as e:
             log(f"移除快捷键时发生错误: {e}")
+
+    @Slot()
+    def rebuild_hotkeys(self):
+        if self.settings.hotkeys_enabled:
+            log("正在重建快捷键钩子...")
+            self.unregister_hotkeys()
+            # 短暂延迟以确保钩子完全释放
+            QTimer.singleShot(100, self.register_hotkeys)
+        else:
+            log("快捷键被禁用，跳过重建。")
+
+    def update_rebuild_interval(self):
+        interval_minutes = self.settings.hook_refresh_interval
+        if interval_minutes > 0 and self.settings.hotkeys_enabled:
+            self.rebuild_timer.start(interval_minutes * 60 * 1000)
+            log(f"自动重建钩子已启动，间隔: {interval_minutes} 分钟。")
+        else:
+            self.rebuild_timer.stop()
+            log("自动重建钩子已停止。")
 
     def on_hotkey_triggered(self):
         if not self.settings.hotkeys_enabled: return
@@ -718,6 +744,8 @@ class MainController(QObject):
         else:
             self.unregister_hotkeys()
             log("快捷键已禁用。")
+        
+        self.update_rebuild_interval() # 启用/禁用快捷键时，同步更新定时器状态
         if hasattr(self, 'toggle_hotkeys_action'):
             self.toggle_hotkeys_action.setChecked(self.settings.hotkeys_enabled)
 
@@ -736,6 +764,20 @@ class MainController(QObject):
         if hasattr(self, 'multi_word_search_action'):
             self.multi_word_search_action.setChecked(self.settings.multi_word_search)
         
+    @Slot()
+    def set_rebuild_interval(self):
+        current_interval = self.settings.hook_refresh_interval
+        new_interval, ok = QInputDialog.getInt(None, "设置自动重建间隔",
+                                               "请输入新的间隔分钟数 (0 表示禁用):",
+                                               current_interval, 0, 1440, 1)
+        
+        if ok and new_interval != current_interval:
+            self.settings.hook_refresh_interval = new_interval
+            self.settings.save()
+            log(f"自动重建间隔已更新为: {new_interval} 分钟。")
+            self.update_rebuild_interval()
+            QMessageBox.information(None, "成功", f"自动重建间隔已设置为 {new_interval} 分钟！")
+
     @Slot()
     def set_font_size(self):
         current_size = self.settings.font_size
@@ -815,7 +857,16 @@ if __name__ == "__main__":
 
     open_action = QAction("打开词库文件(&O)"); open_action.triggered.connect(lambda: webbrowser.open(os.path.abspath(WORD_FILE))); menu.addAction(open_action)
     
+    # --- 钩子重建子菜单 ---
+    rebuild_menu = QMenu("重建快捷键钩子")
+    rebuild_now_action = QAction("立即重建"); rebuild_now_action.triggered.connect(controller.rebuild_hotkeys)
+    set_interval_action = QAction("设置自动重建间隔..."); set_interval_action.triggered.connect(controller.set_rebuild_interval)
+    rebuild_menu.addAction(rebuild_now_action)
+    rebuild_menu.addAction(set_interval_action)
+    menu.addMenu(rebuild_menu)
+    
     # --- 设置 ---
+    menu.addSeparator()
     controller.multi_word_search_action = QAction("打空格多词包含搜索", checkable=True)
     controller.multi_word_search_action.setChecked(settings_manager.multi_word_search)
     controller.multi_word_search_action.triggered.connect(controller.toggle_multi_word_search)
