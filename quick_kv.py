@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-QuickKV v1.0.5.7
+QuickKV v1.0.5.8
 """
 import sys
 import os
@@ -8,15 +8,17 @@ import webbrowser
 import configparser
 import hashlib
 import json
+import threading
+import ctypes
+from ctypes import wintypes
 from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLineEdit,
                              QListWidget, QListWidgetItem, QSystemTrayIcon, QMenu, QSizeGrip,
                              QGraphicsDropShadowEffect, QPushButton,
                              QInputDialog, QMessageBox, QStyledItemDelegate, QStyle, QFileDialog,
                              QCheckBox, QWidgetAction)
 from PySide6.QtCore import (Qt, Signal, Slot, QObject, QFileSystemWatcher,
-                          QTimer, QEvent, QRect)
+                          QTimer, QEvent, QRect, QProcess)
 from PySide6.QtGui import QIcon, QAction, QCursor, QPixmap, QPainter, QColor, QPalette
-import keyboard
 import pyperclip
 from pypinyin import pinyin, Style
 
@@ -48,7 +50,7 @@ ICON_PATH = resource_path("icon.png")
 # --- 其他配置 ---
 HOTKEY = "ctrl+space"
 DEBUG_MODE = True
-VERSION = "1.0.5.7" # 版本号
+VERSION = "1.0.5.8" # 版本号
 
 def log(message):
     if DEBUG_MODE:
@@ -146,7 +148,6 @@ class SettingsManager:
         if not self.config.has_section('Restart'): self.config.add_section('Restart')
 
         self.hotkeys_enabled = self.config.getboolean('General', 'hotkeys_enabled', fallback=True)
-        self.hook_refresh_interval = self.config.getint('General', 'hook_refresh_interval', fallback=5)
         self.width = self.config.getint('Window', 'width', fallback=450)
         self.height = self.config.getint('Window', 'height', fallback=300)
         self.theme = self.config.get('Theme', 'mode', fallback='dark')
@@ -174,7 +175,6 @@ class SettingsManager:
 
     def save(self):
         self.config['General']['hotkeys_enabled'] = str(self.hotkeys_enabled)
-        self.config['General']['hook_refresh_interval'] = str(self.hook_refresh_interval)
         self.config['Window']['width'] = str(self.width)
         self.config['Window']['height'] = str(self.height)
         self.config['Theme']['mode'] = self.theme
@@ -876,13 +876,81 @@ class SearchPopup(QWidget):
         text = item.text().replace('- ', '', 1).strip()
         self.controller.add_entry(text, target_path)
 
+# --- 原生快捷键管理器 (Windows) ---
+class NativeHotkeyManager(QObject):
+    hotkey_triggered = Signal(int)
+
+    def __init__(self, hotkey_str):
+        super().__init__()
+        self.user32 = ctypes.windll.user32
+        self.hotkey_id = 1
+        self.mod, self.vk = self._parse_hotkey(hotkey_str)
+        self._running = False
+        self.thread = None
+
+    def _parse_hotkey(self, hotkey_str):
+        parts = hotkey_str.lower().split('+')
+        vk_code = 0
+        mod_code = 0
+        # Modifiers
+        MOD_ALT = 0x0001
+        MOD_CONTROL = 0x0002
+        MOD_SHIFT = 0x0004
+        MOD_WIN = 0x0008
+        
+        if 'ctrl' in parts: mod_code |= MOD_CONTROL
+        if 'alt' in parts: mod_code |= MOD_ALT
+        if 'shift' in parts: mod_code |= MOD_SHIFT
+        if 'win' in parts: mod_code |= MOD_WIN
+        
+        key = parts[-1]
+        if len(key) == 1:
+            vk_code = ord(key.upper())
+        else:
+            # 映射常用功能键, 更多键需要扩展
+            vk_map = {'space': 0x20, 'enter': 0x0D, 'esc': 0x1B, 'f1': 0x70}
+            vk_code = vk_map.get(key, 0)
+            
+        return mod_code, vk_code
+
+    def _listen(self):
+        self.user32.RegisterHotKey(None, self.hotkey_id, self.mod, self.vk)
+        log(f"原生快捷键已注册 (ID: {self.hotkey_id})")
+        
+        try:
+            msg = wintypes.MSG()
+            while self._running and self.user32.GetMessageA(ctypes.byref(msg), None, 0, 0) != 0:
+                if msg.message == 0x0312: # WM_HOTKEY
+                    if msg.wParam == self.hotkey_id:
+                        self.hotkey_triggered.emit(self.hotkey_id)
+                self.user32.TranslateMessage(ctypes.byref(msg))
+                self.user32.DispatchMessageA(ctypes.byref(msg))
+        finally:
+            self.user32.UnregisterHotKey(None, self.hotkey_id)
+            log("原生快捷键已注销。")
+
+    def start(self):
+        if not self._running:
+            self._running = True
+            self.thread = threading.Thread(target=self._listen, daemon=True)
+            self.thread.start()
+            log("原生快捷键监听线程已启动。")
+
+    def stop(self):
+        if self._running:
+            self._running = False
+            # 发送一个空消息来唤醒 GetMessageA 循环，使其能检查 _running 标志
+            # 需要获取线程ID来发送消息
+            ctypes.windll.user32.PostThreadMessageA(self.thread.ident, 0x0012, 0, 0) # WM_QUIT
+            self.thread.join(timeout=1) # 等待线程结束
+            log("原生快捷键监听线程已停止。")
+
 # --- 主控制器 ---
 class MainController(QObject):
-    # ... (代码无变化)
     show_popup_signal = Signal()
     hide_popup_signal = Signal()
 
-    def __init__(self, app, word_manager, settings_manager, hotkey):
+    def __init__(self, app, word_manager, settings_manager):
         super().__init__(); self.app = app; self.word_manager = word_manager; self.settings = settings_manager; self.menu = None
         self.popup = SearchPopup(self.word_manager, self.settings)
         self.popup.controller = self # 将 controller 实例传递给 popup
@@ -890,31 +958,20 @@ class MainController(QObject):
         self.hide_popup_signal.connect(self.popup.hide)
         self.popup.suggestion_selected.connect(self.on_suggestion_selected)
         
-        self.hotkey = hotkey
+        self.hotkey_manager = NativeHotkeyManager(HOTKEY)
+        self.hotkey_manager.hotkey_triggered.connect(self.on_hotkey_triggered)
         if self.settings.hotkeys_enabled:
-            self.register_hotkeys()
+            self.hotkey_manager.start()
 
         self.file_watcher = QFileSystemWatcher(self)
         self.update_file_watcher()
         self.file_watcher.fileChanged.connect(self.schedule_reload)
         self.reload_timer = QTimer(self); self.reload_timer.setSingleShot(True); self.reload_timer.setInterval(300); self.reload_timer.timeout.connect(self.reload_word_file)
 
-        # 初始化钩子重建定时器
-        self.rebuild_timer = QTimer(self)
-        self.rebuild_timer.timeout.connect(self.rebuild_hotkeys)
-        self.update_rebuild_interval()
-
         # 新增：初始化自动重启定时器
         self.auto_restart_timer = QTimer(self)
         self.auto_restart_timer.timeout.connect(self.perform_restart)
         self.update_auto_restart_timer()
-
-    def register_hotkeys(self):
-        try:
-            keyboard.add_hotkey(self.hotkey, self.on_hotkey_triggered)
-            log("全局快捷键已注册。")
-        except Exception as e:
-            log(f"注册快捷键时发生错误: {e}")
 
     def update_clipboard_monitor_status(self):
         """根据设置启动或停止剪贴板监控"""
@@ -943,33 +1000,8 @@ class MainController(QObject):
             # log(f"无法获取剪贴板文本内容: {e}")
             pass
 
-    def unregister_hotkeys(self):
-        try:
-            keyboard.remove_hotkey(self.hotkey)
-            log("全局快捷键已移除。")
-        except Exception as e:
-            log(f"移除快捷键时发生错误: {e}")
-
-    @Slot()
-    def rebuild_hotkeys(self):
-        if self.settings.hotkeys_enabled:
-            log("正在重建快捷键钩子...")
-            self.unregister_hotkeys()
-            # 短暂延迟以确保钩子完全释放
-            QTimer.singleShot(100, self.register_hotkeys)
-        else:
-            log("快捷键被禁用，跳过重建。")
-
-    def update_rebuild_interval(self):
-        interval_minutes = self.settings.hook_refresh_interval
-        if interval_minutes > 0 and self.settings.hotkeys_enabled:
-            self.rebuild_timer.start(interval_minutes * 60 * 1000)
-            log(f"自动重建钩子已启动，间隔: {interval_minutes} 分钟。")
-        else:
-            self.rebuild_timer.stop()
-            log("自动重建钩子已停止。")
-
     def on_hotkey_triggered(self):
+        # 这个信号现在是从 NativeHotkeyManager 线程发出的
         if not self.settings.hotkeys_enabled: return
         if self.popup.isVisible():
             log("热键触发：关闭窗口。"); self.hide_popup_signal.emit()
@@ -1031,11 +1063,41 @@ class MainController(QObject):
         # 延迟执行粘贴，确保焦点已切换
         QTimer.singleShot(200, self.perform_paste)
 
+    def _type_text(self, text):
+        """使用ctypes.SendInput模拟Unicode文本输入，替代keyboard.write"""
+        user32 = ctypes.windll.user32
+        # 定义输入结构
+        PUL = ctypes.POINTER(ctypes.c_ulong)
+        class KeyBdInput(ctypes.Structure):
+            _fields_ = [("wVk", ctypes.c_ushort), ("wScan", ctypes.c_ushort), ("dwFlags", ctypes.c_ulong), ("time", ctypes.c_ulong), ("dwExtraInfo", PUL)]
+        class Input_I(ctypes.Union):
+            _fields_ = [("ki", KeyBdInput)]
+        class Input(ctypes.Structure):
+            _fields_ = [("type", ctypes.c_ulong), ("ii", Input_I)]
+        
+        # 定义常量
+        INPUT_KEYBOARD = 1
+        KEYEVENTF_UNICODE = 0x0004
+        KEYEVENTF_KEYUP = 0x0002
+
+        inputs = []
+        for char in text:
+            # Press
+            ki_press = KeyBdInput(0, ord(char), KEYEVENTF_UNICODE, 0, None)
+            inputs.append(Input(INPUT_KEYBOARD, Input_I(ki=ki_press)))
+            # Release
+            ki_release = KeyBdInput(0, ord(char), KEYEVENTF_UNICODE | KEYEVENTF_KEYUP, 0, None)
+            inputs.append(Input(INPUT_KEYBOARD, Input_I(ki=ki_release)))
+        
+        # 批量发送输入事件
+        input_array = (Input * len(inputs))(*inputs)
+        user32.SendInput(len(inputs), ctypes.byref(input_array), ctypes.sizeof(Input))
+
     def perform_paste(self):
         # 使用更可靠的打字方式输入，而不是模拟Ctrl+V
         clipboard_content = pyperclip.paste()
         if clipboard_content:
-            keyboard.write(clipboard_content)
+            self._type_text(clipboard_content)
             log(f"已通过打字方式输入: '{clipboard_content}'")
         else:
             log("剪贴板为空，未执行输入。")
@@ -1245,7 +1307,7 @@ class MainController(QObject):
 
     @Slot()
     def cleanup_and_exit(self):
-        # 退出时不再进行排序，因为多文件排序逻辑复杂且可能与用户意图冲突
+        self.hotkey_manager.stop()
         log("程序退出。")
 
     @Slot()
@@ -1253,13 +1315,12 @@ class MainController(QObject):
         self.settings.hotkeys_enabled = not self.settings.hotkeys_enabled
         self.settings.save()
         if self.settings.hotkeys_enabled:
-            self.register_hotkeys()
+            self.hotkey_manager.start()
             log("快捷键已启用。")
         else:
-            self.unregister_hotkeys()
+            self.hotkey_manager.stop()
             log("快捷键已禁用。")
         
-        self.update_rebuild_interval() # 启用/禁用快捷键时，同步更新定时器状态
         if hasattr(self, 'toggle_hotkeys_action'):
             self.toggle_hotkeys_action.setChecked(self.settings.hotkeys_enabled)
 
@@ -1278,20 +1339,6 @@ class MainController(QObject):
         if hasattr(self, 'multi_word_search_action'):
             self.multi_word_search_action.setChecked(self.settings.multi_word_search)
         
-    @Slot()
-    def set_rebuild_interval(self):
-        current_interval = self.settings.hook_refresh_interval
-        new_interval, ok = QInputDialog.getInt(None, "设置自动重建间隔",
-                                               "请输入新的间隔分钟数 (0 表示禁用):",
-                                               current_interval, 0, 1440, 1)
-        
-        if ok and new_interval != current_interval:
-            self.settings.hook_refresh_interval = new_interval
-            self.settings.save()
-            log(f"自动重建间隔已更新为: {new_interval} 分钟。")
-            self.update_rebuild_interval()
-            QMessageBox.information(None, "成功", f"自动重建间隔已设置为 {new_interval} 分钟！")
-
     @Slot()
     def set_font_size(self):
         current_size = self.settings.font_size
@@ -1390,15 +1437,19 @@ class MainController(QObject):
         self.settings.save()
         # 隐藏窗口并注销热键，为重启做准备
         self.popup.hide()
-        self.unregister_hotkeys()
+        # self.unregister_hotkeys() # 已移除
         # 延迟执行重启，以确保事件循环处理了清理工作
         QTimer.singleShot(100, self._restart_process)
 
     def _restart_process(self):
         """实际的重启进程调用"""
         try:
-            log(f"重启命令: sys.executable={sys.executable}, sys.argv={sys.argv}")
-            os.execv(sys.executable, [sys.executable] + sys.argv)
+            log(f"准备重启: sys.executable={sys.executable}, sys.argv={sys.argv}")
+            # 使用 QProcess.startDetached() 来启动一个新进程
+            # 这是在Qt应用中进行重启的更可靠方法
+            QProcess.startDetached(sys.executable, sys.argv)
+            # 当前进程正常退出
+            self.app.quit()
         except Exception as e:
             log(f"重启失败: {e}")
             QMessageBox.critical(None, "错误", f"应用程序重启失败: {e}")
@@ -1443,7 +1494,7 @@ if __name__ == "__main__":
     
     settings_manager = SettingsManager(CONFIG_FILE)
     word_manager = WordManager(settings_manager)
-    controller = MainController(app, word_manager, settings_manager, HOTKEY)
+    controller = MainController(app, word_manager, settings_manager)
     
     # 剪贴板监控初始化
     controller.last_clipboard_text = "" # 跟踪上一次的剪贴板内容
@@ -1468,14 +1519,6 @@ if __name__ == "__main__":
     controller.toggle_hotkeys_action.triggered.connect(controller.toggle_hotkeys_enabled)
     menu.addAction(controller.toggle_hotkeys_action)
     
-    # --- 钩子重建子菜单 ---
-    rebuild_menu = QMenu("重建快捷键钩子")
-    rebuild_now_action = QAction("立即重建"); rebuild_now_action.triggered.connect(controller.rebuild_hotkeys)
-    set_interval_action = QAction("设置自动重建间隔..."); set_interval_action.triggered.connect(controller.set_rebuild_interval)
-    rebuild_menu.addAction(rebuild_now_action)
-    rebuild_menu.addAction(set_interval_action)
-    menu.addMenu(rebuild_menu)
-
     # --- 自动重启 ---
     restart_menu = QMenu("间隔时间自动重启")
     controller.auto_restart_action = QAction("间隔时间自动重启", checkable=True)
