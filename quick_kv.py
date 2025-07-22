@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-QuickKV v1.0.5.5
+QuickKV v1.0.5.6
 """
 import sys
 import os
@@ -48,7 +48,7 @@ ICON_PATH = resource_path("icon.png")
 # --- 其他配置 ---
 HOTKEY = "ctrl+space"
 DEBUG_MODE = True
-VERSION = "1.0.5.5" # 版本号
+VERSION = "1.0.5.6" # 版本号
 
 def log(message):
     if DEBUG_MODE:
@@ -765,14 +765,36 @@ class SearchPopup(QWidget):
 
     def show_search_box_context_menu(self, pos):
         menu = QMenu(self)
-        add_action = QAction("添加到词库", self)
-        add_action.triggered.connect(self.add_from_search_box)
-        menu.addAction(add_action)
+        
+        # 创建“添加到词库”子菜单
+        add_to_library_menu = QMenu("添加到词库", self)
+        
+        # 获取所有已加载的词库
+        libraries = self.settings.libraries
+        if not libraries:
+            # 如果没有词库，则禁用此菜单项
+            no_library_action = QAction("无可用词库", self)
+            no_library_action.setEnabled(False)
+            add_to_library_menu.addAction(no_library_action)
+        else:
+            for lib in libraries:
+                lib_path = lib['path']
+                lib_name = os.path.basename(lib_path)
+                action = QAction(lib_name, self)
+                action.triggered.connect(lambda _, p=lib_path: self.add_from_search_box_to_specific_library(p))
+                add_to_library_menu.addAction(action)
+        
+        menu.addMenu(add_to_library_menu)
         
         # 应用主题
         self.controller.apply_menu_theme(menu)
 
         menu.exec(self.search_box.mapToGlobal(pos))
+
+    def add_from_search_box_to_specific_library(self, target_path):
+        text = self.search_box.text()
+        if text:
+            self.controller.add_entry(text, target_path)
 
     def show_list_widget_context_menu(self, pos):
         item = self.list_widget.itemAt(pos)
@@ -984,21 +1006,22 @@ class MainController(QObject):
             log("图钉已启用，重新显示窗口。")
             # 再次延迟以确保粘贴完成
             QTimer.singleShot(50, self.popup.reappear_in_place)
-    @Slot(str)
-    def add_entry(self, text):
-        # 当有多个词库时，让用户选择添加到哪一个
-        if len(self.settings.libraries) > 1:
-            lib_names = [os.path.basename(lib['path']) for lib in self.settings.libraries]
-            lib_name, ok = QInputDialog.getItem(self.popup, "选择词库", "请选择要添加到的词库:", lib_names, 0, False)
-            if ok and lib_name:
-                target_path = next((lib['path'] for lib in self.settings.libraries if os.path.basename(lib['path']) == lib_name), None)
+    @Slot(str, str)
+    def add_entry(self, text, target_path=None):
+        # 如果没有指定目标词库，则弹出选择框
+        if target_path is None:
+            if len(self.settings.libraries) > 1:
+                lib_names = [os.path.basename(lib['path']) for lib in self.settings.libraries]
+                lib_name, ok = QInputDialog.getItem(self.popup, "选择词库", "请选择要添加到的词库:", lib_names, 0, False)
+                if ok and lib_name:
+                    target_path = next((lib['path'] for lib in self.settings.libraries if os.path.basename(lib['path']) == lib_name), None)
+                else:
+                    return # 用户取消
+            elif len(self.settings.libraries) == 1:
+                target_path = self.settings.libraries[0]['path']
             else:
-                return # 用户取消
-        elif len(self.settings.libraries) == 1:
-            target_path = self.settings.libraries[0]['path']
-        else:
-            QMessageBox.warning(self.popup, "错误", "没有可用的词库。请先添加一个。")
-            return
+                QMessageBox.warning(self.popup, "错误", "没有可用的词库。请先添加一个。")
+                return
 
         source = self.word_manager.get_source_by_path(target_path)
         if source:
