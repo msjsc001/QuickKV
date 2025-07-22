@@ -9,7 +9,7 @@ import configparser
 import hashlib
 import json
 from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLineEdit,
-                             QListWidget, QSystemTrayIcon, QMenu, QSizeGrip,
+                             QListWidget, QListWidgetItem, QSystemTrayIcon, QMenu, QSizeGrip,
                              QGraphicsDropShadowEffect, QPushButton,
                              QInputDialog, QMessageBox, QStyledItemDelegate, QStyle, QFileDialog,
                              QCheckBox, QWidgetAction)
@@ -222,7 +222,8 @@ class WordSource:
                         'parent': parent_text,
                         'raw_lines': [line.rstrip()],
                         'exclude_parent': should_exclude,
-                        'source_path': self.file_path # 标记来源
+                        'source_path': self.file_path, # 标记来源
+                        'is_clipboard': False # 默认非剪贴板
                     }
                 elif current_block:
                     current_block['raw_lines'].append(line.rstrip())
@@ -325,7 +326,11 @@ class WordManager:
 
         self.clipboard_source = WordSource(CLIPBOARD_HISTORY_FILE)
         # 剪贴板历史按添加顺序（文件中的倒序）显示，所以我们直接逆序
-        self.clipboard_history = list(reversed(self.clipboard_source.word_blocks))
+        raw_history = list(reversed(self.clipboard_source.word_blocks))
+        self.clipboard_history = []
+        for block in raw_history:
+            block['is_clipboard'] = True # 添加标志
+            self.clipboard_history.append(block)
         log(f"已加载 {len(self.clipboard_history)} 条剪贴板历史。")
 
 
@@ -350,7 +355,7 @@ class WordManager:
         content_to_add = f"- {text}"
         if self.clipboard_source.add_entry(content_to_add):
             log(f"已添加新剪贴板历史: '{text}'")
-            # 重新加载以更新内部状态
+            # 重新加载以更新内部状态，并返回成功状态
             self.load_clipboard_history()
             return True
         return False
@@ -381,20 +386,32 @@ class WordManager:
         log(f"已聚合 {len(self.word_blocks)} 个词条从 {len(enabled_paths)} 个启用的词库。")
 
     def find_matches(self, query, multi_word_search_enabled=False, pinyin_search_enabled=False):
+        # 根据需求调整：如果无输入且剪贴板开启，则只显示剪贴板
+        if not query and self.settings.clipboard_memory_enabled:
+            return self.clipboard_history
+
+        # 1. 准备搜索池
+        search_pool = []
+        if self.settings.clipboard_memory_enabled:
+            search_pool.extend(self.clipboard_history)
+        search_pool.extend(self.word_blocks)
+
+        # 2. 如果没有查询（但剪贴板关闭），返回词库
         if not query:
             return self.word_blocks
 
         query_lower = query.lower()
         matched_blocks = []
+        target_blocks = search_pool # 使用合并后的池进行搜索
 
         if multi_word_search_enabled and ' ' in query_lower.strip():
             keywords = [k for k in query_lower.split(' ') if k]
             if not keywords:
-                matched_blocks = [block for block in self.word_blocks if query_lower in block['parent'].lower()]
+                matched_blocks = [block for block in target_blocks if query_lower in block['parent'].lower()]
             else:
                 if pinyin_search_enabled:
                     matched_blocks = [
-                        block for block in self.word_blocks
+                        block for block in target_blocks
                         if all(
                             (keyword in block['parent'].lower() or keyword in self._get_pinyin_initials(block['parent']))
                             for keyword in keywords
@@ -402,19 +419,19 @@ class WordManager:
                     ]
                 else:
                     matched_blocks = [
-                        block for block in self.word_blocks
+                        block for block in target_blocks
                         if all(keyword in block['parent'].lower() for keyword in keywords)
                     ]
         else:
             if pinyin_search_enabled:
                 matched_blocks = [
-                    block for block in self.word_blocks
+                    block for block in target_blocks
                     if query_lower in block['parent'].lower() or query_lower in self._get_pinyin_initials(block['parent'])
                 ]
             else:
-                matched_blocks = [block for block in self.word_blocks if query_lower in block['parent'].lower()]
+                matched_blocks = [block for block in target_blocks if query_lower in block['parent'].lower()]
         
-        matched_blocks.sort(key=lambda block: self._get_pinyin_sort_key(block['parent']))
+        # 搜索结果不需要再排序，以保持剪贴板历史在前的顺序，并让词库结果保持其原有拼音顺序
         return matched_blocks
 
     def get_source_by_path(self, path):
@@ -491,7 +508,6 @@ class SearchPopup(QWidget):
         self.word_manager = word_manager
         self.settings = settings_manager
         self.controller = None # 用于存储 MainController 的引用
-        self.is_showing_clipboard = False # 新增标志
         self.drag_position = None
         self.resizing = False
         self.resize_margin = 8
@@ -730,18 +746,15 @@ class SearchPopup(QWidget):
     @Slot(str)
     def update_list(self, text):
         self.list_widget.clear()
-        if not text and self.settings.clipboard_memory_enabled:
-            self.is_showing_clipboard = True
-            matched_blocks = self.word_manager.clipboard_history
-            log("搜索框为空，显示剪贴板历史。")
-        else:
-            self.is_showing_clipboard = False
-            matched_blocks = self.word_manager.find_matches(text, self.settings.multi_word_search, self.settings.pinyin_initial_search)
+        matched_blocks = self.word_manager.find_matches(
+            text, self.settings.multi_word_search, self.settings.pinyin_initial_search
+        )
         
         for block in matched_blocks:
-            # 将完整内容（包括父级和子级）作为一项添加到列表中
-            # 渲染将由 delegate 处理
-            self.list_widget.addItem(block['full_content'])
+            item = QListWidgetItem(block['full_content'])
+            item.setData(Qt.UserRole, block) # 存储完整数据块
+            self.list_widget.addItem(item)
+            
         if self.list_widget.count() > 0: self.list_widget.setCurrentRow(0)
     
     @Slot("QListWidgetItem")
@@ -800,13 +813,27 @@ class SearchPopup(QWidget):
         item = self.list_widget.itemAt(pos)
         if not item: return
         
+        selected_block = item.data(Qt.UserRole)
+        if not selected_block: return
+
         menu = QMenu(self)
         
-        if self.is_showing_clipboard:
+        if selected_block.get('is_clipboard', False):
             # 剪贴板历史的右键菜单
-            add_to_lib_action = QAction("添加到词库", self)
-            add_to_lib_action.triggered.connect(lambda: self.add_clipboard_item_to_library(item))
-            menu.addAction(add_to_lib_action)
+            add_to_library_menu = QMenu("添加到词库", self)
+            libraries = self.settings.libraries
+            if not libraries:
+                no_library_action = QAction("无可用词库", self)
+                no_library_action.setEnabled(False)
+                add_to_library_menu.addAction(no_library_action)
+            else:
+                for lib in libraries:
+                    lib_path = lib['path']
+                    lib_name = os.path.basename(lib_path)
+                    action = QAction(lib_name, self)
+                    action.triggered.connect(lambda _, p=lib_path, i=item: self.add_clipboard_item_to_specific_library(i, p))
+                    add_to_library_menu.addAction(action)
+            menu.addMenu(add_to_library_menu)
 
             edit_action = QAction("编辑", self)
             edit_action.triggered.connect(lambda: self.edit_item(item))
@@ -844,6 +871,10 @@ class SearchPopup(QWidget):
     def add_clipboard_item_to_library(self, item):
         text = item.text().replace('- ', '', 1).strip()
         self.controller.add_entry(text)
+
+    def add_clipboard_item_to_specific_library(self, item, target_path):
+        text = item.text().replace('- ', '', 1).strip()
+        self.controller.add_entry(text, target_path)
 
 # --- 主控制器 ---
 class MainController(QObject):
@@ -903,10 +934,10 @@ class MainController(QObject):
             if current_text and current_text != self.last_clipboard_text:
                 log(f"检测到新的剪贴板内容: '{current_text}'")
                 self.last_clipboard_text = current_text
-                self.word_manager.add_to_clipboard_history(current_text)
-                # 如果窗口可见且显示的是剪贴板，则刷新
-                if self.popup.isVisible() and self.popup.is_showing_clipboard:
-                    self.popup.update_list("")
+                was_added = self.word_manager.add_to_clipboard_history(current_text)
+                # 如果添加成功且窗口可见，则刷新
+                if was_added and self.popup.isVisible():
+                    self.popup.update_list(self.popup.search_box.text())
         except pyperclip.PyperclipException as e:
             # 可能是复制了非文本内容（如文件），忽略错误
             # log(f"无法获取剪贴板文本内容: {e}")
@@ -969,11 +1000,19 @@ class MainController(QObject):
         
         # text 是 full_content，我们需要通过它找到原始块
         found_block = None
-        for block in self.word_manager.word_blocks:
+        all_blocks = self.word_manager.clipboard_history + self.word_manager.word_blocks
+        for block in all_blocks:
             if block['full_content'] == text:
                 found_block = block
                 break
         
+        # 剪贴板内容也可能是选择的目标
+        if not found_block:
+             for block in self.word_manager.clipboard_history:
+                if block['full_content'] == text:
+                    found_block = block
+                    break
+
         if found_block:
             if found_block['exclude_parent']:
                 # 只输出子内容
@@ -1035,15 +1074,25 @@ class MainController(QObject):
     @Slot(str)
     def edit_entry(self, original_content):
         source_path = None
-        is_clipboard = self.popup.is_showing_clipboard
+        
+        # Find the block to get its properties
+        found_block = None
+        all_blocks = self.word_manager.clipboard_history + self.word_manager.word_blocks
+        for block in all_blocks:
+            if block['full_content'] == original_content:
+                found_block = block
+                break
+        
+        if not found_block:
+            QMessageBox.warning(self.popup, "错误", "找不到词条。")
+            return
+
+        is_clipboard = found_block.get('is_clipboard', False)
 
         if is_clipboard:
             source_path = self.word_manager.clipboard_source.file_path
         else:
-            for block in self.word_manager.word_blocks:
-                if block['full_content'] == original_content:
-                    source_path = block['source_path']
-                    break
+            source_path = found_block.get('source_path')
         
         if not source_path:
             QMessageBox.warning(self.popup, "错误", "找不到词条的来源文件。")
@@ -1069,15 +1118,25 @@ class MainController(QObject):
     @Slot(str)
     def delete_entry(self, content):
         source_path = None
-        is_clipboard = self.popup.is_showing_clipboard
+        
+        # Find the block to get its properties
+        found_block = None
+        all_blocks = self.word_manager.clipboard_history + self.word_manager.word_blocks
+        for block in all_blocks:
+            if block['full_content'] == content:
+                found_block = block
+                break
+
+        if not found_block:
+            QMessageBox.warning(self.popup, "错误", "找不到词条。")
+            return
+            
+        is_clipboard = found_block.get('is_clipboard', False)
 
         if is_clipboard:
             source_path = self.word_manager.clipboard_source.file_path
         else:
-            for block in self.word_manager.word_blocks:
-                if block['full_content'] == content:
-                    source_path = block['source_path']
-                    break
+            source_path = found_block.get('source_path')
 
         if not source_path:
             QMessageBox.warning(self.popup, "错误", "找不到词条的来源文件。")
