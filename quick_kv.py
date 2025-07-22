@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-QuickKV v1.0.5.8
+QuickKV v1.0.5.9
 """
 import sys
 import os
@@ -50,7 +50,7 @@ ICON_PATH = resource_path("icon.png")
 # --- 其他配置 ---
 HOTKEY = "ctrl+space"
 DEBUG_MODE = True
-VERSION = "1.0.5.8" # 版本号
+VERSION = "1.0.5.9" # 版本号
 
 def log(message):
     if DEBUG_MODE:
@@ -727,8 +727,8 @@ class SearchPopup(QWidget):
         screen = QApplication.screenAt(cursor_pos) or QApplication.primaryScreen()
         screen_geom = screen.availableGeometry(); window_size = self.size()
         pos_x = cursor_pos.x() + 15; pos_y = cursor_pos.y() + 15
-        if pos_y + window_size.height() > screen_geom.y() + screen_geom.height():
-            log("下方空间不足，窗口向上翻转。"); pos_y = cursor_pos.y() - window_size.height() - 15
+        # if pos_y + window_size.height() > screen_geom.y() + screen_geom.height():
+        #     log("下方空间不足，窗口向上翻转。"); pos_y = cursor_pos.y() - window_size.height() - 15
         if pos_x + window_size.width() > screen_geom.x() + screen_geom.width():
             pos_x = screen_geom.x() + screen_geom.width() - window_size.width()
         self.move(pos_x, pos_y)
@@ -1061,52 +1061,35 @@ class MainController(QObject):
         log(f"已复制处理后的内容到剪贴板。")
         
         # 延迟执行粘贴，确保焦点已切换
-        QTimer.singleShot(200, self.perform_paste)
-
-    def _type_text(self, text):
-        """使用ctypes.SendInput模拟Unicode文本输入，替代keyboard.write"""
-        user32 = ctypes.windll.user32
-        # 定义输入结构
-        PUL = ctypes.POINTER(ctypes.c_ulong)
-        class KeyBdInput(ctypes.Structure):
-            _fields_ = [("wVk", ctypes.c_ushort), ("wScan", ctypes.c_ushort), ("dwFlags", ctypes.c_ulong), ("time", ctypes.c_ulong), ("dwExtraInfo", PUL)]
-        class Input_I(ctypes.Union):
-            _fields_ = [("ki", KeyBdInput)]
-        class Input(ctypes.Structure):
-            _fields_ = [("type", ctypes.c_ulong), ("ii", Input_I)]
-        
-        # 定义常量
-        INPUT_KEYBOARD = 1
-        KEYEVENTF_UNICODE = 0x0004
-        KEYEVENTF_KEYUP = 0x0002
-
-        inputs = []
-        for char in text:
-            # Press
-            ki_press = KeyBdInput(0, ord(char), KEYEVENTF_UNICODE, 0, None)
-            inputs.append(Input(INPUT_KEYBOARD, Input_I(ki=ki_press)))
-            # Release
-            ki_release = KeyBdInput(0, ord(char), KEYEVENTF_UNICODE | KEYEVENTF_KEYUP, 0, None)
-            inputs.append(Input(INPUT_KEYBOARD, Input_I(ki=ki_release)))
-        
-        # 批量发送输入事件
-        input_array = (Input * len(inputs))(*inputs)
-        user32.SendInput(len(inputs), ctypes.byref(input_array), ctypes.sizeof(Input))
+        QTimer.singleShot(300, self.perform_paste)
 
     def perform_paste(self):
-        # 使用更可靠的打字方式输入，而不是模拟Ctrl+V
-        clipboard_content = pyperclip.paste()
-        if clipboard_content:
-            self._type_text(clipboard_content)
-            log(f"已通过打字方式输入: '{clipboard_content}'")
-        else:
-            log("剪贴板为空，未执行输入。")
-        
+        """通过 PowerShell 调用 .NET SendKeys 执行粘贴，这是最强力的模拟方式"""
+        log("准备通过 PowerShell 执行粘贴...")
+
+        # 构造 PowerShell 命令
+        # Start-Sleep -Milliseconds 100: 等待100毫秒，确保焦点已切换
+        # Add-Type -AssemblyName System.Windows.Forms: 加载 .NET 的 Forms 库
+        # [System.Windows.Forms.SendKeys]::SendWait('^v'): 发送 Ctrl+V 并等待其处理
+        ps_command = (
+            "powershell.exe -WindowStyle Hidden -Command "
+            "\"Start-Sleep -Milliseconds 100; "
+            "Add-Type -AssemblyName System.Windows.Forms; "
+            "[System.Windows.Forms.SendKeys]::SendWait('^v')\""
+        )
+
+        try:
+            # 使用 QProcess.startDetached 在后台静默执行 PowerShell 命令
+            QProcess.startDetached(ps_command)
+            log("PowerShell 粘贴命令已成功派发。")
+        except Exception as e:
+            log(f"启动 PowerShell 粘贴进程时发生错误: {e}")
+
         # 如果窗口是固定的，则在粘贴后重新显示它
         if self.popup.pinned:
             log("图钉已启用，重新显示窗口。")
-            # 再次延迟以确保粘贴完成
-            QTimer.singleShot(50, self.popup.reappear_in_place)
+            # 给予 PowerShell 充足的执行时间
+            QTimer.singleShot(200, self.popup.reappear_in_place)
     @Slot(str, str)
     def add_entry(self, text, target_path=None):
         # 如果没有指定目标词库，则弹出选择框
