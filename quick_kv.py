@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-QuickKV v1.0.5.6
+QuickKV v1.0.5.7
 """
 import sys
 import os
@@ -48,7 +48,7 @@ ICON_PATH = resource_path("icon.png")
 # --- 其他配置 ---
 HOTKEY = "ctrl+space"
 DEBUG_MODE = True
-VERSION = "1.0.5.6" # 版本号
+VERSION = "1.0.5.7" # 版本号
 
 def log(message):
     if DEBUG_MODE:
