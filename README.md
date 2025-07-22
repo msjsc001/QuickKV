@@ -13,7 +13,11 @@
 
 ![PixPin_2025-07-20_22-31-31](https://github.com/user-attachments/assets/9e9714b5-c619-431a-a2b3-9b784be9ef67)
 
+![PixPin_2025-07-22_15-41-55](https://github.com/user-attachments/assets/a04e8887-5130-4696-ba15-b2b09fecb7bb)
+
 ![PixPin_2025-07-21_19-09-56](https://github.com/user-attachments/assets/8a85521a-a8d9-4288-9b00-b61229b5bb71)
+
+![PixPin_2025-07-22_15-21-24](https://github.com/user-attachments/assets/4b084639-2006-4560-8c86-b89d177ffaca)
 
 ---
 
@@ -119,8 +123,9 @@ pip install PySide6 keyboard pyperclip pypinyin
 ---
 
 ## 更新日志
-
-### V1.0.5.5 (进行中)
+### V1.0.5.6添加词库时候需要选择库
+*   **  “输入框”右键修改为添加“某个.md词库”（被载入的词库都应该展示出来），因为现在软件已经支持多词库，用户选择某个词库后该词就会进入特定的词库。
+### V1.0.5.5 
 *   **新功能：快速打开词库**
     *   在“词库选择”菜单中，为每个词库增加了一个“打开”按钮，可以快速在文件浏览器中定位到该词库文件，方便编辑。
 
