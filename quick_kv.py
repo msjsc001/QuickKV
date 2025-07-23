@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-QuickKV v1.0.5.15
+QuickKV v1.0.5.16
 """
 import sys
 import os
@@ -50,7 +50,7 @@ ICON_PATH = resource_path("icon.png")
 # --- 其他配置 ---
 HOTKEY = "ctrl+space"
 DEBUG_MODE = True
-VERSION = "1.0.5.15" # 版本号
+VERSION = "1.0.5.16" # 版本号
 
 def log(message):
     if DEBUG_MODE:
@@ -61,12 +61,12 @@ THEMES = {
     "dark": {
         "bg_color": "#21252b", "border_color": "#3c424b", "text_color": "#d1d5db",
         "input_bg_color": "#2c313a", "item_hover_bg": "#3a3f4b",
-        "item_selected_bg": "#09a2f1", "item_selected_text": "#ffffff"
+        "item_selected_bg": "#405061", "item_selected_text": "#d1d5db"
     },
     "light": {
         "bg_color": "#fdfdfd", "border_color": "#cccccc", "text_color": "#202020",
         "input_bg_color": "#ffffff", "item_hover_bg": "#f0f0f0",
-        "item_selected_bg": "#0078d7", "item_selected_text": "#ffffff"
+        "item_selected_bg": "#dbe4ee", "item_selected_text": "#202020"
     }
 }
 
