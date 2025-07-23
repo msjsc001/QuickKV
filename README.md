@@ -20,6 +20,7 @@
 <img width="1169" height="1045" alt="PixPin_2025-07-19_11-57-58" src="https://github.com/user-attachments/assets/c63fb704-32e6-4d74-98d0-a508e156c0f9" />
 
 ![PixPin_2025-07-20_22-31-31](https://github.com/user-attachments/assets/9e9714b5-c619-431a-a2b3-9b784be9ef67)
+注：方式2（;后弹窗搜索）因为不实用不直观 在1.0.3已经取消
 
 ![PixPin_2025-07-22_15-41-55](https://github.com/user-attachments/assets/a04e8887-5130-4696-ba15-b2b09fecb7bb)
 
