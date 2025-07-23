@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-QuickKV v1.0.5.16
+QuickKV v1.0.5.17
 """
 import sys
 import os
@@ -50,7 +50,7 @@ ICON_PATH = resource_path("icon.png")
 # --- 其他配置 ---
 HOTKEY = "ctrl+space"
 DEBUG_MODE = True
-VERSION = "1.0.5.16" # 版本号
+VERSION = "1.0.5.17" # 版本号
 
 def log(message):
     if DEBUG_MODE:
@@ -360,7 +360,7 @@ class WordManager:
 
         # 限制历史数量
         while len(self.clipboard_history) >= self.settings.clipboard_memory_count:
-            oldest_item = self.clipboard_history.pop(0) # 移除最旧的
+            oldest_item = self.clipboard_history.pop(-1) # 移除最旧的
             self.clipboard_source.delete_entry(oldest_item['full_content'])
             log(f"剪贴板历史已满，移除最旧条目: {oldest_item['parent']}")
 
