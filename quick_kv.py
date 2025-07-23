@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-QuickKV v1.0.5.14
+QuickKV v1.0.5.15
 """
 import sys
 import os
@@ -50,7 +50,7 @@ ICON_PATH = resource_path("icon.png")
 # --- 其他配置 ---
 HOTKEY = "ctrl+space"
 DEBUG_MODE = True
-VERSION = "1.0.5.14" # 版本号
+VERSION = "1.0.5.15" # 版本号
 
 def log(message):
     if DEBUG_MODE:
@@ -113,7 +113,16 @@ class StyledItemDelegate(QStyledItemDelegate):
                 child_color_base.setAlpha(150)
                 painter.setPen(child_color_base)
                 painter.drawText(text_rect, Qt.AlignVCenter | Qt.AlignLeft, line)
-
+        
+        painter.restore()
+        
+        # 在每个项目底部画一条分隔线
+        painter.save()
+        pen = painter.pen()
+        pen.setColor(QColor(theme['border_color']))
+        pen.setWidth(1)
+        painter.setPen(pen)
+        painter.drawLine(rect.left(), rect.bottom(), rect.right(), rect.bottom())
         painter.restore()
 
     def sizeHint(self, option, index):
@@ -620,20 +629,16 @@ class SearchPopup(QWidget):
         
         title_bar_layout = QHBoxLayout()
         title_bar_layout.setContentsMargins(8, 4, 4, 0)
+        
+        self.title_label = QLabel(f"QuickKV v{VERSION}")
+        title_bar_layout.addWidget(self.title_label)
+        
         title_bar_layout.addStretch()
         
-        self.pin_button = QPushButton("📌") # 图钉按钮
-        self.pin_button.setFixedSize(24, 24)
-        self.pin_button.setCheckable(True) # 使按钮可切换状态
-        self.pin_button.clicked.connect(self.toggle_pin)
-        title_bar_layout.addWidget(self.pin_button)
-
         self.close_button = QPushButton("✕")
         self.close_button.setFixedSize(24, 24)
         self.close_button.clicked.connect(self.hide)
         title_bar_layout.addWidget(self.close_button)
-
-        self.pinned = False # 初始化图钉状态
         
         self.search_box = QLineEdit(placeholderText="搜索...")
         self.list_widget = QListWidget(); self.list_widget.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded); self.list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
@@ -710,9 +715,12 @@ class SearchPopup(QWidget):
                 self.resize_start_pos = global_pos
                 self.resize_start_geom = self.geometry()
                 log(f"开始缩放: resize_edge={self.resize_edge}")
+            # 仅当鼠标在标题栏区域（例如高度小于35）且未点击关闭按钮时，才开始拖动
             elif pos.y() < 35:
-                self.drag_position = global_pos - self.frameGeometry().topLeft()
-                log(f"开始拖动: drag_position={self.drag_position}")
+                actual_widget = QApplication.widgetAt(global_pos)
+                if actual_widget != self.close_button:
+                    self.drag_position = global_pos - self.frameGeometry().topLeft()
+                    log(f"开始拖动: drag_position={self.drag_position}")
             event.accept()
         super().mousePressEvent(event)
 
@@ -761,30 +769,6 @@ class SearchPopup(QWidget):
         self.unsetCursor()
         super().mouseReleaseEvent(event)
 
-    def toggle_pin(self):
-        self.pinned = not self.pinned
-        log(f"窗口图钉状态: {'已固定' if self.pinned else '未固定'}")
-        
-        if self.pinned:
-            # 设置为无法获取焦点的置顶工具
-            self.setWindowFlags(self.windowFlags() | Qt.WindowDoesNotAcceptFocus)
-            log("窗口已设置为“不接受焦点”模式。")
-        else:
-            # 恢复正常窗口行为
-            self.setWindowFlags(self.windowFlags() & ~Qt.WindowDoesNotAcceptFocus)
-            log("窗口已恢复正常焦点模式。")
-        
-        self._update_pin_button_style()
-        # 重新显示窗口以应用新的标志
-        self.show()
-
-    def _update_pin_button_style(self):
-        theme = THEMES[self.settings.theme]
-        if self.pinned:
-            self.pin_button.setStyleSheet(f"QPushButton {{ background-color: {theme['item_selected_bg']}; color: {theme['item_selected_text']}; border: none; font-size: 16px; font-weight: bold; border-radius: 4px; }} QPushButton:hover {{ background-color: {theme['item_selected_bg']}; color: {theme['item_selected_text']}; }}")
-        else:
-            self.pin_button.setStyleSheet(f"QPushButton {{ background-color: transparent; color: {theme['text_color']}; border: none; font-size: 16px; font-weight: bold; }} QPushButton:hover {{ background-color: {theme['item_hover_bg']}; border-radius: 4px; }}")
-        self.pin_button.update() # 【修复】强制按钮刷新，消除切换主题后的残留
 
 
     def showEvent(self, event):
@@ -796,8 +780,9 @@ class SearchPopup(QWidget):
     def apply_theme(self):
         theme = THEMES[self.settings.theme]
         font_size = self.settings.font_size
+        self.title_label.setStyleSheet(f"color: {theme['text_color']}; font-size: {font_size-2}px; font-weight: normal; background-color: transparent; border: none; padding-left: 4px;")
         self.container.setStyleSheet(f"background-color: {theme['bg_color']}; border: 1px solid {theme['border_color']}; border-radius: 8px;")
-        self.search_box.setStyleSheet(f"background-color: {theme['input_bg_color']}; color: {theme['text_color']}; border: 1px solid {theme['border_color']}; border-radius: 4px; padding: 8px; font-size: {font_size}px; margin: 0px 8px 4px 8px;")
+        self.search_box.setStyleSheet(f"background-color: {theme['input_bg_color']}; color: {theme['text_color']}; border: 1px solid {theme['border_color']}; border-radius: 0px; padding: 8px; font-size: {font_size}px; margin: 0px 0px 4px 0px;")
         # 绘图代理接管了 item 的样式，这里只需设置基础样式
         self.list_widget.setStyleSheet(f"""
             QListWidget {{
@@ -817,7 +802,7 @@ class SearchPopup(QWidget):
             }}
         """)
         self.close_button.setStyleSheet(f"QPushButton {{ background-color: transparent; color: {theme['text_color']}; border: none; font-size: 16px; font-weight: bold; }} QPushButton:hover {{ color: white; background-color: #E81123; border-radius: 4px; }}")
-        self._update_pin_button_style() # 应用主题时更新图钉按钮样式
+        # self._update_pin_button_style() # 应用主题时更新图钉按钮样式
         self.list_widget.viewport().update() # 强制列表刷新以应用新主题
 
     def show_and_focus(self):
@@ -873,21 +858,12 @@ class SearchPopup(QWidget):
     @Slot("QListWidgetItem")
     def on_item_selected(self, item):
         self.suggestion_selected.emit(item.text())
-        if self.pinned:
-            # 图钉模式下，不清空，方便连续参考
-            pass
-        else:
-            # 非图钉模式下，选择后隐藏
-            self.hide()
+        self.hide()
 
     def keyPressEvent(self, event):
         key = event.key()
         if key == Qt.Key_Escape:
-            if self.pinned: # 如果已固定，按ESC只清空输入框，不隐藏
-                self.search_box.clear()
-                self.update_list("")
-            else:
-                self.hide()
+            self.hide()
         elif key in [Qt.Key_Return, Qt.Key_Enter] and self.search_box.hasFocus():
              if self.list_widget.currentItem(): self.on_item_selected(self.list_widget.currentItem())
         elif key == Qt.Key_Down and self.search_box.hasFocus() and self.list_widget.count() > 0: self.list_widget.setFocus()
@@ -1637,6 +1613,11 @@ class MainController(QObject):
 
 # --- main入口 ---
 if __name__ == "__main__":
+    # --- 启用高DPI支持 ---
+    QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
+    QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
+    QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
+    
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
     
@@ -1677,7 +1658,7 @@ if __name__ == "__main__":
     set_restart_interval_action = QAction("设定间隔时间...")
     set_restart_interval_action.triggered.connect(controller.set_auto_restart_interval)
     restart_menu.addAction(set_restart_interval_action)
-
+    restart_menu.addSeparator()
     restart_now_action = QAction("立即重启")
     restart_now_action.triggered.connect(controller.perform_restart)
     restart_menu.addAction(restart_now_action)
@@ -1694,13 +1675,13 @@ if __name__ == "__main__":
     paste_ctrl_v_action.triggered.connect(lambda: controller.set_paste_mode('ctrl_v'))
     paste_mode_menu.addAction(paste_ctrl_v_action)
     paste_mode_group.addAction(paste_ctrl_v_action)
-
+    paste_mode_menu.addSeparator()
     paste_ctrl_shift_v_action = QAction("Ctrl+Shift+V", checkable=True)
     paste_ctrl_shift_v_action.setChecked(settings_manager.paste_mode == 'ctrl_shift_v')
     paste_ctrl_shift_v_action.triggered.connect(lambda: controller.set_paste_mode('ctrl_shift_v'))
     paste_mode_menu.addAction(paste_ctrl_shift_v_action)
     paste_mode_group.addAction(paste_ctrl_shift_v_action)
-
+    paste_mode_menu.addSeparator()
     paste_typing_action = QAction("输入模式", checkable=True)
     paste_typing_action.setChecked(settings_manager.paste_mode == 'typing')
     paste_typing_action.triggered.connect(lambda: controller.set_paste_mode('typing'))
@@ -1737,14 +1718,14 @@ if __name__ == "__main__":
     set_count_action = QAction("记忆次数...")
     set_count_action.triggered.connect(controller.set_clipboard_memory_count)
     clipboard_menu.addAction(set_count_action)
-
+    clipboard_menu.addSeparator()
     clear_history_action = QAction("清空")
     clear_history_action.triggered.connect(controller.clear_clipboard_history_menu)
     clipboard_menu.addAction(clear_history_action)
     
     menu.addMenu(clipboard_menu)
     menu.addSeparator()
-
+    
     initial_toggle_text = f"切换到 {'夜间' if settings_manager.theme == 'light' else '日间'} 模式"
     controller.toggle_theme_action = QAction(initial_toggle_text); controller.toggle_theme_action.triggered.connect(controller.toggle_theme); menu.addAction(controller.toggle_theme_action)
     
