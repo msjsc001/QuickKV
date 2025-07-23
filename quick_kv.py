@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-QuickKV v1.0.5.9
+QuickKV v1.0.5.11
 """
 import sys
 import os
@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, 
                              QCheckBox, QWidgetAction)
 from PySide6.QtCore import (Qt, Signal, Slot, QObject, QFileSystemWatcher,
                           QTimer, QEvent, QRect, QProcess)
-from PySide6.QtGui import QIcon, QAction, QCursor, QPixmap, QPainter, QColor, QPalette
+from PySide6.QtGui import QIcon, QAction, QCursor, QPixmap, QPainter, QColor, QPalette, QActionGroup
 import pyperclip
 from pypinyin import pinyin, Style
 
@@ -50,7 +50,7 @@ ICON_PATH = resource_path("icon.png")
 # --- 其他配置 ---
 HOTKEY = "ctrl+space"
 DEBUG_MODE = True
-VERSION = "1.0.5.9" # 版本号
+VERSION = "1.0.5.11" # 版本号
 
 def log(message):
     if DEBUG_MODE:
@@ -146,8 +146,10 @@ class SettingsManager:
         if not self.config.has_section('General'): self.config.add_section('General')
         if not self.config.has_section('Clipboard'): self.config.add_section('Clipboard')
         if not self.config.has_section('Restart'): self.config.add_section('Restart')
+        if not self.config.has_section('Paste'): self.config.add_section('Paste')
 
         self.hotkeys_enabled = self.config.getboolean('General', 'hotkeys_enabled', fallback=True)
+        self.paste_mode = self.config.get('Paste', 'mode', fallback='ctrl_v')
         self.width = self.config.getint('Window', 'width', fallback=450)
         self.height = self.config.getint('Window', 'height', fallback=300)
         self.theme = self.config.get('Theme', 'mode', fallback='dark')
@@ -186,6 +188,7 @@ class SettingsManager:
         self.config['Clipboard']['count'] = str(self.clipboard_memory_count)
         self.config['Restart']['enabled'] = str(self.auto_restart_enabled)
         self.config['Restart']['interval_minutes'] = str(self.auto_restart_interval)
+        self.config['Paste']['mode'] = self.paste_mode
         
         with open(self.file_path, 'w', encoding='utf-8') as configfile:
             self.config.write(configfile)
@@ -677,7 +680,19 @@ class SearchPopup(QWidget):
     def toggle_pin(self):
         self.pinned = not self.pinned
         log(f"窗口图钉状态: {'已固定' if self.pinned else '未固定'}")
+        
+        if self.pinned:
+            # 设置为无法获取焦点的置顶工具
+            self.setWindowFlags(self.windowFlags() | Qt.WindowDoesNotAcceptFocus)
+            log("窗口已设置为“不接受焦点”模式。")
+        else:
+            # 恢复正常窗口行为
+            self.setWindowFlags(self.windowFlags() & ~Qt.WindowDoesNotAcceptFocus)
+            log("窗口已恢复正常焦点模式。")
+        
         self._update_pin_button_style()
+        # 重新显示窗口以应用新的标志
+        self.show()
 
     def _update_pin_button_style(self):
         theme = THEMES[self.settings.theme]
@@ -735,13 +750,27 @@ class SearchPopup(QWidget):
         self.reappear_in_place()
 
     def reappear_in_place(self):
-        """在原位重新显示窗口，不移动位置"""
+        """在原位重新显示窗口，并抢夺焦点"""
         self.show()
         self.activateWindow()
         self.search_box.setFocus()
         self.search_box.clear()
         self.update_list("")
-        self.list_widget.viewport().update() # 【修复】确保窗口出现时列表被完全重绘
+        self.list_widget.viewport().update()
+
+    def gentle_reappear(self):
+        """温柔地重新显示窗口，但不抢夺焦点"""
+        log("执行温柔的窗口返回...")
+        self.search_box.clear()
+        self.update_list("")
+        self.show() # 只显示，不激活，不设置焦点
+
+    def gentle_reappear(self):
+        """温柔地重新显示窗口，但不抢夺焦点"""
+        log("执行温柔的窗口返回...")
+        self.search_box.clear()
+        self.update_list("")
+        self.show() # 只显示，不激活，不设置焦点
     
     @Slot(str)
     def update_list(self, text):
@@ -760,7 +789,12 @@ class SearchPopup(QWidget):
     @Slot("QListWidgetItem")
     def on_item_selected(self, item):
         self.suggestion_selected.emit(item.text())
-        self.hide() # 无论是否钉住，都先隐藏以释放焦点
+        if self.pinned:
+            # 图钉模式下，不清空，方便连续参考
+            pass
+        else:
+            # 非图钉模式下，选择后隐藏
+            self.hide()
 
     def keyPressEvent(self, event):
         key = event.key()
@@ -989,9 +1023,11 @@ class MainController(QObject):
         try:
             current_text = pyperclip.paste()
             if current_text and current_text != self.last_clipboard_text:
-                log(f"检测到新的剪贴板内容: '{current_text}'")
-                self.last_clipboard_text = current_text
-                was_added = self.word_manager.add_to_clipboard_history(current_text)
+                # --- 换行符规范化 ---
+                normalized_text = '\n'.join(current_text.splitlines())
+                log(f"检测到新的剪贴板内容 (规范化后): '{normalized_text}'")
+                self.last_clipboard_text = current_text # 原始文本用于比较
+                was_added = self.word_manager.add_to_clipboard_history(normalized_text)
                 # 如果添加成功且窗口可见，则刷新
                 if was_added and self.popup.isVisible():
                     self.popup.update_list(self.popup.search_box.text())
@@ -1060,36 +1096,45 @@ class MainController(QObject):
         pyperclip.copy(content_to_paste)
         log(f"已复制处理后的内容到剪贴板。")
         
-        # 延迟执行粘贴，确保焦点已切换
-        QTimer.singleShot(300, self.perform_paste)
+        # 无论何种模式，都执行粘贴
+        QTimer.singleShot(150, self.perform_paste)
 
     def perform_paste(self):
-        """通过 PowerShell 调用 .NET SendKeys 执行粘贴，这是最强力的模拟方式"""
-        log("准备通过 PowerShell 执行粘贴...")
+        """根据用户设置，通过 PowerShell 执行不同的粘贴操作"""
+        mode = self.settings.paste_mode
+        log(f"准备执行粘贴，模式: {mode}")
 
-        # 构造 PowerShell 命令
-        # Start-Sleep -Milliseconds 100: 等待100毫秒，确保焦点已切换
-        # Add-Type -AssemblyName System.Windows.Forms: 加载 .NET 的 Forms 库
-        # [System.Windows.Forms.SendKeys]::SendWait('^v'): 发送 Ctrl+V 并等待其处理
-        ps_command = (
-            "powershell.exe -WindowStyle Hidden -Command "
-            "\"Start-Sleep -Milliseconds 100; "
-            "Add-Type -AssemblyName System.Windows.Forms; "
-            "[System.Windows.Forms.SendKeys]::SendWait('^v')\""
-        )
+        ps_command = ""
+        if mode == 'ctrl_v':
+            ps_command = (
+                "powershell.exe -WindowStyle Hidden -Command "
+                "\"Start-Sleep -Milliseconds 150; "
+                "Add-Type -AssemblyName System.Windows.Forms; "
+                "[System.Windows.Forms.SendKeys]::SendWait('^v')\""
+            )
+        elif mode == 'ctrl_shift_v':
+            ps_command = (
+                "powershell.exe -WindowStyle Hidden -Command "
+                "\"Start-Sleep -Milliseconds 150; "
+                "Add-Type -AssemblyName System.Windows.Forms; "
+                "[System.Windows.Forms.SendKeys]::SendWait('+^v')\""
+            )
+        elif mode == 'typing':
+            ps_command = (
+                "powershell.exe -WindowStyle Hidden -Command "
+                "\"Start-Sleep -Milliseconds 150; "
+                "Add-Type -AssemblyName System.Windows.Forms; "
+                "$clipboardText = Get-Clipboard; "
+                "$escapedText = $clipboardText -replace '([\\+\\^\\%\\~\\(\\)\\[\\]\\{\\}])', '{$1}'; "
+                "[System.Windows.Forms.SendKeys]::SendWait($escapedText)\""
+            )
 
-        try:
-            # 使用 QProcess.startDetached 在后台静默执行 PowerShell 命令
-            QProcess.startDetached(ps_command)
-            log("PowerShell 粘贴命令已成功派发。")
-        except Exception as e:
-            log(f"启动 PowerShell 粘贴进程时发生错误: {e}")
-
-        # 如果窗口是固定的，则在粘贴后重新显示它
-        if self.popup.pinned:
-            log("图钉已启用，重新显示窗口。")
-            # 给予 PowerShell 充足的执行时间
-            QTimer.singleShot(200, self.popup.reappear_in_place)
+        if ps_command:
+            try:
+                QProcess.startDetached(ps_command)
+                log(f"PowerShell 粘贴命令 ({mode}) 已成功派发。")
+            except Exception as e:
+                log(f"启动 PowerShell 粘贴进程时发生错误: {e}")
     @Slot(str, str)
     def add_entry(self, text, target_path=None):
         # 如果没有指定目标词库，则弹出选择框
@@ -1292,6 +1337,14 @@ class MainController(QObject):
     def cleanup_and_exit(self):
         self.hotkey_manager.stop()
         log("程序退出。")
+
+    @Slot()
+    def set_paste_mode(self, mode):
+        """设置新的粘贴模式并保存"""
+        if self.settings.paste_mode != mode:
+            self.settings.paste_mode = mode
+            self.settings.save()
+            log(f"粘贴模式已切换为: {mode}")
 
     @Slot()
     def toggle_hotkeys_enabled(self):
@@ -1518,6 +1571,31 @@ if __name__ == "__main__":
     restart_menu.addAction(restart_now_action)
     
     menu.addMenu(restart_menu)
+
+    # --- 粘贴方式 ---
+    paste_mode_menu = QMenu("软件粘贴方式")
+    paste_mode_group = QActionGroup(paste_mode_menu)
+    paste_mode_group.setExclusive(True)
+
+    paste_ctrl_v_action = QAction("Ctrl+V (默认)", checkable=True)
+    paste_ctrl_v_action.setChecked(settings_manager.paste_mode == 'ctrl_v')
+    paste_ctrl_v_action.triggered.connect(lambda: controller.set_paste_mode('ctrl_v'))
+    paste_mode_menu.addAction(paste_ctrl_v_action)
+    paste_mode_group.addAction(paste_ctrl_v_action)
+
+    paste_ctrl_shift_v_action = QAction("Ctrl+Shift+V", checkable=True)
+    paste_ctrl_shift_v_action.setChecked(settings_manager.paste_mode == 'ctrl_shift_v')
+    paste_ctrl_shift_v_action.triggered.connect(lambda: controller.set_paste_mode('ctrl_shift_v'))
+    paste_mode_menu.addAction(paste_ctrl_shift_v_action)
+    paste_mode_group.addAction(paste_ctrl_shift_v_action)
+
+    paste_typing_action = QAction("输入模式", checkable=True)
+    paste_typing_action.setChecked(settings_manager.paste_mode == 'typing')
+    paste_typing_action.triggered.connect(lambda: controller.set_paste_mode('typing'))
+    paste_mode_menu.addAction(paste_typing_action)
+    paste_mode_group.addAction(paste_typing_action)
+
+    menu.addMenu(paste_mode_menu)
     menu.addSeparator()
 
     # --- 词库选择 ---
