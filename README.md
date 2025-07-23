@@ -1,5 +1,8 @@
 # ✍️QuickKV 轻量级快捷输入补全工具
-![PixPin_2025-07-21_13-26-17](https://github.com/user-attachments/assets/622041c6-21dd-45c8-9e43-628c4b6cab22)
+<img width="1916" height="993" alt="PixPin_2025-07-23_16-21-34" src="https://github.com/user-attachments/assets/f59b0ef7-72f4-43e3-821f-ed4a7988b13e" />
+
+<img width="1916" height="993" alt="PixPin_2025-07-23_16-20-48" src="https://github.com/user-attachments/assets/3756afbc-c0e7-47e9-82da-8fe73f23b5cf" />
+
 
 **QuickKV是一款只专注于中文自动补全文本拓展的开源、轻量级、高效、零门槛、易迁移、轻度剪贴板记忆、高可定制化、纯净无任何商业目的快捷输入增强工具**。它能让您将所有常用的文本片段（如邮箱、代码、模板、常用回复等）保存在一个或多个简单的 Markdown 文件词库中（多词库可灵活勾选使用），通过全局热键 `Ctrl+Space` 在任何应用程序中即时搜索并粘贴它们（支持拼音首字母，空格多词），极大地提升您的输入效率。
 
