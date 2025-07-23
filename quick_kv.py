@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-QuickKV v1.0.5.11
+QuickKV v1.0.5.14
 """
 import sys
 import os
@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, 
                              QListWidget, QListWidgetItem, QSystemTrayIcon, QMenu, QSizeGrip,
                              QGraphicsDropShadowEffect, QPushButton,
                              QInputDialog, QMessageBox, QStyledItemDelegate, QStyle, QFileDialog,
-                             QCheckBox, QWidgetAction)
+                             QCheckBox, QWidgetAction, QScrollArea, QLabel, QFrame)
 from PySide6.QtCore import (Qt, Signal, Slot, QObject, QFileSystemWatcher,
                           QTimer, QEvent, QRect, QProcess)
 from PySide6.QtGui import QIcon, QAction, QCursor, QPixmap, QPainter, QColor, QPalette, QActionGroup
@@ -50,7 +50,7 @@ ICON_PATH = resource_path("icon.png")
 # --- 其他配置 ---
 HOTKEY = "ctrl+space"
 DEBUG_MODE = True
-VERSION = "1.0.5.11" # 版本号
+VERSION = "1.0.5.14" # 版本号
 
 def log(message):
     if DEBUG_MODE:
@@ -264,28 +264,29 @@ class WordSource:
 
     def delete_entry(self, content_to_delete):
         try:
-            with open(self.file_path, 'r', encoding='utf-8') as f:
-                lines = f.readlines()
+            # 使用 WordSource 的加载逻辑来健壮地解析文件
+            loader = WordSource(self.file_path)
+            if not hasattr(loader, 'word_blocks'):
+                return False
+
+            all_blocks = loader.word_blocks
             
-            lines_to_delete_str = content_to_delete.split('\n')
+            # 过滤掉要删除的块
+            remaining_blocks = [block for block in all_blocks if block['full_content'] != content_to_delete]
             
-            found_at = -1
-            for i in range(len(lines) - len(lines_to_delete_str) + 1):
-                match = True
-                for j in range(len(lines_to_delete_str)):
-                    if lines[i+j].rstrip() != lines_to_delete_str[j]:
-                        match = False
-                        break
-                if match:
-                    found_at = i
-                    break
+            # 如果块的数量没有减少，说明没有找到要删除的内容
+            if len(remaining_blocks) == len(all_blocks):
+                log(f"delete_entry: 在 {self.file_path} 中未找到要删除的内容")
+                return False
+
+            # 从剩余的块中重建文件内容
+            # 使用 '\n' 作为分隔符，因为 add_entry 会在每个条目前加一个换行符
+            new_file_content = '\n'.join([block['full_content'] for block in remaining_blocks])
             
-            if found_at != -1:
-                del lines[found_at : found_at + len(lines_to_delete_str)]
-                with open(self.file_path, 'w', encoding='utf-8') as f:
-                    f.writelines(lines)
-                return True
-            return False
+            with open(self.file_path, 'w', encoding='utf-8') as f:
+                f.write(new_file_content)
+                
+            return True
         except Exception as e:
             log(f"删除 {self.file_path} 的词条时发生错误: {e}")
             return False
@@ -500,6 +501,89 @@ class EditDialog(QDialog):
 
     def get_text(self):
         return self.text_edit.toPlainText()
+
+
+class ScrollableMessageBox(QDialog):
+    def __init__(self, parent=None, title="", text="", theme=None, font_size=14):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.setMinimumWidth(450)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
+
+        scroll_area = QScrollArea(self)
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll_area.setFrameShape(QFrame.NoFrame)
+
+        message_label = QLabel(text)
+        message_label.setWordWrap(True)
+        message_label.setAlignment(Qt.AlignTop)
+        
+        scroll_area.setWidget(message_label)
+        scroll_area.setMaximumHeight(300)
+
+        layout.addWidget(scroll_area)
+
+        self.button_box = QDialogButtonBox(QDialogButtonBox.Yes | QDialogButtonBox.No, self)
+        self.button_box.button(QDialogButtonBox.Yes).setText("确定")
+        self.button_box.button(QDialogButtonBox.No).setText("取消")
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+        layout.addWidget(self.button_box)
+
+        if theme:
+            self.apply_theme(theme, font_size, message_label, scroll_area)
+
+    def apply_theme(self, theme, font_size, message_label, scroll_area):
+        self.setStyleSheet(f"QDialog {{ background-color: {theme['bg_color']}; }}")
+        message_label.setStyleSheet(f"QLabel {{ color: {theme['text_color']}; font-size: {font_size}px; background-color: transparent; }}")
+
+        scroll_area_style = f"""
+            QScrollArea {{
+                background-color: {theme['input_bg_color']};
+                border: 1px solid {theme['border_color']};
+                border-radius: 4px;
+                padding: 5px;
+            }}
+            QScrollBar:vertical {{
+                border: none;
+                background: {theme['input_bg_color']};
+                width: 10px;
+                margin: 0px 0px 0px 0px;
+            }}
+            QScrollBar::handle:vertical {{
+                background: {theme['border_color']};
+                min-height: 20px;
+                border-radius: 5px;
+            }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                height: 0px;
+            }}
+        """
+        scroll_area.setStyleSheet(scroll_area_style)
+
+        btn_style = f"""
+            QPushButton {{
+                background-color: {theme['input_bg_color']};
+                color: {theme['text_color']};
+                border: 1px solid {theme['border_color']};
+                padding: 5px 15px;
+                border-radius: 4px;
+                min-width: 80px;
+            }}
+            QPushButton:hover {{
+                background-color: {theme['item_hover_bg']};
+            }}
+            QPushButton:pressed {{
+                background-color: {theme['item_selected_bg']};
+                color: {theme['item_selected_text']};
+            }}
+        """
+        for button in self.button_box.buttons():
+            button.setStyleSheet(btn_style)
 
 
 # --- 搜索弹出窗口UI (滚动条修复) ---
@@ -865,7 +949,7 @@ class SearchPopup(QWidget):
                     lib_path = lib['path']
                     lib_name = os.path.basename(lib_path)
                     action = QAction(lib_name, self)
-                    action.triggered.connect(lambda _, p=lib_path, i=item: self.add_clipboard_item_to_specific_library(i, p))
+                    action.triggered.connect(lambda _, p=lib_path, i=item: self.controller.move_clipboard_item_to_library(i.text(), p))
                     add_to_library_menu.addAction(action)
             menu.addMenu(add_to_library_menu)
 
@@ -905,10 +989,6 @@ class SearchPopup(QWidget):
     def add_clipboard_item_to_library(self, item):
         text = item.text().replace('- ', '', 1).strip()
         self.controller.add_entry(text)
-
-    def add_clipboard_item_to_specific_library(self, item, target_path):
-        text = item.text().replace('- ', '', 1).strip()
-        self.controller.add_entry(text, target_path)
 
 # --- 原生快捷键管理器 (Windows) ---
 class NativeHotkeyManager(QObject):
@@ -1237,9 +1317,18 @@ class MainController(QObject):
             QMessageBox.warning(self.popup, "错误", "来源文件对象已丢失。")
             return
 
-        reply = QMessageBox.question(self.popup, "确认删除",
-                                     f"确定要从 {os.path.basename(source_path)} 中删除以下词条吗？\n\n{content}",
-                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        dialog = ScrollableMessageBox(
+            parent=self.popup,
+            title="确认删除",
+            text=f"确定要从 <b>{os.path.basename(source_path)}</b> 中删除以下词条吗？<br><br>{content.replace(chr(10), '<br>')}",
+            theme=THEMES[self.settings.theme],
+            font_size=self.settings.font_size
+        )
+        
+        if dialog.exec() == QDialog.Accepted:
+            reply = QMessageBox.Yes
+        else:
+            reply = QMessageBox.No
         if reply == QMessageBox.Yes:
             if source.delete_entry(content):
                 if is_clipboard:
@@ -1249,6 +1338,29 @@ class MainController(QObject):
                     self.reload_word_file()
             else:
                 QMessageBox.warning(self.popup, "错误", f"从 {os.path.basename(source_path)} 删除词条失败！")
+
+    def move_clipboard_item_to_library(self, item_content, target_path):
+        """将剪贴板条目移动到指定的词库"""
+        # 1. 提取纯文本
+        text_to_add = item_content.replace('- ', '', 1).strip()
+
+        # 2. 添加到目标词库
+        source = self.word_manager.get_source_by_path(target_path)
+        if source and source.add_entry(f"- {text_to_add}"):
+            log(f"已将 '{text_to_add}' 添加到 {os.path.basename(target_path)}")
+
+            # 3. 从剪贴板历史中删除
+            if self.word_manager.clipboard_source.delete_entry(item_content):
+                log(f"已从剪贴板历史中删除 '{item_content}'")
+                # 4. 刷新
+                self.word_manager.load_clipboard_history()
+                if self.popup.isVisible():
+                    self.popup.update_list(self.popup.search_box.text())
+            else:
+                log(f"从剪贴板历史删除 '{item_content}' 失败")
+                QMessageBox.warning(self.popup, "警告", "条目已添加到新词库，但从剪贴板历史中删除失败。")
+        else:
+            QMessageBox.warning(self.popup, "错误", f"无法将条目添加到 {os.path.basename(target_path)}")
 
     @Slot()
     def add_library(self):
