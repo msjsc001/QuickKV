@@ -62,6 +62,7 @@
 *   **轻量与高效**: 后台静默运行，占用极少系统资源，并通过文件热重载实现配置和词库的实时更新。
 
 ---
+<img width="1440" height="1025" alt="e00bf0ba05239340502f3da51849365" src="https://github.com/user-attachments/assets/d656f6bf-06a9-4ecd-99ee-1c392f68d91a" />
 
 ## 用户手册
 
