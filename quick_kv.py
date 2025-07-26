@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-QuickKV v1.0.5.17
+QuickKV v1.0.5.19
 """
 import sys
 import os
@@ -43,6 +43,7 @@ BASE_PATH = get_base_path()
 WORD_FILE = os.path.join(BASE_PATH, "词库.md")
 CLIPBOARD_HISTORY_FILE = os.path.join(BASE_PATH, "剪贴板词库.md")
 CONFIG_FILE = os.path.join(BASE_PATH, "config.ini")
+AUTO_LOAD_DIR = os.path.join(BASE_PATH, "MD词库-需自动载入的请放入")
 
 # --- 内部资源 ---
 ICON_PATH = resource_path("icon.png")
@@ -50,7 +51,7 @@ ICON_PATH = resource_path("icon.png")
 # --- 其他配置 ---
 HOTKEY = "ctrl+space"
 DEBUG_MODE = True
-VERSION = "1.0.5.17" # 版本号
+VERSION = "1.0.5.19" # 版本号
 
 def log(message):
     if DEBUG_MODE:
@@ -184,6 +185,12 @@ class SettingsManager:
 
         self.libraries = [lib for lib in self.libraries if os.path.exists(lib.get('path'))]
 
+        auto_libraries_str = self.config.get('General', 'auto_libraries', fallback='[]')
+        try:
+            self.auto_libraries = json.loads(auto_libraries_str)
+        except json.JSONDecodeError:
+            self.auto_libraries = []
+
     def save(self):
         self.config['General']['hotkeys_enabled'] = str(self.hotkeys_enabled)
         self.config['Window']['width'] = str(self.width)
@@ -193,6 +200,7 @@ class SettingsManager:
         self.config['Search']['multi_word_search'] = str(self.multi_word_search)
         self.config['Search']['pinyin_initial_search'] = str(self.pinyin_initial_search)
         self.config['General']['libraries'] = json.dumps(self.libraries, ensure_ascii=False)
+        self.config['General']['auto_libraries'] = json.dumps(self.auto_libraries, ensure_ascii=False)
         self.config['Clipboard']['enabled'] = str(self.clipboard_memory_enabled)
         self.config['Clipboard']['count'] = str(self.clipboard_memory_count)
         self.config['Restart']['enabled'] = str(self.auto_restart_enabled)
@@ -320,7 +328,8 @@ class WordManager:
     def reload_all(self):
         """重新加载所有词库，包括剪贴板历史"""
         # 加载普通词库
-        self.sources = [WordSource(lib['path']) for lib in self.settings.libraries]
+        all_libs = self.settings.libraries + self.settings.auto_libraries
+        self.sources = [WordSource(lib['path']) for lib in all_libs]
         self.aggregate_words()
 
         # 加载剪贴板历史
@@ -390,7 +399,8 @@ class WordManager:
     def aggregate_words(self):
         """聚合所有启用的词库数据"""
         self.word_blocks = []
-        enabled_paths = {lib['path'] for lib in self.settings.libraries if lib['enabled']}
+        all_libs = self.settings.libraries + self.settings.auto_libraries
+        enabled_paths = {lib['path'] for lib in all_libs if lib.get('enabled', True)}
         for source in self.sources:
             if source.file_path in enabled_paths:
                 self.word_blocks.extend(source.word_blocks)
@@ -398,54 +408,79 @@ class WordManager:
         self.word_blocks.sort(key=lambda block: self._get_pinyin_sort_key(block['parent']))
         log(f"已聚合 {len(self.word_blocks)} 个词条从 {len(enabled_paths)} 个启用的词库。")
 
-    def find_matches(self, query, multi_word_search_enabled=False, pinyin_search_enabled=False):
-        # 根据需求调整：如果无输入且剪贴板开启，则只显示剪贴板
-        if not query and self.settings.clipboard_memory_enabled:
-            return self.clipboard_history
+    def _calculate_match_score(self, parent_text, query_lower, keywords):
+        score = 0
+        parent_lower = parent_text.lower()
 
-        # 1. 准备搜索池
-        search_pool = []
+        # 基础分：只要包含就给分
+        if query_lower in parent_lower:
+            score += 10
+        
+        # 奖励分
+        if parent_lower == query_lower:
+            score += 1000  # 完全匹配
+        elif parent_lower.startswith(query_lower):
+            score += 100   # 起始匹配
+        
+        # 长度惩罚 (倒数形式，差值越大，加分越少)
+        length_diff = len(parent_lower) - len(query_lower)
+        if length_diff >= 0:
+            score += 50 / (length_diff + 1)
+
+        # 多词匹配奖励
+        if keywords and all(kw in parent_lower for kw in keywords):
+            keywords_len = sum(len(kw) for kw in keywords)
+            # 关键词占比越高，分数越高
+            score += (keywords_len / len(parent_lower)) * 30
+        
+        return score
+
+    def find_matches(self, query, multi_word_search_enabled=False, pinyin_search_enabled=False):
+        # 1. 特殊情况：无搜索时，按要求显示
+        if not query:
+            if self.settings.clipboard_memory_enabled:
+                return self.clipboard_history # 只返回剪贴板历史
+            else:
+                return self.word_blocks # 返回所有词库
+
+        # 2. 有搜索时，构建搜索池并进行评分排序
+        search_pool = self.word_blocks[:] # 创建副本
         if self.settings.clipboard_memory_enabled:
             search_pool.extend(self.clipboard_history)
-        search_pool.extend(self.word_blocks)
-
-        # 2. 如果没有查询（但剪贴板关闭），返回词库
-        if not query:
-            return self.word_blocks
 
         query_lower = query.lower()
-        matched_blocks = []
-        target_blocks = search_pool # 使用合并后的池进行搜索
-
-        if multi_word_search_enabled and ' ' in query_lower.strip():
-            keywords = [k for k in query_lower.split(' ') if k]
-            if not keywords:
-                matched_blocks = [block for block in target_blocks if query_lower in block['parent'].lower()]
-            else:
-                if pinyin_search_enabled:
-                    matched_blocks = [
-                        block for block in target_blocks
-                        if all(
-                            (keyword in block['parent'].lower() or keyword in self._get_pinyin_initials(block['parent']))
-                            for keyword in keywords
-                        )
-                    ]
-                else:
-                    matched_blocks = [
-                        block for block in target_blocks
-                        if all(keyword in block['parent'].lower() for keyword in keywords)
-                    ]
-        else:
-            if pinyin_search_enabled:
-                matched_blocks = [
-                    block for block in target_blocks
-                    if query_lower in block['parent'].lower() or query_lower in self._get_pinyin_initials(block['parent'])
-                ]
-            else:
-                matched_blocks = [block for block in target_blocks if query_lower in block['parent'].lower()]
+        scored_blocks = []
         
-        # 搜索结果不需要再排序，以保持剪贴板历史在前的顺序，并让词库结果保持其原有拼音顺序
-        return matched_blocks
+        keywords = [k for k in query_lower.split(' ') if k] if multi_word_search_enabled and ' ' in query_lower.strip() else []
+
+        for block in search_pool:
+            parent_text = block['parent']
+            parent_lower = parent_text.lower()
+            is_match, is_pinyin_match = False, False
+
+            # --- 匹配逻辑 ---
+            if keywords:
+                text_match = all(kw in parent_lower for kw in keywords)
+                pinyin_match = pinyin_search_enabled and all(kw in self._get_pinyin_initials(parent_text) for kw in keywords)
+                if text_match or pinyin_match:
+                    is_match = True
+                    if pinyin_match and not text_match: is_pinyin_match = True
+            else:
+                text_match = query_lower in parent_lower
+                pinyin_match = pinyin_search_enabled and query_lower in self._get_pinyin_initials(parent_text)
+                if text_match or pinyin_match:
+                    is_match = True
+                    if pinyin_match and not text_match: is_pinyin_match = True
+
+            # --- 计分 ---
+            if is_match:
+                score = self._calculate_match_score(parent_text, query_lower, keywords)
+                if is_pinyin_match: score *= 0.5
+                scored_blocks.append((block, score))
+
+        # --- 排序 ---
+        scored_blocks.sort(key=lambda x: x[1], reverse=True)
+        return [block for block, score in scored_blocks]
 
     def get_source_by_path(self, path):
         for source in self.sources:
@@ -1056,7 +1091,19 @@ class MainController(QObject):
         self.file_watcher = QFileSystemWatcher(self)
         self.update_file_watcher()
         self.file_watcher.fileChanged.connect(self.schedule_reload)
+
+        self.auto_dir_watcher = QFileSystemWatcher(self)
+        if os.path.isdir(AUTO_LOAD_DIR):
+            self.auto_dir_watcher.addPath(AUTO_LOAD_DIR)
+        self.auto_dir_watcher.directoryChanged.connect(self.schedule_auto_lib_scan)
+
         self.reload_timer = QTimer(self); self.reload_timer.setSingleShot(True); self.reload_timer.setInterval(300); self.reload_timer.timeout.connect(self.reload_word_file)
+        
+        # 新增：用于延迟扫描自动加载目录的定时器
+        self.auto_scan_timer = QTimer(self)
+        self.auto_scan_timer.setSingleShot(True)
+        self.auto_scan_timer.setInterval(500) # 500ms 延迟
+        self.auto_scan_timer.timeout.connect(self.scan_and_update_auto_libraries)
 
         # 新增：初始化自动重启定时器
         self.auto_restart_timer = QTimer(self)
@@ -1102,7 +1149,8 @@ class MainController(QObject):
 
     def update_file_watcher(self):
         """更新文件监控器以包含所有词库文件"""
-        paths = [lib['path'] for lib in self.settings.libraries]
+        all_libs = self.settings.libraries + self.settings.auto_libraries
+        paths = [lib['path'] for lib in all_libs]
         if self.file_watcher.files() != paths:
             self.file_watcher.removePaths(self.file_watcher.files())
             self.file_watcher.addPaths(paths)
@@ -1369,6 +1417,52 @@ class MainController(QObject):
         self.word_manager.aggregate_words()
         self.rebuild_library_menu()
 
+    @Slot(str)
+    def toggle_auto_library_enabled(self, path):
+        for lib in self.settings.auto_libraries:
+            if lib.get('path') == path:
+                lib['enabled'] = not lib.get('enabled', True)
+                break
+        self.settings.save()
+        self.word_manager.aggregate_words()
+        self.rebuild_auto_library_menu()
+
+    def open_auto_load_dir(self):
+        try:
+            webbrowser.open(AUTO_LOAD_DIR)
+            log(f"尝试打开自动加载文件夹: {AUTO_LOAD_DIR}")
+        except Exception as e:
+            log(f"打开自动加载文件夹失败: {e}")
+            QMessageBox.warning(self.popup, "错误", f"无法打开文件夹路径：\n{AUTO_LOAD_DIR}\n\n错误: {e}")
+
+    def rebuild_auto_library_menu(self):
+        self.auto_library_menu.clear()
+        
+        open_dir_action = QAction("打开-md词库文件夹", self.auto_library_menu)
+        open_dir_action.triggered.connect(self.open_auto_load_dir)
+        self.auto_library_menu.addAction(open_dir_action)
+        self.auto_library_menu.addSeparator()
+
+        if not self.settings.auto_libraries:
+            no_lib_action = QAction("无自动加载词库", self.auto_library_menu)
+            no_lib_action.setEnabled(False)
+            self.auto_library_menu.addAction(no_lib_action)
+        else:
+            for lib in self.settings.auto_libraries:
+                lib_path = lib.get('path')
+                lib_name = os.path.basename(lib_path)
+                action = QAction(lib_name, self.auto_library_menu)
+                action.setCheckable(True)
+                action.setChecked(lib.get('enabled', True))
+                action.triggered.connect(lambda _, p=lib_path: self.toggle_auto_library_enabled(p))
+                self.auto_library_menu.addAction(action)
+
+    @Slot()
+    def schedule_auto_lib_scan(self):
+        """安排一个延迟的自动目录扫描，以避免在文件写入完成前触发。"""
+        log("检测到自动加载目录变化，安排扫描...")
+        self.auto_scan_timer.start()
+
     def rebuild_library_menu(self):
         self.library_menu.clear()
         
@@ -1408,6 +1502,8 @@ class MainController(QObject):
             action = QWidgetAction(self.library_menu)
             action.setDefaultWidget(widget)
             self.library_menu.addAction(action)
+
+        # 这个逻辑不再需要，因为 auto_library_menu 现在是顶级菜单
 
     @Slot(str)
     def open_library_file(self, path):
@@ -1610,6 +1706,47 @@ class MainController(QObject):
             self.update_auto_restart_timer()
             QMessageBox.information(None, "成功", f"自动重启间隔已设置为 {new_interval} 分钟！")
 
+    def scan_and_update_auto_libraries(self):
+        """扫描自动加载文件夹，同步词库列表并保存状态"""
+        log("开始扫描自动加载词库文件夹...")
+        if not os.path.isdir(AUTO_LOAD_DIR):
+            log(f"自动加载目录不存在: {AUTO_LOAD_DIR}")
+            self.rebuild_auto_library_menu() # 确保即使目录被删除，菜单也能刷新
+            return
+
+        try:
+            found_files = {os.path.join(AUTO_LOAD_DIR, f) for f in os.listdir(AUTO_LOAD_DIR) if f.endswith('.md')}
+        except Exception as e:
+            log(f"扫描自动加载目录时出错: {e}")
+            return
+
+        existing_paths = {lib['path'] for lib in self.settings.auto_libraries}
+        
+        new_files = found_files - existing_paths
+        removed_files = existing_paths - found_files
+        
+        changed = False
+        if new_files:
+            for path in new_files:
+                self.settings.auto_libraries.append({"path": path, "enabled": True})
+                log(f"发现并添加新自动词库: {os.path.basename(path)}")
+            changed = True
+
+        if removed_files:
+            self.settings.auto_libraries = [lib for lib in self.settings.auto_libraries if lib['path'] not in removed_files]
+            for path in removed_files:
+                log(f"移除不存在的自动词库: {os.path.basename(path)}")
+            changed = True
+
+        if changed:
+            self.settings.save()
+            self.reload_word_file() # 重新加载所有词库
+            self.rebuild_auto_library_menu()
+        else:
+            # 如果没有变化，但菜单是空的（可能在启动时），也强制刷新一次
+            if not self.auto_library_menu.actions():
+                self.rebuild_auto_library_menu()
+
 
 # --- main入口 ---
 if __name__ == "__main__":
@@ -1624,6 +1761,14 @@ if __name__ == "__main__":
     settings_manager = SettingsManager(CONFIG_FILE)
     word_manager = WordManager(settings_manager)
     controller = MainController(app, word_manager, settings_manager)
+
+    # --- 确保自动加载文件夹存在 ---
+    if not os.path.exists(AUTO_LOAD_DIR):
+        try:
+            os.makedirs(AUTO_LOAD_DIR)
+            log(f"已创建自动加载词库文件夹: {AUTO_LOAD_DIR}")
+        except Exception as e:
+            log(f"创建自动加载文件夹失败: {e}")
     
     # 剪贴板监控初始化
     controller.last_clipboard_text = "" # 跟踪上一次的剪贴板内容
@@ -1693,8 +1838,13 @@ if __name__ == "__main__":
 
     # --- 词库选择 ---
     library_menu = QMenu("词库选择")
-    controller.library_menu = library_menu # 方便后续重建
+    controller.library_menu = library_menu
     menu.addMenu(library_menu)
+
+    # --- 自动载入的MD词库 ---
+    auto_library_menu = QMenu("自动载入的md词库")
+    controller.auto_library_menu = auto_library_menu
+    menu.addMenu(auto_library_menu) # 直接添加到主菜单
     
     # --- 设置 ---
     menu.addSeparator()
@@ -1736,7 +1886,10 @@ if __name__ == "__main__":
     quit_action = QAction("退出(&Q)"); quit_action.triggered.connect(app.quit); menu.addAction(quit_action)
     
     controller.apply_menu_theme() # 初始化时应用主题
-    controller.rebuild_library_menu() # 首次构建词库菜单
+    controller.rebuild_library_menu() # 首次构建手动词库菜单
+    controller.scan_and_update_auto_libraries() # 首次扫描以同步自动词库列表
+    controller.rebuild_auto_library_menu()      # 首次强制构建菜单UI
+    controller.rebuild_auto_library_menu()      # 基于扫描结果，首次强制构建自动词库菜单UI
     tray_icon.setContextMenu(menu); tray_icon.show()
     
     log("程序启动成功，正在后台运行。")
