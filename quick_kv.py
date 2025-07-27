@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-QuickKV v1.0.5.19
+QuickKV v1.0.5.20
 """
 import sys
 import os
@@ -51,7 +51,7 @@ ICON_PATH = resource_path("icon.png")
 # --- 其他配置 ---
 HOTKEY = "ctrl+space"
 DEBUG_MODE = True
-VERSION = "1.0.5.19" # 版本号
+VERSION = "1.0.5.20" # 版本号
 
 def log(message):
     if DEBUG_MODE:
@@ -911,8 +911,8 @@ class SearchPopup(QWidget):
         # 创建“添加到词库”子菜单
         add_to_library_menu = QMenu("添加到词库", self)
         
-        # 获取所有已加载的词库
-        libraries = self.settings.libraries
+        # 获取所有已加载的词库（手动+自动）
+        libraries = self.settings.libraries + self.settings.auto_libraries
         if not libraries:
             # 如果没有词库，则禁用此菜单项
             no_library_action = QAction("无可用词库", self)
@@ -950,7 +950,7 @@ class SearchPopup(QWidget):
         if selected_block.get('is_clipboard', False):
             # 剪贴板历史的右键菜单
             add_to_library_menu = QMenu("添加到词库", self)
-            libraries = self.settings.libraries
+            libraries = self.settings.libraries + self.settings.auto_libraries
             if not libraries:
                 no_library_action = QAction("无可用词库", self)
                 no_library_action.setEnabled(False)
