@@ -36,9 +36,10 @@ KVTree 支持用 Markdown 文件无序列表树（大纲）建立词库，建立
 需要可点击下载使用 → [KVTree](https://github.com/msjsc001/KVTree/))
 
 ![PixPin_2025-07-25_14-12-10](https://github.com/user-attachments/assets/38c90115-f6f6-4285-80b7-225688214e9c)
+
 ---
 
-## 核心特性
+## QuickKV核心特性（文本介绍）
 
 *   **全局热键**: 在任何地方按下 `Ctrl + Space` 即可呼出搜索框。
 *   **多词库管理**:
