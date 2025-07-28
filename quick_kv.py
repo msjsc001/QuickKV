@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-QuickKV v1.0.5.22
+QuickKV v1.0.5.23
 """
 import sys
 import os
@@ -50,7 +50,7 @@ ICON_PATH = resource_path("icon.png")
 
 # --- 其他配置 ---
 DEBUG_MODE = True
-VERSION = "1.0.5.22" # 版本号
+VERSION = "1.0.5.23" # 版本号
 
 def log(message):
     if DEBUG_MODE:
@@ -461,11 +461,20 @@ class WordManager:
 
             # --- 匹配逻辑 ---
             if keywords:
-                text_match = all(kw in parent_lower for kw in keywords)
-                pinyin_match = pinyin_search_enabled and all(kw in self._get_pinyin_initials(parent_text) for kw in keywords)
-                if text_match or pinyin_match:
+                parent_initials = self._get_pinyin_initials(parent_text) if pinyin_search_enabled else ""
+                
+                all_keywords_matched = True
+                for kw in keywords:
+                    # 每个关键词都必须在文本或拼音中找到
+                    if not (kw in parent_lower or (pinyin_search_enabled and kw in parent_initials)):
+                        all_keywords_matched = False
+                        break
+                
+                if all_keywords_matched:
                     is_match = True
-                    if pinyin_match and not text_match: is_pinyin_match = True
+                    # 检查是否完全依赖拼音匹配
+                    if pinyin_search_enabled and not all(kw in parent_lower for kw in keywords):
+                        is_pinyin_match = True
             else:
                 text_match = query_lower in parent_lower
                 pinyin_match = pinyin_search_enabled and query_lower in self._get_pinyin_initials(parent_text)
