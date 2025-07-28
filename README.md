@@ -28,13 +28,10 @@
 <img width="1911" height="993" alt="PixPin_2025-07-28_14-20-04" src="https://github.com/user-attachments/assets/be0a526a-8dc2-4179-8935-7caf4e70a3b1" />
 <img width="1911" height="993" alt="PixPin_2025-07-28_14-23-06" src="https://github.com/user-attachments/assets/000ccf0e-5585-4880-97d6-243dbd70a293" />
 <img width="1911" height="993" alt="PixPin_2025-07-28_14-36-52" src="https://github.com/user-attachments/assets/2fafcfe6-15ff-40ff-9d92-c5a0b8502e62" />
-
----
-
-
-![PixPin_2025-07-21_19-09-56](https://github.com/user-attachments/assets/8a85521a-a8d9-4288-9b00-b61229b5bb71)
-
-![PixPin_2025-07-22_15-21-24](https://github.com/user-attachments/assets/4b084639-2006-4560-8c86-b89d177ffaca)
+<img width="1911" height="993" alt="PixPin_2025-07-28_15-00-50" src="https://github.com/user-attachments/assets/dd679348-6b82-4364-96f1-ed6e9eee84e7" />
+<img width="1911" height="993" alt="PixPin_2025-07-28_15-08-24" src="https://github.com/user-attachments/assets/b48a1555-347c-4bf3-ae89-2852c599ed0e" />
+<img width="1916" height="993" alt="PixPin_2025-07-28_15-31-43" src="https://github.com/user-attachments/assets/061fdf73-98a2-47d1-93f5-c9453cbda5bd" />
+<img width="1911" height="993" alt="PixPin_2025-07-28_15-21-46" src="https://github.com/user-attachments/assets/909f6cfa-6b51-416c-8dde-4bd326b227f8" />
 
 ---
 
@@ -66,7 +63,7 @@
 *   **轻量与高效**: 后台静默运行，占用极少系统资源，并通过文件热重载实现配置和词库的实时更新。
 
 ---
-<img width="1440" height="1025" alt="e00bf0ba05239340502f3da51849365" src="https://github.com/user-attachments/assets/d656f6bf-06a9-4ecd-99ee-1c392f68d91a" />
+
 
 ## 用户手册
 
