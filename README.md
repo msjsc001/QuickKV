@@ -1,14 +1,15 @@
-# ✍️QuickKV 轻量级快捷输入补全工具
-<img width="1916" height="993" alt="PixPin_2025-07-23_16-21-34" src="https://github.com/user-attachments/assets/f59b0ef7-72f4-43e3-821f-ed4a7988b13e" />
+# ⌨️ QuickKV 轻量级中文自动补全拓展软件
+<img width="1916" height="993" alt="PixPin_2025-07-28_13-36-22" src="https://github.com/user-attachments/assets/7f852744-81a3-4f0f-a050-7a5bb702c76c" />
 
-<img width="1916" height="993" alt="PixPin_2025-07-23_16-20-48" src="https://github.com/user-attachments/assets/3756afbc-c0e7-47e9-82da-8fe73f23b5cf" />
+<p align="center">
+  <a href="https://github.com/msjsc001/QuickKV/releases/latest"><img src="https://img.shields.io/github/v/release/msjsc001/QuickKV"></a>
+  <a href="https://github.com/msjsc001/QuickKV/commits/master"><img src="https://img.shields.io/github/last-commit/msjsc001/QuickKV"></a>
+  <a href="https://github.com/msjsc001/QuickKV/releases"><img src="https://img.shields.io/github/downloads/msjsc001/QuickKV/total?label=Downloads&color=brightgreen"></a>
+</p>
 
+**QuickKV是一款只专注于中文自动补全、文本拓展的开源、轻量级、高效、零门槛、易迁移、轻度剪贴板记忆、高可定制化、纯净无任何商业目的快捷输入增强工具**。它能让您将所有常用的文本片段（如邮箱、代码、模板、常用回复等）保存在一个或多个简单的 Markdown 文件词库中（多词库可灵活勾选使用），通过全局热键 `Ctrl+Space` 在任何应用程序中即时搜索并粘贴它们（支持拼音首字母，空格多词），极大地提升您的输入效率。
 
-**QuickKV是一款只专注于中文自动补全文本拓展的开源、轻量级、高效、零门槛、易迁移、轻度剪贴板记忆、高可定制化、纯净无任何商业目的快捷输入增强工具**。它能让您将所有常用的文本片段（如邮箱、代码、模板、常用回复等）保存在一个或多个简单的 Markdown 文件词库中（多词库可灵活勾选使用），通过全局热键 `Ctrl+Space` 在任何应用程序中即时搜索并粘贴它们（支持拼音首字母，空格多词），极大地提升您的输入效率。
-
-(注：这是QuickKV词库用Markdown大纲管理的加强软感兴趣的可以看看： [KVTree](https://github.com/msjsc001/KVTree/blob/main/README.md))
-
-<img width="1943" height="1016" alt="ZS1HDW8CTDSIW7SBS5@4TXT" src="https://github.com/user-attachments/assets/ffe1a9f7-2d82-4ff6-af29-586a9d066a0e" />
+(QuickKV 词库加强插件 KVTree 支持用 Markdown 大纲管理的直接管理 QuickKV 词库需要可点击 → [KVTree](https://github.com/msjsc001/KVTree/))
 
 - 它与**自动补全类软件旗舰软件** FastKeys、PhraseExpander 不同的是，KV只专注于中文补全且支持中文超轻量级，没有其它更多的功能,比如输入字母后加一个特定按钮打开一个软件、网站之类，如果有需要这类功能**推荐可以 FastKeys 配合使用，KV这里就不重复造轮子了**，FastKeys也是款很不错的软件。PhraseExpander 是自动补全标杆级软件，功能相对繁杂，喜欢的也可以尝试。（不过就我个人而言，并不是太乐意去记忆几个字母+一个特定按钮激活的方式来打开软件，因为我自己有几百个软件这样根本不现实，也徒增认知负担，更喜欢图形化直观的图标，我个人更的是用OneCommander，做一个快捷启动的文件夹，文件夹里有分类一键就能展开各种复杂分类打开程序，非常稳定高效，几乎无迁移问题）
 - 它与**剪贴板旗舰类软件** Ditto 的差异是更便捷，**KV也轻度的支持剪贴板记忆**，Ditto 也能将文本图片等分组固定，后期通过快捷搜索找到内容贴入，不过你可能要多按几次键盘按钮，**它更多是侧重在功能强大的剪贴板管理**，而非补全，有很多细微的差异。总的来说它也是一种不错的方式，推荐喜欢的朋友也可以试试，也可以组合使用，由于它的剪贴板功能更强大，**你也可以选择关闭KV的剪贴板记忆使用它的剪贴板，使用KV的补全输入**，这样两者的长处都取，总之选择自己最喜欢的方式（我个人更用KV的简单方式的剪贴板已经足够）。
@@ -18,11 +19,14 @@
 
 **Anyhow 按自己所需所喜欢的来就是最适合，就是最好的！**
 
-<p align="center">
-  <a href="https://github.com/msjsc001/QuickKV/releases/latest"><img src="https://img.shields.io/github/v/release/msjsc001/QuickKV"></a>
-  <a href="https://github.com/msjsc001/QuickKV/commits/master"><img src="https://img.shields.io/github/last-commit/msjsc001/QuickKV"></a>
-  <a href="https://github.com/msjsc001/QuickKV/releases"><img src="https://img.shields.io/github/downloads/msjsc001/QuickKV/total?label=Downloads&color=brightgreen"></a>
-</p>
+---
+
+## 简易图文教程
+
+<img width="1911" height="993" alt="PixPin_2025-07-28_14-01-50" src="https://github.com/user-attachments/assets/cdb09453-9761-4790-87f0-325a2f4bd80b" />
+<img width="1911" height="993" alt="PixPin_2025-07-28_14-12-41" src="https://github.com/user-attachments/assets/33ecb4d8-fe0f-4dc9-90f0-e0ee6702c9ed" />
+
+---
 
 <img width="1169" height="1045" alt="PixPin_2025-07-19_11-57-58" src="https://github.com/user-attachments/assets/c63fb704-32e6-4d74-98d0-a508e156c0f9" />
 
