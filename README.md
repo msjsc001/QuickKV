@@ -25,15 +25,12 @@
 
 <img width="1911" height="993" alt="PixPin_2025-07-28_14-01-50" src="https://github.com/user-attachments/assets/cdb09453-9761-4790-87f0-325a2f4bd80b" />
 <img width="1911" height="993" alt="PixPin_2025-07-28_14-12-41" src="https://github.com/user-attachments/assets/33ecb4d8-fe0f-4dc9-90f0-e0ee6702c9ed" />
+<img width="1911" height="993" alt="PixPin_2025-07-28_14-20-04" src="https://github.com/user-attachments/assets/be0a526a-8dc2-4179-8935-7caf4e70a3b1" />
+<img width="1911" height="993" alt="PixPin_2025-07-28_14-23-06" src="https://github.com/user-attachments/assets/000ccf0e-5585-4880-97d6-243dbd70a293" />
+<img width="1911" height="993" alt="PixPin_2025-07-28_14-36-52" src="https://github.com/user-attachments/assets/2fafcfe6-15ff-40ff-9d92-c5a0b8502e62" />
 
 ---
 
-<img width="1169" height="1045" alt="PixPin_2025-07-19_11-57-58" src="https://github.com/user-attachments/assets/c63fb704-32e6-4d74-98d0-a508e156c0f9" />
-
-![PixPin_2025-07-20_22-31-31](https://github.com/user-attachments/assets/9e9714b5-c619-431a-a2b3-9b784be9ef67)
-注：方式2（;后弹窗搜索）因为不实用不直观 在1.0.3已经取消
-
-![PixPin_2025-07-22_15-41-55](https://github.com/user-attachments/assets/a04e8887-5130-4696-ba15-b2b09fecb7bb)
 
 ![PixPin_2025-07-21_19-09-56](https://github.com/user-attachments/assets/8a85521a-a8d9-4288-9b00-b61229b5bb71)
 
