@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-QuickKV v1.0.5.20
+QuickKV v1.0.5.22
 """
 import sys
 import os
@@ -49,9 +49,8 @@ AUTO_LOAD_DIR = os.path.join(BASE_PATH, "MD词库-需自动载入的请放入")
 ICON_PATH = resource_path("icon.png")
 
 # --- 其他配置 ---
-HOTKEY = "ctrl+space"
 DEBUG_MODE = True
-VERSION = "1.0.5.20" # 版本号
+VERSION = "1.0.5.22" # 版本号
 
 def log(message):
     if DEBUG_MODE:
@@ -159,6 +158,7 @@ class SettingsManager:
         if not self.config.has_section('Paste'): self.config.add_section('Paste')
 
         self.hotkeys_enabled = self.config.getboolean('General', 'hotkeys_enabled', fallback=True)
+        self.hotkey = self.config.get('General', 'hotkey', fallback='ctrl+space')
         self.paste_mode = self.config.get('Paste', 'mode', fallback='ctrl_v')
         self.width = self.config.getint('Window', 'width', fallback=450)
         self.height = self.config.getint('Window', 'height', fallback=300)
@@ -193,6 +193,7 @@ class SettingsManager:
 
     def save(self):
         self.config['General']['hotkeys_enabled'] = str(self.hotkeys_enabled)
+        self.config['General']['hotkey'] = self.hotkey
         self.config['Window']['width'] = str(self.width)
         self.config['Window']['height'] = str(self.height)
         self.config['Theme']['mode'] = self.theme
@@ -630,6 +631,107 @@ class ScrollableMessageBox(QDialog):
             button.setStyleSheet(btn_style)
 
 
+# --- 快捷键设置对话框 ---
+from PySide6.QtGui import QKeySequence
+
+class HotkeyLineEdit(QLineEdit):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.hotkey = ""
+        self.setPlaceholderText("点击这里设置快捷键")
+
+    def keyPressEvent(self, event):
+        key = event.key()
+        if key in (Qt.Key_Control, Qt.Key_Shift, Qt.Key_Alt, Qt.Key_Meta, Qt.Key_unknown):
+            return  # 忽略单独的修饰键
+
+        modifiers = []
+        if event.modifiers() & Qt.ControlModifier: modifiers.append("ctrl")
+        if event.modifiers() & Qt.AltModifier: modifiers.append("alt")
+        if event.modifiers() & Qt.ShiftModifier: modifiers.append("shift")
+
+        # 映射常用功能键
+        key_map = {
+            Qt.Key_Space: "space", Qt.Key_Return: "enter", Qt.Key_Enter: "enter",
+            Qt.Key_Escape: "esc", Qt.Key_Tab: "tab", Qt.Key_Backspace: "backspace"
+        }
+        key_text = key_map.get(key, QKeySequence(key).toString().lower())
+        
+        if key_text:
+            modifiers.append(key_text)
+            self.hotkey = "+".join(modifiers)
+            self.setText(self.hotkey)
+
+    def get_hotkey(self):
+        return self.hotkey
+
+class HotkeyDialog(QDialog):
+    def __init__(self, parent=None, current_hotkey="", theme=None, font_size=14):
+        super().__init__(parent)
+        self.setWindowTitle("设置快捷键")
+        self.setMinimumWidth(350)
+        
+        layout = QVBoxLayout(self)
+        
+        info_label = QLabel("请点击下方输入框，然后按下您想设置的快捷键组合。")
+        layout.addWidget(info_label)
+        
+        self.hotkey_input = HotkeyLineEdit(self)
+        self.hotkey_input.setText(current_hotkey)
+        self.hotkey_input.hotkey = current_hotkey
+        layout.addWidget(self.hotkey_input)
+        
+        button_layout = QHBoxLayout()
+        self.restore_button = QPushButton("恢复默认(ctrl+space)")
+        self.restore_button.clicked.connect(self.restore_default)
+        button_layout.addWidget(self.restore_button)
+        button_layout.addStretch()
+        
+        self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+        button_layout.addWidget(self.button_box)
+        
+        layout.addLayout(button_layout)
+        
+        if theme:
+            self.apply_theme(theme, font_size, info_label)
+
+    def restore_default(self):
+        self.hotkey_input.setText("ctrl+space")
+        self.hotkey_input.hotkey = "ctrl+space"
+
+    def get_hotkey(self):
+        return self.hotkey_input.get_hotkey()
+
+    def apply_theme(self, theme, font_size, info_label):
+        self.setStyleSheet(f"QDialog {{ background-color: {theme['bg_color']}; color: {theme['text_color']}; }}")
+        info_label.setStyleSheet(f"QLabel {{ color: {theme['text_color']}; font-size: {font_size-1}px; }}")
+        self.hotkey_input.setStyleSheet(f"""
+            QLineEdit {{
+                background-color: {theme['input_bg_color']};
+                color: {theme['text_color']};
+                border: 1px solid {theme['border_color']};
+                border-radius: 4px;
+                padding: 8px;
+                font-size: {font_size}px;
+            }}
+        """)
+        btn_style = f"""
+            QPushButton {{
+                background-color: {theme['input_bg_color']};
+                color: {theme['text_color']};
+                border: 1px solid {theme['border_color']};
+                padding: 5px 15px;
+                border-radius: 4px;
+            }}
+            QPushButton:hover {{ background-color: {theme['item_hover_bg']}; }}
+            QPushButton:pressed {{ background-color: {theme['item_selected_bg']}; color: {theme['item_selected_text']}; }}
+        """
+        for button in self.button_box.buttons() + [self.restore_button]:
+            button.setStyleSheet(btn_style)
+
+
 # --- 搜索弹出窗口UI (滚动条修复) ---
 class SearchPopup(QWidget):
     suggestion_selected = Signal(str)
@@ -647,7 +749,7 @@ class SearchPopup(QWidget):
         self.resize_start_geom = None
 
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
-        # self.setAttribute(Qt.WA_TranslucentBackground) # 重新禁用透明属性
+        self.setAttribute(Qt.WA_TranslucentBackground) # 重新禁用透明属性
         self.setMouseTracking(True) # 启用鼠标跟踪以更新光标
         self.container = QWidget(self) # 将 container 直接作为子控件
         self.container.setMouseTracking(True)
@@ -655,8 +757,8 @@ class SearchPopup(QWidget):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0) # 移除边距，让 container 填满窗口
         main_layout.addWidget(self.container)
-        # shadow = QGraphicsDropShadowEffect(self); shadow.setBlurRadius(15); shadow.setColor(QColor(0, 0, 0, 80)); shadow.setOffset(0, 2)
-        # self.container.setGraphicsEffect(shadow) # 移除阴影
+        shadow = QGraphicsDropShadowEffect(self); shadow.setBlurRadius(15); shadow.setColor(QColor(0, 0, 0, 80)); shadow.setOffset(0, 2)
+        self.container.setGraphicsEffect(shadow) # 移除阴影
         
         container_layout = QVBoxLayout(self.container)
         container_layout.setContentsMargins(1, 1, 1, 1) # 恢复紧凑的边距
@@ -1054,6 +1156,12 @@ class NativeHotkeyManager(QObject):
             self.user32.UnregisterHotKey(None, self.hotkey_id)
             log("原生快捷键已注销。")
 
+    def reregister(self, new_hotkey_str):
+        """动态重新注册快捷键"""
+        self.stop()
+        self.mod, self.vk = self._parse_hotkey(new_hotkey_str)
+        self.start()
+
     def start(self):
         if not self._running:
             self._running = True
@@ -1083,7 +1191,7 @@ class MainController(QObject):
         self.hide_popup_signal.connect(self.popup.hide)
         self.popup.suggestion_selected.connect(self.on_suggestion_selected)
         
-        self.hotkey_manager = NativeHotkeyManager(HOTKEY)
+        self.hotkey_manager = NativeHotkeyManager(self.settings.hotkey)
         self.hotkey_manager.hotkey_triggered.connect(self.on_hotkey_triggered)
         if self.settings.hotkeys_enabled:
             self.hotkey_manager.start()
@@ -1579,6 +1687,24 @@ class MainController(QObject):
         if hasattr(self, 'pinyin_search_action'):
             self.pinyin_search_action.setChecked(self.settings.pinyin_initial_search)
 
+    @Slot()
+    def set_hotkey(self):
+        """弹出对话框以设置新的快捷键"""
+        dialog = HotkeyDialog(
+            parent=self.popup,
+            current_hotkey=self.settings.hotkey,
+            theme=THEMES[self.settings.theme],
+            font_size=self.settings.font_size
+        )
+        if dialog.exec():
+            new_hotkey = dialog.get_hotkey()
+            if new_hotkey and new_hotkey != self.settings.hotkey:
+                self.settings.hotkey = new_hotkey
+                self.settings.save()
+                self.hotkey_manager.reregister(new_hotkey)
+                log(f"快捷键已更新为: {new_hotkey}")
+                QMessageBox.information(None, "成功", f"快捷键已更新为 {new_hotkey}！\n请注意，某些组合键可能被系统或其他程序占用。")
+
     def apply_menu_theme(self, menu=None):
         target_menu = menu if menu else self.menu
         if not target_menu: return
@@ -1793,6 +1919,10 @@ if __name__ == "__main__":
     controller.toggle_hotkeys_action.triggered.connect(controller.toggle_hotkeys_enabled)
     menu.addAction(controller.toggle_hotkeys_action)
     
+    set_hotkey_action = QAction("自定义快捷键...")
+    set_hotkey_action.triggered.connect(controller.set_hotkey)
+    menu.addAction(set_hotkey_action)
+
     # --- 自动重启 ---
     restart_menu = QMenu("间隔时间自动重启")
     controller.auto_restart_action = QAction("间隔时间自动重启", checkable=True)
@@ -1893,7 +2023,7 @@ if __name__ == "__main__":
     tray_icon.setContextMenu(menu); tray_icon.show()
     
     log("程序启动成功，正在后台运行。")
-    print(f"按下 '{HOTKEY}' 来激活或关闭窗口。")
+    print(f"按下 '{settings_manager.hotkey}' 来激活或关闭窗口。")
     print(f"当前主题: {settings_manager.theme}。右键点击托盘图标可进行设置。")
     
     # 连接 aboutToQuit 信号到清理函数
