@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-QuickKV v1.0.5.23
+QuickKV v1.0.5.24
 """
 import sys
 import os
@@ -50,7 +50,7 @@ ICON_PATH = resource_path("icon.png")
 
 # --- 其他配置 ---
 DEBUG_MODE = True
-VERSION = "1.0.5.23" # 版本号
+VERSION = "1.0.5.24" # 版本号
 
 def log(message):
     if DEBUG_MODE:
@@ -324,7 +324,15 @@ class WordManager:
         return "".join(item[0] for item in pinyin(text, style=Style.NORMAL))
 
     def _get_pinyin_initials(self, text):
-        return "".join(item[0] for item in pinyin(text, style=Style.FIRST_LETTER))
+        # 开启多音字模式，获取所有首字母
+        initials_list = pinyin(text, style=Style.FIRST_LETTER, heteronym=True)
+        
+        # 生成所有可能的首字母组合
+        import itertools
+        # [[ 'd', 't'], ['q']] -> [('d', 'q'), ('t', 'q')]
+        all_combinations = list(itertools.product(*initials_list))
+        # -> ['dq', 'tq']
+        return ["".join(combo) for combo in all_combinations]
 
     def reload_all(self):
         """重新加载所有词库，包括剪贴板历史"""
@@ -461,12 +469,13 @@ class WordManager:
 
             # --- 匹配逻辑 ---
             if keywords:
-                parent_initials = self._get_pinyin_initials(parent_text) if pinyin_search_enabled else ""
+                parent_initials_list = self._get_pinyin_initials(parent_text) if pinyin_search_enabled else []
                 
                 all_keywords_matched = True
                 for kw in keywords:
-                    # 每个关键词都必须在文本或拼音中找到
-                    if not (kw in parent_lower or (pinyin_search_enabled and kw in parent_initials)):
+                    # 每个关键词都必须在文本或任意一种拼音组合中找到
+                    keyword_found = kw in parent_lower or any(kw in initials for initials in parent_initials_list)
+                    if not keyword_found:
                         all_keywords_matched = False
                         break
                 
@@ -477,7 +486,12 @@ class WordManager:
                         is_pinyin_match = True
             else:
                 text_match = query_lower in parent_lower
-                pinyin_match = pinyin_search_enabled and query_lower in self._get_pinyin_initials(parent_text)
+                pinyin_match = False
+                if pinyin_search_enabled:
+                    parent_initials_list = self._get_pinyin_initials(parent_text)
+                    if any(query_lower in initials for initials in parent_initials_list):
+                        pinyin_match = True
+
                 if text_match or pinyin_match:
                     is_match = True
                     if pinyin_match and not text_match: is_pinyin_match = True
