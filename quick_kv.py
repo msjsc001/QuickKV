@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-QuickKV v1.0.5.24
+QuickKV v1.0.5.25
 """
 import sys
 import os
@@ -50,7 +50,7 @@ ICON_PATH = resource_path("icon.png")
 
 # --- 其他配置 ---
 DEBUG_MODE = True
-VERSION = "1.0.5.24" # 版本号
+VERSION = "1.0.5.25" # 版本号
 
 def log(message):
     if DEBUG_MODE:
@@ -270,11 +270,36 @@ class WordSource:
 
     def update_entry(self, original_content, new_content):
         try:
-            with open(self.file_path, 'r', encoding='utf-8') as f:
-                file_content = f.read()
-            updated_content = file_content.replace(original_content, new_content)
+            # 使用 WordSource 的加载逻辑来健壮地解析文件
+            loader = WordSource(self.file_path)
+            if not hasattr(loader, 'word_blocks'):
+                return False
+
+            all_blocks = loader.word_blocks
+            
+            # 寻找并替换要更新的块
+            found = False
+            new_blocks = []
+            for block in all_blocks:
+                if block['full_content'] == original_content:
+                    # 创建一个新的 block 结构来代表更新后的内容
+                    # 注意：这里我们只替换 full_content，其他字段不会被使用
+                    new_blocks.append({'full_content': new_content})
+                    found = True
+                else:
+                    new_blocks.append(block)
+            
+            if not found:
+                log(f"update_entry: 在 {self.file_path} 中未找到要更新的内容")
+                return False
+
+            # 从更新后的块列表中重建文件内容
+            # 使用 '\n' 作为分隔符，因为 add_entry 会在每个条目前加一个换行符
+            new_file_content = '\n'.join([block['full_content'] for block in new_blocks])
+            
             with open(self.file_path, 'w', encoding='utf-8') as f:
-                f.write(updated_content)
+                f.write(new_file_content)
+                
             return True
         except Exception as e:
             log(f"更新 {self.file_path} 时发生错误: {e}")
