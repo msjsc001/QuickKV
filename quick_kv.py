@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-QuickKV v1.0.5.25
+QuickKV v1.0.5.26
 """
 import sys
 import os
@@ -8,6 +8,7 @@ import webbrowser
 import configparser
 import hashlib
 import json
+import re
 import threading
 import ctypes
 from ctypes import wintypes
@@ -21,6 +22,7 @@ from PySide6.QtCore import (Qt, Signal, Slot, QObject, QFileSystemWatcher,
 from PySide6.QtGui import QIcon, QAction, QCursor, QPixmap, QPainter, QColor, QPalette, QActionGroup
 import pyperclip
 from pypinyin import pinyin, Style
+from pynput import keyboard
 
 # --- 全局配置 ---
 def get_base_path():
@@ -50,7 +52,7 @@ ICON_PATH = resource_path("icon.png")
 
 # --- 其他配置 ---
 DEBUG_MODE = True
-VERSION = "1.0.5.25" # 版本号
+VERSION = "1.0.5.26" # 版本号
 
 def log(message):
     if DEBUG_MODE:
@@ -158,6 +160,7 @@ class SettingsManager:
         if not self.config.has_section('Paste'): self.config.add_section('Paste')
 
         self.hotkeys_enabled = self.config.getboolean('General', 'hotkeys_enabled', fallback=True)
+        self.shortcut_code_enabled = self.config.getboolean('General', 'shortcut_code_enabled', fallback=False) # 新增：快捷码功能开关
         self.hotkey = self.config.get('General', 'hotkey', fallback='ctrl+space')
         self.paste_mode = self.config.get('Paste', 'mode', fallback='ctrl_v')
         self.width = self.config.getint('Window', 'width', fallback=450)
@@ -193,6 +196,7 @@ class SettingsManager:
 
     def save(self):
         self.config['General']['hotkeys_enabled'] = str(self.hotkeys_enabled)
+        self.config['General']['shortcut_code_enabled'] = str(self.shortcut_code_enabled) # 新增：保存快捷码功能开关
         self.config['General']['hotkey'] = self.hotkey
         self.config['Window']['width'] = str(self.width)
         self.config['Window']['height'] = str(self.height)
@@ -235,14 +239,23 @@ class WordSource:
                     
                     parent_text = line.strip()[2:].strip()
                     exclude_parent_tag = '``不出现``'
+                    shortcut_code_tag_match = re.search(r'``k:(.*?)``\s*$', parent_text)
+
                     should_exclude = exclude_parent_tag in parent_text
+                    shortcut_code = None
+
                     if should_exclude:
                         parent_text = parent_text.replace(exclude_parent_tag, '').strip()
+                    
+                    if shortcut_code_tag_match:
+                        shortcut_code = shortcut_code_tag_match.group(1)
+                        parent_text = parent_text[:shortcut_code_tag_match.start()].strip()
 
                     current_block = {
                         'parent': parent_text,
                         'raw_lines': [line.rstrip()],
                         'exclude_parent': should_exclude,
+                        'shortcut_code': shortcut_code, # 新增：快捷码
                         'source_path': self.file_path, # 标记来源
                         'is_clipboard': False # 默认非剪贴板
                     }
@@ -1226,6 +1239,83 @@ class NativeHotkeyManager(QObject):
             self.thread.join(timeout=1) # 等待线程结束
             log("原生快捷键监听线程已停止。")
 
+# --- 快捷码监听器 ---
+class ShortcutListener(QObject):
+    shortcut_matched = Signal(str, str) # 发送匹配到的词条内容和快捷码本身
+
+    def __init__(self, word_manager):
+        super().__init__()
+        self.word_manager = word_manager
+        self.listener = None
+        self.typed_buffer = ""
+        self.shortcut_map = {}
+        self.thread = None
+        self._running = False
+        self.keyboard_controller = keyboard.Controller()
+
+    def update_shortcuts(self):
+        """从词库更新快捷码映射"""
+        self.shortcut_map = {}
+        all_blocks = self.word_manager.word_blocks + self.word_manager.clipboard_history
+        for block in all_blocks:
+            if block.get('shortcut_code'):
+                self.shortcut_map[block['shortcut_code'].lower()] = block
+        log(f"快捷码监听器已更新，共 {len(self.shortcut_map)} 个快捷码。")
+
+    def _on_press(self, key):
+        if not self._running:
+            return False
+
+        try:
+            char = None
+            if hasattr(key, 'char'):
+                char = key.char
+            elif key == keyboard.Key.space:
+                char = ' '
+            
+            if char:
+                self.typed_buffer += char
+                buffer_lower = self.typed_buffer.lower()
+                for code, block in self.shortcut_map.items():
+                    if buffer_lower.endswith(code):
+                        log(f"快捷码 '{code}' 匹配成功!")
+                        self.shortcut_matched.emit(block['full_content'], code)
+                        self.typed_buffer = "" # 重置缓冲区
+                        break 
+            else:
+                self.typed_buffer = ""
+
+        except Exception as e:
+            log(f"快捷码监听器处理按键时出错: {e}")
+            self.typed_buffer = "" 
+
+        if len(self.typed_buffer) > 50:
+            self.typed_buffer = self.typed_buffer[-50:]
+
+    def _listen(self):
+        """监听线程的实际运行函数"""
+        log("快捷码监听线程已启动。")
+        with keyboard.Listener(on_press=self._on_press) as self.listener:
+            self.listener.join()
+        log("快捷码监听线程已停止。")
+
+    def start(self):
+        if not self._running:
+            self._running = True
+            self.update_shortcuts()
+            self.thread = threading.Thread(target=self._listen, daemon=True)
+            self.thread.start()
+            log("快捷码监听服务已启动。")
+
+    def stop(self):
+        if self._running:
+            self._running = False
+            if self.listener:
+                self.listener.stop()
+            if self.thread:
+                self.thread.join(timeout=1)
+            log("快捷码监听服务已停止。")
+
 # --- 主控制器 ---
 class MainController(QObject):
     show_popup_signal = Signal()
@@ -1243,6 +1333,12 @@ class MainController(QObject):
         self.hotkey_manager.hotkey_triggered.connect(self.on_hotkey_triggered)
         if self.settings.hotkeys_enabled:
             self.hotkey_manager.start()
+
+        # 新增：初始化快捷码监听器
+        self.shortcut_listener = ShortcutListener(self.word_manager)
+        self.shortcut_listener.shortcut_matched.connect(self.on_shortcut_matched)
+        if self.settings.shortcut_code_enabled:
+            self.shortcut_listener.start()
 
         self.file_watcher = QFileSystemWatcher(self)
         self.update_file_watcher()
@@ -1319,6 +1415,8 @@ class MainController(QObject):
     @Slot()
     def reload_word_file(self):
         log("执行所有词库重载。"); self.word_manager.reload_all()
+        if self.shortcut_listener and self.settings.shortcut_code_enabled:
+            self.shortcut_listener.update_shortcuts() # 更新快捷码地图
         if self.popup.isVisible(): self.popup.update_list(self.popup.search_box.text())
     @Slot(str)
     def on_suggestion_selected(self, text):
@@ -1346,8 +1444,8 @@ class MainController(QObject):
                 # 只输出子内容
                 content_to_paste = '\n'.join(found_block['raw_lines'][1:])
             else:
-                # 输出父级（移除- ）+ 子内容
-                first_line = found_block['raw_lines'][0].replace('- ', '', 1)
+                # 输出父级（使用解析过的纯净文本）+ 子内容
+                first_line = found_block['parent']
                 content_to_paste = '\n'.join([first_line] + found_block['raw_lines'][1:])
         else:
             # 如果找不到块，作为备用方案，按旧方式处理
@@ -1673,9 +1771,24 @@ class MainController(QObject):
             log(f"打开词库文件失败: {e}")
             QMessageBox.warning(self.popup, "错误", f"无法打开文件路径：\n{path}\n\n错误: {e}")
 
+    @Slot(str, str)
+    def on_shortcut_matched(self, full_content, shortcut_code):
+        """处理快捷码匹配成功的事件"""
+        log(f"主控制器收到快捷码匹配信号: {shortcut_code}")
+        
+        # 1. 删除用户输入的快捷码
+        for _ in range(len(shortcut_code)):
+            self.shortcut_listener.keyboard_controller.press(keyboard.Key.backspace)
+            self.shortcut_listener.keyboard_controller.release(keyboard.Key.backspace)
+
+        # 2. 粘贴内容 (复用 on_suggestion_selected 的逻辑)
+        self.on_suggestion_selected(full_content)
+
     @Slot()
     def cleanup_and_exit(self):
         self.hotkey_manager.stop()
+        if self.shortcut_listener:
+            self.shortcut_listener.stop() # 退出时停止快捷码监听
         log("程序退出。")
 
     @Slot()
@@ -1699,6 +1812,21 @@ class MainController(QObject):
         
         if hasattr(self, 'toggle_hotkeys_action'):
             self.toggle_hotkeys_action.setChecked(self.settings.hotkeys_enabled)
+
+    @Slot()
+    def toggle_shortcut_code_enabled(self):
+        """切换快捷码功能的启用状态"""
+        self.settings.shortcut_code_enabled = not self.settings.shortcut_code_enabled
+        self.settings.save()
+        if self.settings.shortcut_code_enabled:
+            self.shortcut_listener.start()
+            log("快捷码功能已启用。")
+        else:
+            self.shortcut_listener.stop()
+            log("快捷码功能已禁用。")
+        
+        if hasattr(self, 'toggle_shortcut_code_action'):
+            self.toggle_shortcut_code_action.setChecked(self.settings.shortcut_code_enabled)
 
     @Slot()
     def toggle_theme(self):
@@ -1970,6 +2098,11 @@ if __name__ == "__main__":
     set_hotkey_action = QAction("自定义快捷键...")
     set_hotkey_action.triggered.connect(controller.set_hotkey)
     menu.addAction(set_hotkey_action)
+
+    controller.toggle_shortcut_code_action = QAction("开启快捷码", checkable=True)
+    controller.toggle_shortcut_code_action.setChecked(settings_manager.shortcut_code_enabled)
+    controller.toggle_shortcut_code_action.triggered.connect(controller.toggle_shortcut_code_enabled)
+    menu.addAction(controller.toggle_shortcut_code_action)
 
     # --- 自动重启 ---
     restart_menu = QMenu("间隔时间自动重启")
