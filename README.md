@@ -19,7 +19,7 @@
 ---
 
 ## 简易图文教程
-
+![20210606180518](https://github.com/user-attachments/assets/3fc1af9b-9ce7-448e-b68a-695b3bb743d4)
 <img width="1911" height="993" alt="PixPin_2025-07-28_14-01-50" src="https://github.com/user-attachments/assets/cdb09453-9761-4790-87f0-325a2f4bd80b" />
 <img width="1911" height="993" alt="PixPin_2025-07-28_14-12-41" src="https://github.com/user-attachments/assets/33ecb4d8-fe0f-4dc9-90f0-e0ee6702c9ed" />
 <img width="1894" height="986" alt="PixPin_2025-08-02_00-11-00" src="https://github.com/user-attachments/assets/a10595ac-bada-4a4b-93f6-39bef4bf405a" />
