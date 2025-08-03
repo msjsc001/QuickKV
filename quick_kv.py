@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-QuickKV v1.0.5.28
+QuickKV v1.0.5.29
 """
 import sys
 import os
@@ -9,6 +9,7 @@ import configparser
 import hashlib
 import json
 import re
+import itertools
 import threading
 import ctypes
 from ctypes import wintypes
@@ -53,7 +54,7 @@ ICON_PATH = resource_path("icon.png")
 
 # --- 其他配置 ---
 DEBUG_MODE = True
-VERSION = "1.0.5.28" # 版本号
+VERSION = "1.0.5.29" # 版本号
 
 def log(message):
     if DEBUG_MODE:
@@ -384,6 +385,32 @@ class WordManager:
         # -> ['dq', 'tq']
         return ["".join(combo) for combo in all_combinations]
 
+    def _generate_hybrid_initials(self, text):
+        """生成汉字拼音首字母与非汉字字符的混合搜索键"""
+        # 正则表达式匹配汉字或连续的非汉字字符
+        pattern = re.compile(r'([\u4e00-\u9fa5])|([a-zA-Z0-9_.-]+)')
+        parts = pattern.findall(text)
+        
+        # 收集每个位置的可能性
+        # '扩张ET' -> [[('k',)], [('z',)], [('et',)]]
+        # '长(chang)城' -> [[('c', 'z')], [('c',)]]
+        char_options = []
+        for hanzi, other in parts:
+            if hanzi:
+                # 汉字，获取所有多音字首字母
+                initials = pinyin(hanzi, style=Style.FIRST_LETTER, heteronym=True)[0]
+                char_options.append(tuple(initials))
+            elif other:
+                # 非汉字，直接使用小写形式
+                char_options.append((other.lower(),))
+        
+        # 使用 itertools.product 生成所有组合
+        if not char_options:
+            return []
+            
+        all_combinations = list(itertools.product(*char_options))
+        return ["".join(combo) for combo in all_combinations]
+
     def _get_file_hash(self, file_path):
         """计算文件的MD5哈希值"""
         hasher = hashlib.md5()
@@ -426,7 +453,9 @@ class WordManager:
         """对单个词条块进行预处理"""
         parent_text = block['parent']
         block['parent_lower'] = parent_text.lower()
+        # 同时生成纯拼音首字母和混合首字母
         block['pinyin_initials'] = self._get_pinyin_initials(parent_text)
+        block['hybrid_initials'] = self._generate_hybrid_initials(parent_text)
         return block
 
     def reload_all(self):
@@ -598,30 +627,39 @@ class WordManager:
             parent_text = block['parent']
             # 使用缓存的 parent_lower 和 pinyin_initials
             parent_lower = block.get('parent_lower', parent_text.lower())
-            parent_initials_list = block.get('pinyin_initials', []) if pinyin_search_enabled else []
-            
+            # 根据 pinyin_search_enabled 决定使用哪个索引
+            if pinyin_search_enabled:
+                # 混合模式：纯拼音+混合键
+                search_keys = block.get('pinyin_initials', []) + block.get('hybrid_initials', [])
+            else:
+                # 非拼音模式，只在原文搜索
+                search_keys = []
+
             is_match, is_pinyin_match = False, False
 
             # --- 匹配逻辑 ---
             if keywords:
                 all_keywords_matched = True
                 for kw in keywords:
-                    keyword_found = kw in parent_lower or any(kw in initials for initials in parent_initials_list)
+                    # 关键词必须在原文或启用的搜索键中找到
+                    keyword_found = kw in parent_lower or any(kw in key for key in search_keys)
                     if not keyword_found:
                         all_keywords_matched = False
                         break
                 
                 if all_keywords_matched:
                     is_match = True
-                    if pinyin_search_enabled and not all(kw in parent_lower for kw in keywords):
+                    # 如果不在原文中，则认为是拼音匹配
+                    if not all(kw in parent_lower for kw in keywords):
                         is_pinyin_match = True
             else:
                 text_match = query_lower in parent_lower
-                pinyin_match = pinyin_search_enabled and any(query_lower in initials for initials in parent_initials_list)
+                pinyin_match = any(query_lower in key for key in search_keys)
 
                 if text_match or pinyin_match:
                     is_match = True
-                    if pinyin_match and not text_match: is_pinyin_match = True
+                    if pinyin_match and not text_match:
+                        is_pinyin_match = True
 
             # --- 计分 ---
             if is_match:

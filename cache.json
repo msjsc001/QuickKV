@@ -18,6 +18,10 @@
           "pinyin_initials": [
             "kz",
             "qz"
+          ],
+          "hybrid_initials": [
+            "kz",
+            "qz"
           ]
         },
         {
@@ -33,6 +37,9 @@
           "parent_lower": "多音字",
           "pinyin_initials": [
             "dyz"
+          ],
+          "hybrid_initials": [
+            "dyz"
           ]
         },
         {
@@ -47,6 +54,10 @@
           "full_content": "- 车",
           "parent_lower": "车",
           "pinyin_initials": [
+            "c",
+            "j"
+          ],
+          "hybrid_initials": [
             "c",
             "j"
           ]
@@ -65,6 +76,33 @@
           "pinyin_initials": [
             "q",
             "k"
+          ],
+          "hybrid_initials": [
+            "q",
+            "k"
+          ]
+        }
+      ]
+    },
+    "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\词库-临时测试.md": {
+      "hash": "0ca0b9251ccb422bf4687e415c9f2338",
+      "data": [
+        {
+          "parent": "import sys",
+          "raw_lines": [
+            "- import sys"
+          ],
+          "exclude_parent": false,
+          "shortcut_code": null,
+          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\词库-临时测试.md",
+          "is_clipboard": false,
+          "full_content": "- import sys",
+          "parent_lower": "import sys",
+          "pinyin_initials": [
+            "import sys"
+          ],
+          "hybrid_initials": [
+            "importsys"
           ]
         }
       ]
@@ -89,6 +127,9 @@
           "parent_lower": "父级",
           "pinyin_initials": [
             "fj"
+          ],
+          "hybrid_initials": [
+            "fj"
           ]
         },
         {
@@ -107,6 +148,10 @@
           "pinyin_initials": [
             "zsygmbbt",
             "ztygmbbt"
+          ],
+          "hybrid_initials": [
+            "zsygmbbt",
+            "ztygmbbt"
           ]
         },
         {
@@ -123,6 +168,10 @@
           "full_content": "- 这是一个模板标题\n这是模板的内容1\n这也是模板的内容2",
           "parent_lower": "这是一个模板标题",
           "pinyin_initials": [
+            "zsygmbbt",
+            "ztygmbbt"
+          ],
+          "hybrid_initials": [
             "zsygmbbt",
             "ztygmbbt"
           ]
@@ -148,6 +197,20 @@
             "- gwqd：cscg",
             "- gwqc：cscg",
             "- gwqs：cscg"
+          ],
+          "hybrid_initials": [
+            "-gwqdcscg",
+            "-gwqdcfcg",
+            "-gwqdtscg",
+            "-gwqdtfcg",
+            "-gwqccscg",
+            "-gwqccfcg",
+            "-gwqctscg",
+            "-gwqctfcg",
+            "-gwqscscg",
+            "-gwqscfcg",
+            "-gwqstscg",
+            "-gwqstfcg"
           ]
         },
         {
@@ -177,6 +240,16 @@
           "pinyin_initials": [
             "SWOT fx：[fxdx，r：xcpA、gsB、grzyfz]",
             "SWOT fx：[fxdx，r：xcpA、gcB、grzyfz]"
+          ],
+          "hybrid_initials": [
+            "swotfxfxdxrxcpagsbgrzyfz",
+            "swotfxfxdxrxcpagcbgrzyfz",
+            "swotfxfsdxrxcpagsbgrzyfz",
+            "swotfxfsdxrxcpagcbgrzyfz",
+            "swotfsfxdxrxcpagsbgrzyfz",
+            "swotfsfxdxrxcpagcbgrzyfz",
+            "swotfsfsdxrxcpagsbgrzyfz",
+            "swotfsfsdxrxcpagcbgrzyfz"
           ]
         },
         {
@@ -210,6 +283,10 @@
           "pinyin_initials": [
             "fmxxf[xxzt/gn]",
             "fmxxf[xxzt/jn]"
+          ],
+          "hybrid_initials": [
+            "fmxxfxxztgn",
+            "fmxxfxxztjn"
           ]
         },
         {
@@ -242,6 +319,12 @@
           "parent_lower": "术语卡片",
           "pinyin_initials": [
             "sykp"
+          ],
+          "hybrid_initials": [
+            "sykp",
+            "syqp",
+            "zykp",
+            "zyqp"
           ]
         },
         {
@@ -257,6 +340,9 @@
           "parent_lower": "如何制作 蛋糕",
           "pinyin_initials": [
             "rhzz dg"
+          ],
+          "hybrid_initials": [
+            "rhzzdg"
           ]
         },
         {
@@ -273,6 +359,10 @@
           "pinyin_initials": [
             "rhzz ss",
             "rhzz sc"
+          ],
+          "hybrid_initials": [
+            "rhzzss",
+            "rhzzsc"
           ]
         },
         {
@@ -288,6 +378,9 @@
           "parent_lower": "如何制作 ppt",
           "pinyin_initials": [
             "rhzz PPT"
+          ],
+          "hybrid_initials": [
+            "rhzzppt"
           ]
         },
         {
@@ -303,6 +396,9 @@
           "parent_lower": "如何制作 简历",
           "pinyin_initials": [
             "rhzz jl"
+          ],
+          "hybrid_initials": [
+            "rhzzjl"
           ]
         },
         {
@@ -318,6 +414,9 @@
           "parent_lower": "如何制作 手工",
           "pinyin_initials": [
             "rhzz sg"
+          ],
+          "hybrid_initials": [
+            "rhzzsg"
           ]
         },
         {
@@ -333,26 +432,9 @@
           "parent_lower": "新词",
           "pinyin_initials": [
             "xc"
-          ]
-        }
-      ]
-    },
-    "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\词库-临时测试.md": {
-      "hash": "0ca0b9251ccb422bf4687e415c9f2338",
-      "data": [
-        {
-          "parent": "import sys",
-          "raw_lines": [
-            "- import sys"
           ],
-          "exclude_parent": false,
-          "shortcut_code": null,
-          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\词库-临时测试.md",
-          "is_clipboard": false,
-          "full_content": "- import sys",
-          "parent_lower": "import sys",
-          "pinyin_initials": [
-            "import sys"
+          "hybrid_initials": [
+            "xc"
           ]
         }
       ]
