@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-QuickKV v1.0.5.27.5
+QuickKV v1.0.5.28
 """
 import sys
 import os
@@ -53,7 +53,7 @@ ICON_PATH = resource_path("icon.png")
 
 # --- 其他配置 ---
 DEBUG_MODE = True
-VERSION = "1.0.5.27.5" # 版本号
+VERSION = "1.0.5.28" # 版本号
 
 def log(message):
     if DEBUG_MODE:
@@ -634,9 +634,23 @@ class WordManager:
         return [block for block, score in scored_blocks]
 
     def get_source_by_path(self, path):
+        """
+        通过路径获取 WordSource 对象。
+        如果内存中不存在，则会创建一个新的临时实例。
+        """
         for source in self.sources:
             if source.file_path == path:
                 return source
+        
+        # 如果在 self.sources 中找不到，说明可能是个刚添加或变动的词库
+        # 创建一个临时的 WordSource 对象来处理这种情况
+        log(f"在内存中未找到 source，为路径 {path} 创建临时 WordSource 实例。")
+        all_libs = self.settings.libraries + self.settings.auto_libraries
+        if any(lib['path'] == path for lib in all_libs):
+            new_source = WordSource(path)
+            self.sources.append(new_source) # 添加到列表中以备后用
+            return new_source
+            
         return None
 
 
@@ -1619,34 +1633,25 @@ class MainController(QObject):
     
     @Slot(str)
     def edit_entry(self, original_content):
-        source_path = None
-        
         # Find the block to get its properties
         found_block = None
-        all_blocks = self.word_manager.clipboard_history + self.word_manager.word_blocks
-        for block in all_blocks:
+        search_pool = self.word_manager.word_blocks + self.word_manager.clipboard_history
+        for block in search_pool:
             if block['full_content'] == original_content:
                 found_block = block
                 break
         
         if not found_block:
-            QMessageBox.warning(self.popup, "错误", "找不到词条。")
+            QMessageBox.warning(self.popup, "错误", "找不到要编辑的词条。")
             return
 
         is_clipboard = found_block.get('is_clipboard', False)
-
-        if is_clipboard:
-            source_path = self.word_manager.clipboard_source.file_path
-        else:
-            source_path = found_block.get('source_path')
+        source_path = found_block.get('source_path')
         
-        if not source_path:
-            QMessageBox.warning(self.popup, "错误", "找不到词条的来源文件。")
-            return
+        source = self.word_manager.clipboard_source if is_clipboard else self.word_manager.get_source_by_path(source_path)
 
-        source = self.word_manager.get_source_by_path(source_path) or self.word_manager.clipboard_source
         if not source:
-            QMessageBox.warning(self.popup, "错误", "来源文件对象已丢失。")
+            QMessageBox.warning(self.popup, "错误", "找不到词条的来源文件对象。")
             return
 
         dialog = EditDialog(self.popup, original_content, THEMES[self.settings.theme], self.settings.font_size)
@@ -1655,65 +1660,56 @@ class MainController(QObject):
             if source.update_entry(original_content, new_content):
                 if is_clipboard:
                     self.word_manager.load_clipboard_history()
-                    if self.popup.isVisible(): self.popup.update_list("")
                 else:
                     self.reload_word_file()
+                
+                if self.popup.isVisible():
+                    self.popup.update_list(self.popup.search_box.text())
             else:
-                QMessageBox.warning(self.popup, "错误", f"更新 {os.path.basename(source_path)} 中的词条失败！")
+                QMessageBox.warning(self.popup, "错误", f"更新 {os.path.basename(source.file_path)} 中的词条失败！")
 
     @Slot(str)
     def delete_entry(self, content):
-        source_path = None
-        
         # Find the block to get its properties
         found_block = None
-        all_blocks = self.word_manager.clipboard_history + self.word_manager.word_blocks
-        for block in all_blocks:
+        search_pool = self.word_manager.word_blocks + self.word_manager.clipboard_history
+        for block in search_pool:
             if block['full_content'] == content:
                 found_block = block
                 break
 
         if not found_block:
-            QMessageBox.warning(self.popup, "错误", "找不到词条。")
+            QMessageBox.warning(self.popup, "错误", "找不到要删除的词条。")
             return
-            
+
         is_clipboard = found_block.get('is_clipboard', False)
+        source_path = found_block.get('source_path')
 
-        if is_clipboard:
-            source_path = self.word_manager.clipboard_source.file_path
-        else:
-            source_path = found_block.get('source_path')
+        source = self.word_manager.clipboard_source if is_clipboard else self.word_manager.get_source_by_path(source_path)
 
-        if not source_path:
-            QMessageBox.warning(self.popup, "错误", "找不到词条的来源文件。")
-            return
-            
-        source = self.word_manager.get_source_by_path(source_path) or self.word_manager.clipboard_source
         if not source:
-            QMessageBox.warning(self.popup, "错误", "来源文件对象已丢失。")
+            QMessageBox.warning(self.popup, "错误", "找不到词条的来源文件对象。")
             return
 
         dialog = ScrollableMessageBox(
             parent=self.popup,
             title="确认删除",
-            text=f"确定要从 <b>{os.path.basename(source_path)}</b> 中删除以下词条吗？<br><br>{content.replace(chr(10), '<br>')}",
+            text=f"确定要从 <b>{os.path.basename(source.file_path)}</b> 中删除以下词条吗？<br><br>{content.replace(chr(10), '<br>')}",
             theme=THEMES[self.settings.theme],
             font_size=self.settings.font_size
         )
         
         if dialog.exec() == QDialog.Accepted:
-            reply = QMessageBox.Yes
-        else:
-            reply = QMessageBox.No
-        if reply == QMessageBox.Yes:
             if source.delete_entry(content):
                 if is_clipboard:
                     self.word_manager.load_clipboard_history()
-                    if self.popup.isVisible(): self.popup.update_list("")
                 else:
                     self.reload_word_file()
+                
+                if self.popup.isVisible():
+                    self.popup.update_list(self.popup.search_box.text())
             else:
-                QMessageBox.warning(self.popup, "错误", f"从 {os.path.basename(source_path)} 删除词条失败！")
+                QMessageBox.warning(self.popup, "错误", f"从 {os.path.basename(source.file_path)} 删除词条失败！")
 
     def move_clipboard_item_to_library(self, item_content, target_path):
         """将剪贴板条目移动到指定的词库"""
