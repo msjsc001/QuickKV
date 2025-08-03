@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-QuickKV v1.0.5.26
+QuickKV v1.0.5.27.5
 """
 import sys
 import os
@@ -46,13 +46,14 @@ WORD_FILE = os.path.join(BASE_PATH, "词库.md")
 CLIPBOARD_HISTORY_FILE = os.path.join(BASE_PATH, "剪贴板词库.md")
 CONFIG_FILE = os.path.join(BASE_PATH, "config.ini")
 AUTO_LOAD_DIR = os.path.join(BASE_PATH, "MD词库-需自动载入的请放入")
+CACHE_FILE = os.path.join(BASE_PATH, "cache.json") # 新增：缓存文件路径
 
 # --- 内部资源 ---
 ICON_PATH = resource_path("icon.png")
 
 # --- 其他配置 ---
 DEBUG_MODE = True
-VERSION = "1.0.5.26" # 版本号
+VERSION = "1.0.5.27.5" # 版本号
 
 def log(message):
     if DEBUG_MODE:
@@ -62,11 +63,13 @@ def log(message):
 THEMES = {
     "dark": {
         "bg_color": "#21252b", "border_color": "#3c424b", "text_color": "#d1d5db",
+        "title_color": "#8c929c", # 新增：弱化的标题颜色
         "input_bg_color": "#2c313a", "item_hover_bg": "#3a3f4b",
         "item_selected_bg": "#405061", "item_selected_text": "#d1d5db"
     },
     "light": {
         "bg_color": "#fdfdfd", "border_color": "#cccccc", "text_color": "#202020",
+        "title_color": "#a0a0a0", # 新增：弱化的标题颜色
         "input_bg_color": "#ffffff", "item_hover_bg": "#f0f0f0",
         "item_selected_bg": "#dbe4ee", "item_selected_text": "#202020"
     }
@@ -238,21 +241,29 @@ class WordSource:
                         self.word_blocks.append(current_block)
                     
                     parent_text = line.strip()[2:].strip()
-                    exclude_parent_tag = '``不出现``'
-                    shortcut_code_tag_match = re.search(r'``k:(.*?)``\s*$', parent_text)
+                    
+                    # --- 新的元命令解析逻辑 ---
+                    # 匹配所有 ``...`` 形式的元命令
+                    meta_commands_pattern = r'``(.*?)``'
+                    meta_commands = re.findall(meta_commands_pattern, parent_text)
+                    
+                    # 从原始文本中移除所有元命令，得到纯净的 parent_text
+                    clean_parent_text = re.sub(meta_commands_pattern, '', parent_text).strip()
 
-                    should_exclude = exclude_parent_tag in parent_text
+                    should_exclude = False
                     shortcut_code = None
 
-                    if should_exclude:
-                        parent_text = parent_text.replace(exclude_parent_tag, '').strip()
-                    
-                    if shortcut_code_tag_match:
-                        shortcut_code = shortcut_code_tag_match.group(1)
-                        parent_text = parent_text[:shortcut_code_tag_match.start()].strip()
+                    # 遍历找到的所有元命令并进行处理
+                    for command in meta_commands:
+                        if command == '不出现':
+                            should_exclude = True
+                        elif command.startswith('k:'):
+                            # 提取 'k:' 后面的内容作为快捷码
+                            shortcut_code = command[2:].strip()
+                    # --- 新逻辑结束 ---
 
                     current_block = {
-                        'parent': parent_text,
+                        'parent': clean_parent_text, # 使用纯净文本
                         'raw_lines': [line.rstrip()],
                         'exclude_parent': should_exclude,
                         'shortcut_code': shortcut_code, # 新增：快捷码
@@ -353,6 +364,7 @@ class WordManager:
         self.settings = settings
         self.sources = []
         self.word_blocks = []
+        self.cache = {} # 新增：用于存储缓存数据
         # 新增：剪贴板历史专用
         self.clipboard_source = None
         self.clipboard_history = []
@@ -372,14 +384,98 @@ class WordManager:
         # -> ['dq', 'tq']
         return ["".join(combo) for combo in all_combinations]
 
-    def reload_all(self):
-        """重新加载所有词库，包括剪贴板历史"""
-        # 加载普通词库
-        all_libs = self.settings.libraries + self.settings.auto_libraries
-        self.sources = [WordSource(lib['path']) for lib in all_libs]
-        self.aggregate_words()
+    def _get_file_hash(self, file_path):
+        """计算文件的MD5哈希值"""
+        hasher = hashlib.md5()
+        try:
+            with open(file_path, 'rb') as f:
+                buf = f.read()
+                hasher.update(buf)
+            return hasher.hexdigest()
+        except FileNotFoundError:
+            return None
 
-        # 加载剪贴板历史
+    def _load_cache(self):
+        """尝试从文件加载缓存"""
+        if not os.path.exists(CACHE_FILE):
+            log("缓存文件不存在，将创建新缓存。")
+            return {}
+        try:
+            with open(CACHE_FILE, 'r', encoding='utf-8') as f:
+                cache_data = json.load(f)
+            # 简单版本校验
+            if cache_data.get("version") != "1.0":
+                log("缓存版本不兼容，将创建新缓存。")
+                return {}
+            log("成功从文件加载缓存。")
+            return cache_data.get("files", {})
+        except (json.JSONDecodeError, Exception) as e:
+            log(f"加载缓存失败: {e}，将创建新缓存。")
+            return {}
+
+    def _save_cache(self):
+        """将当前缓存数据保存到文件"""
+        try:
+            with open(CACHE_FILE, 'w', encoding='utf-8') as f:
+                json.dump({"version": "1.0", "files": self.cache}, f, ensure_ascii=False, indent=2)
+            log("缓存已成功保存。")
+        except Exception as e:
+            log(f"保存缓存失败: {e}")
+
+    def _preprocess_block(self, block):
+        """对单个词条块进行预处理"""
+        parent_text = block['parent']
+        block['parent_lower'] = parent_text.lower()
+        block['pinyin_initials'] = self._get_pinyin_initials(parent_text)
+        return block
+
+    def reload_all(self):
+        """通过缓存机制重新加载所有词库"""
+        log("--- 开始重载所有词库 ---")
+        self.cache = self._load_cache()
+        
+        all_libs = self.settings.libraries + self.settings.auto_libraries
+        enabled_paths = {lib['path'] for lib in all_libs if lib.get('enabled', True)}
+        
+        new_word_blocks = []
+        cache_updated = False
+
+        for path in enabled_paths:
+            current_hash = self._get_file_hash(path)
+            cached_file = self.cache.get(path)
+
+            if cached_file and cached_file.get('hash') == current_hash:
+                log(f"缓存命中: {os.path.basename(path)}")
+                new_word_blocks.extend(cached_file['data'])
+            else:
+                log(f"缓存未命中或已过期: {os.path.basename(path)}")
+                source = WordSource(path) # WordSource.load() is called here
+                
+                preprocessed_data = [self._preprocess_block(block) for block in source.word_blocks]
+                
+                self.cache[path] = {
+                    "hash": current_hash,
+                    "data": preprocessed_data
+                }
+                new_word_blocks.extend(preprocessed_data)
+                cache_updated = True
+
+        # 移除缓存中不再启用的词库
+        paths_to_remove = set(self.cache.keys()) - enabled_paths
+        if paths_to_remove:
+            for path in paths_to_remove:
+                del self.cache[path]
+            cache_updated = True
+
+        self.word_blocks = new_word_blocks
+        self.word_blocks.sort(key=lambda block: self._get_pinyin_sort_key(block['parent']))
+        
+        if cache_updated:
+            self._save_cache()
+
+        log(f"已聚合 {len(self.word_blocks)} 个词条从 {len(enabled_paths)} 个启用的词库。")
+        
+        # 加载剪贴板历史（它不使用主缓存）
         self.load_clipboard_history()
 
     def load_clipboard_history(self):
@@ -444,16 +540,11 @@ class WordManager:
             return False
 
     def aggregate_words(self):
-        """聚合所有启用的词库数据"""
-        self.word_blocks = []
-        all_libs = self.settings.libraries + self.settings.auto_libraries
-        enabled_paths = {lib['path'] for lib in all_libs if lib.get('enabled', True)}
-        for source in self.sources:
-            if source.file_path in enabled_paths:
-                self.word_blocks.extend(source.word_blocks)
-        
-        self.word_blocks.sort(key=lambda block: self._get_pinyin_sort_key(block['parent']))
-        log(f"已聚合 {len(self.word_blocks)} 个词条从 {len(enabled_paths)} 个启用的词库。")
+        """聚合所有启用的词库数据 (此方法现在由 reload_all 替代)"""
+        # 这个方法现在是多余的，因为 reload_all() 已经处理了聚合。
+        # 保留一个空实现或直接移除，并更新调用点。
+        # 为了安全起见，暂时保留，但其逻辑已被移至 reload_all。
+        pass
 
     def _calculate_match_score(self, parent_text, query_lower, keywords):
         score = 0
@@ -486,14 +577,17 @@ class WordManager:
         # 1. 特殊情况：无搜索时，按要求显示
         if not query:
             if self.settings.clipboard_memory_enabled:
-                return self.clipboard_history # 只返回剪贴板历史
+                # 预处理剪贴板历史以便显示
+                return [self._preprocess_block(b) for b in self.clipboard_history]
             else:
                 return self.word_blocks # 返回所有词库
 
         # 2. 有搜索时，构建搜索池并进行评分排序
         search_pool = self.word_blocks[:] # 创建副本
         if self.settings.clipboard_memory_enabled:
-            search_pool.extend(self.clipboard_history)
+            # 实时预处理剪贴板历史记录以进行搜索
+            processed_clipboard = [self._preprocess_block(b) for b in self.clipboard_history]
+            search_pool.extend(processed_clipboard)
 
         query_lower = query.lower()
         scored_blocks = []
@@ -502,16 +596,16 @@ class WordManager:
 
         for block in search_pool:
             parent_text = block['parent']
-            parent_lower = parent_text.lower()
+            # 使用缓存的 parent_lower 和 pinyin_initials
+            parent_lower = block.get('parent_lower', parent_text.lower())
+            parent_initials_list = block.get('pinyin_initials', []) if pinyin_search_enabled else []
+            
             is_match, is_pinyin_match = False, False
 
             # --- 匹配逻辑 ---
             if keywords:
-                parent_initials_list = self._get_pinyin_initials(parent_text) if pinyin_search_enabled else []
-                
                 all_keywords_matched = True
                 for kw in keywords:
-                    # 每个关键词都必须在文本或任意一种拼音组合中找到
                     keyword_found = kw in parent_lower or any(kw in initials for initials in parent_initials_list)
                     if not keyword_found:
                         all_keywords_matched = False
@@ -519,16 +613,11 @@ class WordManager:
                 
                 if all_keywords_matched:
                     is_match = True
-                    # 检查是否完全依赖拼音匹配
                     if pinyin_search_enabled and not all(kw in parent_lower for kw in keywords):
                         is_pinyin_match = True
             else:
                 text_match = query_lower in parent_lower
-                pinyin_match = False
-                if pinyin_search_enabled:
-                    parent_initials_list = self._get_pinyin_initials(parent_text)
-                    if any(query_lower in initials for initials in parent_initials_list):
-                        pinyin_match = True
+                pinyin_match = pinyin_search_enabled and any(query_lower in initials for initials in parent_initials_list)
 
                 if text_match or pinyin_match:
                     is_match = True
@@ -978,7 +1067,7 @@ class SearchPopup(QWidget):
     def apply_theme(self):
         theme = THEMES[self.settings.theme]
         font_size = self.settings.font_size
-        self.title_label.setStyleSheet(f"color: {theme['text_color']}; font-size: {font_size-2}px; font-weight: normal; background-color: transparent; border: none; padding-left: 4px;")
+        self.title_label.setStyleSheet(f"color: {theme['title_color']}; font-size: {font_size-2}px; font-weight: normal; background-color: transparent; border: none; padding-left: 4px;")
         self.container.setStyleSheet(f"background-color: {theme['bg_color']}; border: 1px solid {theme['border_color']}; border-radius: 8px;")
         self.search_box.setStyleSheet(f"background-color: {theme['input_bg_color']}; color: {theme['text_color']}; border: 1px solid {theme['border_color']}; border-radius: 0px; padding: 8px; font-size: {font_size}px; margin: 0px 0px 4px 0px;")
         # 绘图代理接管了 item 的样式，这里只需设置基础样式
@@ -1362,6 +1451,8 @@ class MainController(QObject):
         self.auto_restart_timer.timeout.connect(self.perform_restart)
         self.update_auto_restart_timer()
 
+        self.ignore_next_clipboard_change = False # 用于防止记录自己的输出
+
     def update_clipboard_monitor_status(self):
         """根据设置启动或停止剪贴板监控"""
         if self.settings.clipboard_memory_enabled:
@@ -1378,6 +1469,12 @@ class MainController(QObject):
         try:
             current_text = pyperclip.paste()
             if current_text and current_text != self.last_clipboard_text:
+                if self.ignore_next_clipboard_change:
+                    log("忽略本次剪贴板变化（由程序自身触发）。")
+                    self.ignore_next_clipboard_change = False
+                    self.last_clipboard_text = current_text # 仍然更新 last_clipboard_text 以防止重复记录
+                    return
+
                 # --- 换行符规范化 ---
                 normalized_text = '\n'.join(current_text.splitlines())
                 log(f"检测到新的剪贴板内容 (规范化后): '{normalized_text}'")
@@ -1451,8 +1548,9 @@ class MainController(QObject):
             # 如果找不到块，作为备用方案，按旧方式处理
             content_to_paste = text.replace('- ', '', 1)
 
+        self.ignore_next_clipboard_change = True
         pyperclip.copy(content_to_paste)
-        log(f"已复制处理后的内容到剪贴板。")
+        log(f"已复制处理后的内容到剪贴板，并设置忽略标志。")
         
         # 无论何种模式，都执行粘贴
         QTimer.singleShot(150, self.perform_paste)
@@ -1626,6 +1724,7 @@ class MainController(QObject):
         source = self.word_manager.get_source_by_path(target_path)
         if source and source.add_entry(f"- {text_to_add}"):
             log(f"已将 '{text_to_add}' 添加到 {os.path.basename(target_path)}")
+            self.reload_word_file() # 重新加载词库以更新缓存
 
             # 3. 从剪贴板历史中删除
             if self.word_manager.clipboard_source.delete_entry(item_content):
@@ -1668,7 +1767,7 @@ class MainController(QObject):
                 lib['enabled'] = not lib.get('enabled', True)
                 break
         self.settings.save()
-        self.word_manager.aggregate_words()
+        self.word_manager.reload_all() # 改为调用 reload_all 以更新缓存
         self.rebuild_library_menu()
 
     @Slot(str)
@@ -1678,7 +1777,7 @@ class MainController(QObject):
                 lib['enabled'] = not lib.get('enabled', True)
                 break
         self.settings.save()
-        self.word_manager.aggregate_words()
+        self.word_manager.reload_all() # 改为调用 reload_all 以更新缓存
         self.rebuild_auto_library_menu()
 
     def open_auto_load_dir(self):
@@ -1786,10 +1885,11 @@ class MainController(QObject):
 
     @Slot()
     def cleanup_and_exit(self):
+        log("开始执行程序清理...")
         self.hotkey_manager.stop()
         if self.shortcut_listener:
             self.shortcut_listener.stop() # 退出时停止快捷码监听
-        log("程序退出。")
+        log("所有监听器已停止，程序准备退出。")
 
     @Slot()
     def set_paste_mode(self, mode):
