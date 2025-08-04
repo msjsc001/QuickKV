@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-QuickKV v1.0.5.31
+QuickKV v1.0.5.26
 """
 import sys
 import os
@@ -9,7 +9,6 @@ import configparser
 import hashlib
 import json
 import re
-import itertools
 import threading
 import ctypes
 from ctypes import wintypes
@@ -47,14 +46,13 @@ WORD_FILE = os.path.join(BASE_PATH, "词库.md")
 CLIPBOARD_HISTORY_FILE = os.path.join(BASE_PATH, "剪贴板词库.md")
 CONFIG_FILE = os.path.join(BASE_PATH, "config.ini")
 AUTO_LOAD_DIR = os.path.join(BASE_PATH, "MD词库-需自动载入的请放入")
-CACHE_FILE = os.path.join(BASE_PATH, "cache.json") # 新增：缓存文件路径
 
 # --- 内部资源 ---
 ICON_PATH = resource_path("icon.png")
 
 # --- 其他配置 ---
 DEBUG_MODE = True
-VERSION = "1.0.5.31" # 版本号
+VERSION = "1.0.5.26" # 版本号
 
 def log(message):
     if DEBUG_MODE:
@@ -64,13 +62,11 @@ def log(message):
 THEMES = {
     "dark": {
         "bg_color": "#21252b", "border_color": "#3c424b", "text_color": "#d1d5db",
-        "title_color": "#8c929c", # 新增：弱化的标题颜色
         "input_bg_color": "#2c313a", "item_hover_bg": "#3a3f4b",
         "item_selected_bg": "#405061", "item_selected_text": "#d1d5db"
     },
     "light": {
         "bg_color": "#fdfdfd", "border_color": "#cccccc", "text_color": "#202020",
-        "title_color": "#a0a0a0", # 新增：弱化的标题颜色
         "input_bg_color": "#ffffff", "item_hover_bg": "#f0f0f0",
         "item_selected_bg": "#dbe4ee", "item_selected_text": "#202020"
     }
@@ -152,68 +148,51 @@ class SettingsManager:
         self.load()
 
     def load(self):
-        """
-        加载配置文件。
-        【已加固】增加了对 configparser 和 json 解析错误的全面捕获，
-        确保在配置文件损坏时程序能以后备值启动，而不是崩溃。
-        """
+        self.config.read(self.file_path, encoding='utf-8')
+        if not self.config.has_section('Window'): self.config.add_section('Window')
+        if not self.config.has_section('Theme'): self.config.add_section('Theme')
+        if not self.config.has_section('Font'): self.config.add_section('Font')
+        if not self.config.has_section('Search'): self.config.add_section('Search')
+        if not self.config.has_section('Data'): self.config.add_section('Data')
+        if not self.config.has_section('General'): self.config.add_section('General')
+        if not self.config.has_section('Clipboard'): self.config.add_section('Clipboard')
+        if not self.config.has_section('Restart'): self.config.add_section('Restart')
+        if not self.config.has_section('Paste'): self.config.add_section('Paste')
+
+        self.hotkeys_enabled = self.config.getboolean('General', 'hotkeys_enabled', fallback=True)
+        self.shortcut_code_enabled = self.config.getboolean('General', 'shortcut_code_enabled', fallback=False) # 新增：快捷码功能开关
+        self.hotkey = self.config.get('General', 'hotkey', fallback='ctrl+space')
+        self.paste_mode = self.config.get('Paste', 'mode', fallback='ctrl_v')
+        self.width = self.config.getint('Window', 'width', fallback=450)
+        self.height = self.config.getint('Window', 'height', fallback=300)
+        self.theme = self.config.get('Theme', 'mode', fallback='dark')
+        self.font_size = self.config.getint('Font', 'size', fallback=14)
+        self.multi_word_search = self.config.getboolean('Search', 'multi_word_search', fallback=True)
+        self.pinyin_initial_search = self.config.getboolean('Search', 'pinyin_initial_search', fallback=True)
+        
+        self.clipboard_memory_enabled = self.config.getboolean('Clipboard', 'enabled', fallback=False)
+        self.clipboard_memory_count = self.config.getint('Clipboard', 'count', fallback=10)
+        
+        self.auto_restart_enabled = self.config.getboolean('Restart', 'enabled', fallback=False)
+        self.auto_restart_interval = self.config.getint('Restart', 'interval_minutes', fallback=3)
+        
+        libraries_str = self.config.get('General', 'libraries', fallback='[]')
         try:
-            self.config.read(self.file_path, encoding='utf-8')
-        except configparser.Error as e:
-            log(f"CRITICAL: 配置文件 '{self.file_path}' 解析失败: {e}。将使用默认设置。")
-            # 如果解析失败，重置 config 对象，以便后续代码能正常运行
-            self.config = configparser.ConfigParser()
-
-        # 确保所有必需的 section 都存在
-        sections = ['Window', 'Theme', 'Font', 'Search', 'Data', 'General', 'Clipboard', 'Restart', 'Paste']
-        for section in sections:
-            if not self.config.has_section(section):
-                self.config.add_section(section)
-
-        # 使用 try-except 块来安全地获取每个配置项
-        try:
-            self.hotkeys_enabled = self.config.getboolean('General', 'hotkeys_enabled', fallback=True)
-            self.shortcut_code_enabled = self.config.getboolean('General', 'shortcut_code_enabled', fallback=False)
-            self.hotkey = self.config.get('General', 'hotkey', fallback='ctrl+space')
-            self.paste_mode = self.config.get('Paste', 'mode', fallback='ctrl_v')
-            self.width = self.config.getint('Window', 'width', fallback=450)
-            self.height = self.config.getint('Window', 'height', fallback=300)
-            self.theme = self.config.get('Theme', 'mode', fallback='dark')
-            self.font_size = self.config.getint('Font', 'size', fallback=14)
-            self.multi_word_search = self.config.getboolean('Search', 'multi_word_search', fallback=True)
-            self.pinyin_initial_search = self.config.getboolean('Search', 'pinyin_initial_search', fallback=True)
-            self.clipboard_memory_enabled = self.config.getboolean('Clipboard', 'enabled', fallback=False)
-            self.clipboard_memory_count = self.config.getint('Clipboard', 'count', fallback=10)
-            self.auto_restart_enabled = self.config.getboolean('Restart', 'enabled', fallback=False)
-            self.auto_restart_interval = self.config.getint('Restart', 'interval_minutes', fallback=3)
-
-            libraries_str = self.config.get('General', 'libraries', fallback='[]')
-            try:
-                self.libraries = json.loads(libraries_str)
-                if not isinstance(self.libraries, list): self.libraries = []
-            except (json.JSONDecodeError, TypeError):
-                self.libraries = []
-
-            auto_libraries_str = self.config.get('General', 'auto_libraries', fallback='[]')
-            try:
-                self.auto_libraries = json.loads(auto_libraries_str)
-                if not isinstance(self.auto_libraries, list): self.auto_libraries = []
-            except (json.JSONDecodeError, TypeError):
-                self.auto_libraries = []
-
-        except (configparser.NoOptionError, configparser.NoSectionError, ValueError) as e:
-            log(f"CRITICAL: 读取配置项时出错: {e}。部分设置将恢复为默认值。")
-            # 如果在获取过程中出错，确保所有属性都有一个默认值
-            self.hotkeys_enabled = getattr(self, 'hotkeys_enabled', True)
-            self.shortcut_code_enabled = getattr(self, 'shortcut_code_enabled', False)
-            # ... (其他属性以此类推，fallback 已经处理了大部分情况)
-
-        # 迁移和验证逻辑保持不变
+            self.libraries = json.loads(libraries_str)
+        except json.JSONDecodeError:
+            self.libraries = []
+        
         if not self.libraries and os.path.exists(WORD_FILE):
             self.libraries.append({"path": os.path.abspath(WORD_FILE), "enabled": True})
             log("已将旧的单一词库配置迁移到新的多词库系统。")
 
-        self.libraries = [lib for lib in self.libraries if isinstance(lib, dict) and os.path.exists(lib.get('path'))]
+        self.libraries = [lib for lib in self.libraries if os.path.exists(lib.get('path'))]
+
+        auto_libraries_str = self.config.get('General', 'auto_libraries', fallback='[]')
+        try:
+            self.auto_libraries = json.loads(auto_libraries_str)
+        except json.JSONDecodeError:
+            self.auto_libraries = []
 
     def save(self):
         self.config['General']['hotkeys_enabled'] = str(self.hotkeys_enabled)
@@ -259,29 +238,21 @@ class WordSource:
                         self.word_blocks.append(current_block)
                     
                     parent_text = line.strip()[2:].strip()
-                    
-                    # --- 新的元命令解析逻辑 ---
-                    # 匹配所有 ``...`` 形式的元命令
-                    meta_commands_pattern = r'``(.*?)``'
-                    meta_commands = re.findall(meta_commands_pattern, parent_text)
-                    
-                    # 从原始文本中移除所有元命令，得到纯净的 parent_text
-                    clean_parent_text = re.sub(meta_commands_pattern, '', parent_text).strip()
+                    exclude_parent_tag = '``不出现``'
+                    shortcut_code_tag_match = re.search(r'``k:(.*?)``\s*$', parent_text)
 
-                    should_exclude = False
+                    should_exclude = exclude_parent_tag in parent_text
                     shortcut_code = None
 
-                    # 遍历找到的所有元命令并进行处理
-                    for command in meta_commands:
-                        if command == '不出现':
-                            should_exclude = True
-                        elif command.startswith('k:'):
-                            # 提取 'k:' 后面的内容作为快捷码
-                            shortcut_code = command[2:].strip()
-                    # --- 新逻辑结束 ---
+                    if should_exclude:
+                        parent_text = parent_text.replace(exclude_parent_tag, '').strip()
+                    
+                    if shortcut_code_tag_match:
+                        shortcut_code = shortcut_code_tag_match.group(1)
+                        parent_text = parent_text[:shortcut_code_tag_match.start()].strip()
 
                     current_block = {
-                        'parent': clean_parent_text, # 使用纯净文本
+                        'parent': parent_text,
                         'raw_lines': [line.rstrip()],
                         'exclude_parent': should_exclude,
                         'shortcut_code': shortcut_code, # 新增：快捷码
@@ -382,7 +353,6 @@ class WordManager:
         self.settings = settings
         self.sources = []
         self.word_blocks = []
-        self.cache = {} # 新增：用于存储缓存数据
         # 新增：剪贴板历史专用
         self.clipboard_source = None
         self.clipboard_history = []
@@ -402,149 +372,14 @@ class WordManager:
         # -> ['dq', 'tq']
         return ["".join(combo) for combo in all_combinations]
 
-    def _generate_hybrid_initials(self, text):
-        """生成汉字拼音首字母与非汉字字符的混合搜索键"""
-        # 正则表达式匹配汉字或连续的非汉字字符
-        pattern = re.compile(r'([\u4e00-\u9fa5])|([a-zA-Z0-9_.-]+)')
-        parts = pattern.findall(text)
-        
-        # 收集每个位置的可能性
-        # '扩张ET' -> [[('k',)], [('z',)], [('et',)]]
-        # '长(chang)城' -> [[('c', 'z')], [('c',)]]
-        char_options = []
-        for hanzi, other in parts:
-            if hanzi:
-                # 汉字，获取所有多音字首字母
-                initials = pinyin(hanzi, style=Style.FIRST_LETTER, heteronym=True)[0]
-                char_options.append(tuple(initials))
-            elif other:
-                # 非汉字，直接使用小写形式
-                char_options.append((other.lower(),))
-        
-        # 使用 itertools.product 生成所有组合
-        if not char_options:
-            return []
-            
-        all_combinations = list(itertools.product(*char_options))
-        return ["".join(combo) for combo in all_combinations]
-
-    def _get_file_hash(self, file_path):
-        """计算文件的MD5哈希值"""
-        hasher = hashlib.md5()
-        try:
-            with open(file_path, 'rb') as f:
-                buf = f.read()
-                hasher.update(buf)
-            return hasher.hexdigest()
-        except FileNotFoundError:
-            return None
-
-    def _load_cache(self):
-        """
-        尝试从文件加载缓存。
-        【已加固】确保在任何情况下（文件不存在、JSON损坏、权限问题）都能安全返回一个空字典。
-        """
-        if not os.path.exists(CACHE_FILE):
-            log("缓存文件不存在，将跳过加载。")
-            return {}
-        try:
-            with open(CACHE_FILE, 'r', encoding='utf-8') as f:
-                cache_data = json.load(f)
-            
-            # 健壮性检查：确保 cache_data 是一个字典
-            if not isinstance(cache_data, dict):
-                log("缓存文件格式错误：顶层结构不是一个字典。将创建新缓存。")
-                return {}
-
-            # 版本校验
-            if cache_data.get("version") != "1.0":
-                log("缓存版本不兼容，将创建新缓存。")
-                return {}
-            
-            files_data = cache_data.get("files")
-            # 健壮性检查：确保 files 部分也是一个字典
-            if not isinstance(files_data, dict):
-                log("缓存文件格式错误：'files' 键对应的值不是一个字典。将创建新缓存。")
-                return {}
-
-            log("成功从文件加载缓存。")
-            return files_data
-
-        except json.JSONDecodeError as e:
-            log(f"CRITICAL: 加载缓存失败 (JSON解析错误): {e}。将创建新缓存。")
-            return {}
-        except (IOError, OSError) as e:
-            log(f"CRITICAL: 加载缓存失败 (文件读写错误): {e}。将创建新缓存。")
-            return {}
-        except Exception as e:
-            log(f"CRITICAL: 加载缓存时发生未知严重错误: {e}。将创建新缓存。")
-            return {}
-
-    def _save_cache(self):
-        """将当前缓存数据保存到文件"""
-        try:
-            with open(CACHE_FILE, 'w', encoding='utf-8') as f:
-                json.dump({"version": "1.0", "files": self.cache}, f, ensure_ascii=False, indent=2)
-            log("缓存已成功保存。")
-        except Exception as e:
-            log(f"保存缓存失败: {e}")
-
-    def _preprocess_block(self, block):
-        """对单个词条块进行预处理"""
-        parent_text = block['parent']
-        block['parent_lower'] = parent_text.lower()
-        # 同时生成纯拼音首字母和混合首字母
-        block['pinyin_initials'] = self._get_pinyin_initials(parent_text)
-        block['hybrid_initials'] = self._generate_hybrid_initials(parent_text)
-        return block
-
     def reload_all(self):
-        """通过缓存机制重新加载所有词库"""
-        log("--- 开始重载所有词库 ---")
-        self.cache = self._load_cache()
-        
+        """重新加载所有词库，包括剪贴板历史"""
+        # 加载普通词库
         all_libs = self.settings.libraries + self.settings.auto_libraries
-        enabled_paths = {lib['path'] for lib in all_libs if lib.get('enabled', True)}
-        
-        new_word_blocks = []
-        cache_updated = False
+        self.sources = [WordSource(lib['path']) for lib in all_libs]
+        self.aggregate_words()
 
-        for path in enabled_paths:
-            current_hash = self._get_file_hash(path)
-            cached_file = self.cache.get(path)
-
-            if cached_file and cached_file.get('hash') == current_hash:
-                log(f"缓存命中: {os.path.basename(path)}")
-                new_word_blocks.extend(cached_file['data'])
-            else:
-                log(f"缓存未命中或已过期: {os.path.basename(path)}")
-                source = WordSource(path) # WordSource.load() is called here
-                
-                preprocessed_data = [self._preprocess_block(block) for block in source.word_blocks]
-                
-                self.cache[path] = {
-                    "hash": current_hash,
-                    "data": preprocessed_data
-                }
-                new_word_blocks.extend(preprocessed_data)
-                cache_updated = True
-
-        # 移除缓存中不再启用的词库
-        paths_to_remove = set(self.cache.keys()) - enabled_paths
-        if paths_to_remove:
-            for path in paths_to_remove:
-                del self.cache[path]
-            cache_updated = True
-
-        self.word_blocks = new_word_blocks
-        self.word_blocks.sort(key=lambda block: self._get_pinyin_sort_key(block['parent']))
-        
-        if cache_updated:
-            self._save_cache()
-
-        log(f"已聚合 {len(self.word_blocks)} 个词条从 {len(enabled_paths)} 个启用的词库。")
-        
-        # 加载剪贴板历史（它不使用主缓存）
+        # 加载剪贴板历史
         self.load_clipboard_history()
 
     def load_clipboard_history(self):
@@ -609,11 +444,16 @@ class WordManager:
             return False
 
     def aggregate_words(self):
-        """聚合所有启用的词库数据 (此方法现在由 reload_all 替代)"""
-        # 这个方法现在是多余的，因为 reload_all() 已经处理了聚合。
-        # 保留一个空实现或直接移除，并更新调用点。
-        # 为了安全起见，暂时保留，但其逻辑已被移至 reload_all。
-        pass
+        """聚合所有启用的词库数据"""
+        self.word_blocks = []
+        all_libs = self.settings.libraries + self.settings.auto_libraries
+        enabled_paths = {lib['path'] for lib in all_libs if lib.get('enabled', True)}
+        for source in self.sources:
+            if source.file_path in enabled_paths:
+                self.word_blocks.extend(source.word_blocks)
+        
+        self.word_blocks.sort(key=lambda block: self._get_pinyin_sort_key(block['parent']))
+        log(f"已聚合 {len(self.word_blocks)} 个词条从 {len(enabled_paths)} 个启用的词库。")
 
     def _calculate_match_score(self, parent_text, query_lower, keywords):
         score = 0
@@ -646,17 +486,14 @@ class WordManager:
         # 1. 特殊情况：无搜索时，按要求显示
         if not query:
             if self.settings.clipboard_memory_enabled:
-                # 预处理剪贴板历史以便显示
-                return [self._preprocess_block(b) for b in self.clipboard_history]
+                return self.clipboard_history # 只返回剪贴板历史
             else:
                 return self.word_blocks # 返回所有词库
 
         # 2. 有搜索时，构建搜索池并进行评分排序
         search_pool = self.word_blocks[:] # 创建副本
         if self.settings.clipboard_memory_enabled:
-            # 实时预处理剪贴板历史记录以进行搜索
-            processed_clipboard = [self._preprocess_block(b) for b in self.clipboard_history]
-            search_pool.extend(processed_clipboard)
+            search_pool.extend(self.clipboard_history)
 
         query_lower = query.lower()
         scored_blocks = []
@@ -665,41 +502,37 @@ class WordManager:
 
         for block in search_pool:
             parent_text = block['parent']
-            # 使用缓存的 parent_lower 和 pinyin_initials
-            parent_lower = block.get('parent_lower', parent_text.lower())
-            # 根据 pinyin_search_enabled 决定使用哪个索引
-            if pinyin_search_enabled:
-                # 混合模式：纯拼音+混合键
-                search_keys = block.get('pinyin_initials', []) + block.get('hybrid_initials', [])
-            else:
-                # 非拼音模式，只在原文搜索
-                search_keys = []
-
+            parent_lower = parent_text.lower()
             is_match, is_pinyin_match = False, False
 
             # --- 匹配逻辑 ---
             if keywords:
+                parent_initials_list = self._get_pinyin_initials(parent_text) if pinyin_search_enabled else []
+                
                 all_keywords_matched = True
                 for kw in keywords:
-                    # 关键词必须在原文或启用的搜索键中找到
-                    keyword_found = kw in parent_lower or any(kw in key for key in search_keys)
+                    # 每个关键词都必须在文本或任意一种拼音组合中找到
+                    keyword_found = kw in parent_lower or any(kw in initials for initials in parent_initials_list)
                     if not keyword_found:
                         all_keywords_matched = False
                         break
                 
                 if all_keywords_matched:
                     is_match = True
-                    # 如果不在原文中，则认为是拼音匹配
-                    if not all(kw in parent_lower for kw in keywords):
+                    # 检查是否完全依赖拼音匹配
+                    if pinyin_search_enabled and not all(kw in parent_lower for kw in keywords):
                         is_pinyin_match = True
             else:
                 text_match = query_lower in parent_lower
-                pinyin_match = any(query_lower in key for key in search_keys)
+                pinyin_match = False
+                if pinyin_search_enabled:
+                    parent_initials_list = self._get_pinyin_initials(parent_text)
+                    if any(query_lower in initials for initials in parent_initials_list):
+                        pinyin_match = True
 
                 if text_match or pinyin_match:
                     is_match = True
-                    if pinyin_match and not text_match:
-                        is_pinyin_match = True
+                    if pinyin_match and not text_match: is_pinyin_match = True
 
             # --- 计分 ---
             if is_match:
@@ -712,23 +545,9 @@ class WordManager:
         return [block for block, score in scored_blocks]
 
     def get_source_by_path(self, path):
-        """
-        通过路径获取 WordSource 对象。
-        如果内存中不存在，则会创建一个新的临时实例。
-        """
         for source in self.sources:
             if source.file_path == path:
                 return source
-        
-        # 如果在 self.sources 中找不到，说明可能是个刚添加或变动的词库
-        # 创建一个临时的 WordSource 对象来处理这种情况
-        log(f"在内存中未找到 source，为路径 {path} 创建临时 WordSource 实例。")
-        all_libs = self.settings.libraries + self.settings.auto_libraries
-        if any(lib['path'] == path for lib in all_libs):
-            new_source = WordSource(path)
-            self.sources.append(new_source) # 添加到列表中以备后用
-            return new_source
-            
         return None
 
 
@@ -1159,7 +978,7 @@ class SearchPopup(QWidget):
     def apply_theme(self):
         theme = THEMES[self.settings.theme]
         font_size = self.settings.font_size
-        self.title_label.setStyleSheet(f"color: {theme['title_color']}; font-size: {font_size-2}px; font-weight: normal; background-color: transparent; border: none; padding-left: 4px;")
+        self.title_label.setStyleSheet(f"color: {theme['text_color']}; font-size: {font_size-2}px; font-weight: normal; background-color: transparent; border: none; padding-left: 4px;")
         self.container.setStyleSheet(f"background-color: {theme['bg_color']}; border: 1px solid {theme['border_color']}; border-radius: 8px;")
         self.search_box.setStyleSheet(f"background-color: {theme['input_bg_color']}; color: {theme['text_color']}; border: 1px solid {theme['border_color']}; border-radius: 0px; padding: 8px; font-size: {font_size}px; margin: 0px 0px 4px 0px;")
         # 绘图代理接管了 item 的样式，这里只需设置基础样式
@@ -1412,23 +1231,13 @@ class NativeHotkeyManager(QObject):
             log("原生快捷键监听线程已启动。")
 
     def stop(self):
-        """
-        停止监听线程。
-        【已加固】增加了对线程状态的检查和更安全的退出机制。
-        """
-        if self._running and self.thread:
+        if self._running:
             self._running = False
-            try:
-                # PostThreadMessageA 需要一个有效的线程ID。
-                # 如果线程已经结束，ident 可能会无效。
-                if self.thread.is_alive():
-                    ctypes.windll.user32.PostThreadMessageA(self.thread.ident, 0x0012, 0, 0) # WM_QUIT
-                    self.thread.join(timeout=1.5) # 给予更长的超时时间
-            except Exception as e:
-                log(f"CRITICAL: 停止原生快捷键监听线程时出错: {e}")
-            finally:
-                self.thread = None
-                log("原生快捷键监听服务已停止。")
+            # 发送一个空消息来唤醒 GetMessageA 循环，使其能检查 _running 标志
+            # 需要获取线程ID来发送消息
+            ctypes.windll.user32.PostThreadMessageA(self.thread.ident, 0x0012, 0, 0) # WM_QUIT
+            self.thread.join(timeout=1) # 等待线程结束
+            log("原生快捷键监听线程已停止。")
 
 # --- 快捷码监听器 ---
 class ShortcutListener(QObject):
@@ -1454,14 +1263,10 @@ class ShortcutListener(QObject):
         log(f"快捷码监听器已更新，共 {len(self.shortcut_map)} 个快捷码。")
 
     def _on_press(self, key):
-        """
-        pynput 的按键事件回调函数。
-        【已加固】增加了顶级的异常捕获，防止任何意外错误导致监听线程崩溃。
-        """
-        try:
-            if not self._running:
-                return False # 停止监听
+        if not self._running:
+            return False
 
+        try:
             char = None
             if hasattr(key, 'char'):
                 char = key.char
@@ -1471,28 +1276,21 @@ class ShortcutListener(QObject):
             if char:
                 self.typed_buffer += char
                 buffer_lower = self.typed_buffer.lower()
-                # 从最长的快捷码开始匹配，避免短码提前触发
-                # (这是一个小的优化，但对健壮性有好处)
-                sorted_codes = sorted(self.shortcut_map.keys(), key=len, reverse=True)
-                for code in sorted_codes:
+                for code, block in self.shortcut_map.items():
                     if buffer_lower.endswith(code):
                         log(f"快捷码 '{code}' 匹配成功!")
-                        block = self.shortcut_map[code]
                         self.shortcut_matched.emit(block['full_content'], code)
                         self.typed_buffer = "" # 重置缓冲区
-                        return # 匹配成功后立即返回
+                        break 
             else:
-                # 任何非字符键（如Ctrl, Shift, Enter）都会重置缓冲区
                 self.typed_buffer = ""
 
-            # 限制缓冲区长度，防止内存无限增长
-            if len(self.typed_buffer) > 50:
-                self.typed_buffer = self.typed_buffer[-50:]
-
         except Exception as e:
-            # 【关键】捕获所有未知异常，记录日志，并重置状态，但绝不让线程退出
-            log(f"CRITICAL: 快捷码监听器 _on_press 发生严重错误: {e}")
-            self.typed_buffer = ""
+            log(f"快捷码监听器处理按键时出错: {e}")
+            self.typed_buffer = "" 
+
+        if len(self.typed_buffer) > 50:
+            self.typed_buffer = self.typed_buffer[-50:]
 
     def _listen(self):
         """监听线程的实际运行函数"""
@@ -1510,23 +1308,13 @@ class ShortcutListener(QObject):
             log("快捷码监听服务已启动。")
 
     def stop(self):
-        """
-        停止监听线程。
-        【已加固】增加了对 listener 和 thread 对象的检查。
-        """
         if self._running:
             self._running = False
-            try:
-                if self.listener and self.listener.is_alive():
-                    self.listener.stop()
-                if self.thread and self.thread.is_alive():
-                    self.thread.join(timeout=1.5)
-            except Exception as e:
-                log(f"CRITICAL: 停止快捷码监听服务时出错: {e}")
-            finally:
-                self.listener = None
-                self.thread = None
-                log("快捷码监听服务已停止。")
+            if self.listener:
+                self.listener.stop()
+            if self.thread:
+                self.thread.join(timeout=1)
+            log("快捷码监听服务已停止。")
 
 # --- 主控制器 ---
 class MainController(QObject):
@@ -1574,43 +1362,34 @@ class MainController(QObject):
         self.auto_restart_timer.timeout.connect(self.perform_restart)
         self.update_auto_restart_timer()
 
-        self.ignore_next_clipboard_change = False # 用于防止记录自己的输出
-        self.app.clipboard().dataChanged.connect(self.on_clipboard_changed)
+    def update_clipboard_monitor_status(self):
+        """根据设置启动或停止剪贴板监控"""
+        if self.settings.clipboard_memory_enabled:
+            self.last_clipboard_text = pyperclip.paste() # 初始化时获取一次
+            self.clipboard_timer.start()
+            log("剪贴板记忆功能已启动。")
+        else:
+            self.clipboard_timer.stop()
+            log("剪贴板记忆功能已关闭。")
 
     @Slot()
-    def on_clipboard_changed(self):
-        """处理剪贴板数据变化信号（事件驱动）"""
-        if not self.settings.clipboard_memory_enabled:
-            return
-
-        # 检查剪贴板内容是否是文本
-        clipboard = self.app.clipboard()
-        if not clipboard.mimeData().hasText():
-            return
-
-        current_text = clipboard.text()
-        
-        # 防止程序自己触发的复制操作被重复记录
-        if self.ignore_next_clipboard_change:
-            log("忽略本次剪贴板变化（由程序自身触发）。")
-            self.ignore_next_clipboard_change = False
-            return
-
-        # 避免空内容和重复内容
-        if not current_text or current_text == getattr(self, "_last_clipboard_text", ""):
-            return
-
-        # --- 核心逻辑 ---
-        self._last_clipboard_text = current_text
-        # 换行符规范化
-        normalized_text = '\n'.join(current_text.splitlines())
-        log(f"检测到新的剪贴板内容 (事件驱动): '{normalized_text}'")
-        
-        was_added = self.word_manager.add_to_clipboard_history(normalized_text)
-        
-        # 如果添加成功且窗口可见，则刷新列表
-        if was_added and self.popup.isVisible():
-            self.popup.update_list(self.popup.search_box.text())
+    def check_clipboard(self):
+        """检查剪贴板内容变化"""
+        try:
+            current_text = pyperclip.paste()
+            if current_text and current_text != self.last_clipboard_text:
+                # --- 换行符规范化 ---
+                normalized_text = '\n'.join(current_text.splitlines())
+                log(f"检测到新的剪贴板内容 (规范化后): '{normalized_text}'")
+                self.last_clipboard_text = current_text # 原始文本用于比较
+                was_added = self.word_manager.add_to_clipboard_history(normalized_text)
+                # 如果添加成功且窗口可见，则刷新
+                if was_added and self.popup.isVisible():
+                    self.popup.update_list(self.popup.search_box.text())
+        except pyperclip.PyperclipException as e:
+            # 可能是复制了非文本内容（如文件），忽略错误
+            # log(f"无法获取剪贴板文本内容: {e}")
+            pass
 
     def on_hotkey_triggered(self):
         # 这个信号现在是从 NativeHotkeyManager 线程发出的
@@ -1672,18 +1451,14 @@ class MainController(QObject):
             # 如果找不到块，作为备用方案，按旧方式处理
             content_to_paste = text.replace('- ', '', 1)
 
-        self.ignore_next_clipboard_change = True
         pyperclip.copy(content_to_paste)
-        log(f"已复制处理后的内容到剪贴板，并设置忽略标志。")
+        log(f"已复制处理后的内容到剪贴板。")
         
         # 无论何种模式，都执行粘贴
         QTimer.singleShot(150, self.perform_paste)
 
     def perform_paste(self):
-        """
-        根据用户设置，通过 PowerShell 执行不同的粘贴操作。
-        【已加固】增加了对 QProcess.startDetached 的异常捕获。
-        """
+        """根据用户设置，通过 PowerShell 执行不同的粘贴操作"""
         mode = self.settings.paste_mode
         log(f"准备执行粘贴，模式: {mode}")
 
@@ -1691,38 +1466,33 @@ class MainController(QObject):
         if mode == 'ctrl_v':
             ps_command = (
                 "powershell.exe -WindowStyle Hidden -Command "
-                "\"Start-Sleep -Milliseconds 100; " # 稍微缩短延迟
+                "\"Start-Sleep -Milliseconds 150; "
                 "Add-Type -AssemblyName System.Windows.Forms; "
                 "[System.Windows.Forms.SendKeys]::SendWait('^v')\""
             )
         elif mode == 'ctrl_shift_v':
             ps_command = (
                 "powershell.exe -WindowStyle Hidden -Command "
-                "\"Start-Sleep -Milliseconds 100; "
+                "\"Start-Sleep -Milliseconds 150; "
                 "Add-Type -AssemblyName System.Windows.Forms; "
                 "[System.Windows.Forms.SendKeys]::SendWait('+^v')\""
             )
         elif mode == 'typing':
             ps_command = (
                 "powershell.exe -WindowStyle Hidden -Command "
-                "\"Start-Sleep -Milliseconds 100; "
+                "\"Start-Sleep -Milliseconds 150; "
                 "Add-Type -AssemblyName System.Windows.Forms; "
-                "$clipboardText = Get-Clipboard -Raw; " # 使用 -Raw 提高兼容性
+                "$clipboardText = Get-Clipboard; "
                 "$escapedText = $clipboardText -replace '([\\+\\^\\%\\~\\(\\)\\[\\]\\{\\}])', '{$1}'; "
                 "[System.Windows.Forms.SendKeys]::SendWait($escapedText)\""
             )
 
         if ps_command:
             try:
-                # QProcess.startDetached 返回一个布尔值，指示是否成功启动
-                success = QProcess.startDetached(ps_command)
-                if success:
-                    log(f"PowerShell 粘贴命令 ({mode}) 已成功派发。")
-                else:
-                    log(f"CRITICAL: PowerShell 粘贴命令 ({mode}) 派发失败，startDetached 返回 False。")
+                QProcess.startDetached(ps_command)
+                log(f"PowerShell 粘贴命令 ({mode}) 已成功派发。")
             except Exception as e:
-                # 捕获启动过程中的潜在异常
-                log(f"CRITICAL: 启动 PowerShell 粘贴进程时发生严重错误: {e}")
+                log(f"启动 PowerShell 粘贴进程时发生错误: {e}")
     @Slot(str, str)
     def add_entry(self, text, target_path=None):
         # 如果没有指定目标词库，则弹出选择框
@@ -1751,25 +1521,34 @@ class MainController(QObject):
     
     @Slot(str)
     def edit_entry(self, original_content):
+        source_path = None
+        
         # Find the block to get its properties
         found_block = None
-        search_pool = self.word_manager.word_blocks + self.word_manager.clipboard_history
-        for block in search_pool:
+        all_blocks = self.word_manager.clipboard_history + self.word_manager.word_blocks
+        for block in all_blocks:
             if block['full_content'] == original_content:
                 found_block = block
                 break
         
         if not found_block:
-            QMessageBox.warning(self.popup, "错误", "找不到要编辑的词条。")
+            QMessageBox.warning(self.popup, "错误", "找不到词条。")
             return
 
         is_clipboard = found_block.get('is_clipboard', False)
-        source_path = found_block.get('source_path')
-        
-        source = self.word_manager.clipboard_source if is_clipboard else self.word_manager.get_source_by_path(source_path)
 
+        if is_clipboard:
+            source_path = self.word_manager.clipboard_source.file_path
+        else:
+            source_path = found_block.get('source_path')
+        
+        if not source_path:
+            QMessageBox.warning(self.popup, "错误", "找不到词条的来源文件。")
+            return
+
+        source = self.word_manager.get_source_by_path(source_path) or self.word_manager.clipboard_source
         if not source:
-            QMessageBox.warning(self.popup, "错误", "找不到词条的来源文件对象。")
+            QMessageBox.warning(self.popup, "错误", "来源文件对象已丢失。")
             return
 
         dialog = EditDialog(self.popup, original_content, THEMES[self.settings.theme], self.settings.font_size)
@@ -1778,56 +1557,65 @@ class MainController(QObject):
             if source.update_entry(original_content, new_content):
                 if is_clipboard:
                     self.word_manager.load_clipboard_history()
+                    if self.popup.isVisible(): self.popup.update_list("")
                 else:
                     self.reload_word_file()
-                
-                if self.popup.isVisible():
-                    self.popup.update_list(self.popup.search_box.text())
             else:
-                QMessageBox.warning(self.popup, "错误", f"更新 {os.path.basename(source.file_path)} 中的词条失败！")
+                QMessageBox.warning(self.popup, "错误", f"更新 {os.path.basename(source_path)} 中的词条失败！")
 
     @Slot(str)
     def delete_entry(self, content):
+        source_path = None
+        
         # Find the block to get its properties
         found_block = None
-        search_pool = self.word_manager.word_blocks + self.word_manager.clipboard_history
-        for block in search_pool:
+        all_blocks = self.word_manager.clipboard_history + self.word_manager.word_blocks
+        for block in all_blocks:
             if block['full_content'] == content:
                 found_block = block
                 break
 
         if not found_block:
-            QMessageBox.warning(self.popup, "错误", "找不到要删除的词条。")
+            QMessageBox.warning(self.popup, "错误", "找不到词条。")
             return
-
+            
         is_clipboard = found_block.get('is_clipboard', False)
-        source_path = found_block.get('source_path')
 
-        source = self.word_manager.clipboard_source if is_clipboard else self.word_manager.get_source_by_path(source_path)
+        if is_clipboard:
+            source_path = self.word_manager.clipboard_source.file_path
+        else:
+            source_path = found_block.get('source_path')
 
+        if not source_path:
+            QMessageBox.warning(self.popup, "错误", "找不到词条的来源文件。")
+            return
+            
+        source = self.word_manager.get_source_by_path(source_path) or self.word_manager.clipboard_source
         if not source:
-            QMessageBox.warning(self.popup, "错误", "找不到词条的来源文件对象。")
+            QMessageBox.warning(self.popup, "错误", "来源文件对象已丢失。")
             return
 
         dialog = ScrollableMessageBox(
             parent=self.popup,
             title="确认删除",
-            text=f"确定要从 <b>{os.path.basename(source.file_path)}</b> 中删除以下词条吗？<br><br>{content.replace(chr(10), '<br>')}",
+            text=f"确定要从 <b>{os.path.basename(source_path)}</b> 中删除以下词条吗？<br><br>{content.replace(chr(10), '<br>')}",
             theme=THEMES[self.settings.theme],
             font_size=self.settings.font_size
         )
         
         if dialog.exec() == QDialog.Accepted:
+            reply = QMessageBox.Yes
+        else:
+            reply = QMessageBox.No
+        if reply == QMessageBox.Yes:
             if source.delete_entry(content):
                 if is_clipboard:
                     self.word_manager.load_clipboard_history()
+                    if self.popup.isVisible(): self.popup.update_list("")
                 else:
                     self.reload_word_file()
-                
-                if self.popup.isVisible():
-                    self.popup.update_list(self.popup.search_box.text())
             else:
-                QMessageBox.warning(self.popup, "错误", f"从 {os.path.basename(source.file_path)} 删除词条失败！")
+                QMessageBox.warning(self.popup, "错误", f"从 {os.path.basename(source_path)} 删除词条失败！")
 
     def move_clipboard_item_to_library(self, item_content, target_path):
         """将剪贴板条目移动到指定的词库"""
@@ -1838,7 +1626,6 @@ class MainController(QObject):
         source = self.word_manager.get_source_by_path(target_path)
         if source and source.add_entry(f"- {text_to_add}"):
             log(f"已将 '{text_to_add}' 添加到 {os.path.basename(target_path)}")
-            self.reload_word_file() # 重新加载词库以更新缓存
 
             # 3. 从剪贴板历史中删除
             if self.word_manager.clipboard_source.delete_entry(item_content):
@@ -1881,7 +1668,7 @@ class MainController(QObject):
                 lib['enabled'] = not lib.get('enabled', True)
                 break
         self.settings.save()
-        self.word_manager.reload_all() # 改为调用 reload_all 以更新缓存
+        self.word_manager.aggregate_words()
         self.rebuild_library_menu()
 
     @Slot(str)
@@ -1891,7 +1678,7 @@ class MainController(QObject):
                 lib['enabled'] = not lib.get('enabled', True)
                 break
         self.settings.save()
-        self.word_manager.reload_all() # 改为调用 reload_all 以更新缓存
+        self.word_manager.aggregate_words()
         self.rebuild_auto_library_menu()
 
     def open_auto_load_dir(self):
@@ -1999,11 +1786,10 @@ class MainController(QObject):
 
     @Slot()
     def cleanup_and_exit(self):
-        log("开始执行程序清理...")
         self.hotkey_manager.stop()
         if self.shortcut_listener:
             self.shortcut_listener.stop() # 退出时停止快捷码监听
-        log("所有监听器已停止，程序准备退出。")
+        log("程序退出。")
 
     @Slot()
     def set_paste_mode(self, mode):
@@ -2285,6 +2071,13 @@ if __name__ == "__main__":
             log(f"已创建自动加载词库文件夹: {AUTO_LOAD_DIR}")
         except Exception as e:
             log(f"创建自动加载文件夹失败: {e}")
+    
+    # 剪贴板监控初始化
+    controller.last_clipboard_text = "" # 跟踪上一次的剪贴板内容
+    controller.clipboard_timer = QTimer(controller)
+    controller.clipboard_timer.setInterval(1000) # 每秒检查一次
+    controller.clipboard_timer.timeout.connect(controller.check_clipboard)
+    controller.update_clipboard_monitor_status()
 
     tray_icon = QSystemTrayIcon(QIcon(ICON_PATH), app); tray_icon.setToolTip("QuickKV")
     menu = QMenu()
