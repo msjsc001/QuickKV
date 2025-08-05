@@ -1,214 +1,6 @@
 {
-  "version": "1.0.5.36.1",
+  "version": "1.0.5.37",
   "files": {
-    "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\多音字测试词库.md": {
-      "hash": "cb32cafbaddc79efc422687db85288b8",
-      "data": [
-        {
-          "parent": "卡住",
-          "raw_lines": [
-            "- 卡住"
-          ],
-          "exclude_parent": false,
-          "shortcut_code": null,
-          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\多音字测试词库.md",
-          "is_clipboard": false,
-          "full_content": "- 卡住",
-          "parent_lower": "卡住",
-          "char_map": [
-            {
-              "char": "卡",
-              "keys": [
-                "k",
-                "q",
-                "卡"
-              ],
-              "index": 0
-            },
-            {
-              "char": "住",
-              "keys": [
-                "z",
-                "住"
-              ],
-              "index": 1
-            }
-          ]
-        },
-        {
-          "parent": "多音字",
-          "raw_lines": [
-            "- 多音字"
-          ],
-          "exclude_parent": false,
-          "shortcut_code": null,
-          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\多音字测试词库.md",
-          "is_clipboard": false,
-          "full_content": "- 多音字",
-          "parent_lower": "多音字",
-          "char_map": [
-            {
-              "char": "多",
-              "keys": [
-                "d",
-                "多"
-              ],
-              "index": 0
-            },
-            {
-              "char": "音",
-              "keys": [
-                "y",
-                "音"
-              ],
-              "index": 1
-            },
-            {
-              "char": "字",
-              "keys": [
-                "z",
-                "字"
-              ],
-              "index": 2
-            }
-          ]
-        },
-        {
-          "parent": "车",
-          "raw_lines": [
-            "- 车"
-          ],
-          "exclude_parent": false,
-          "shortcut_code": null,
-          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\多音字测试词库.md",
-          "is_clipboard": false,
-          "full_content": "- 车",
-          "parent_lower": "车",
-          "char_map": [
-            {
-              "char": "车",
-              "keys": [
-                "c",
-                "j",
-                "车"
-              ],
-              "index": 0
-            }
-          ]
-        },
-        {
-          "parent": "岂",
-          "raw_lines": [
-            "- 岂"
-          ],
-          "exclude_parent": false,
-          "shortcut_code": null,
-          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\多音字测试词库.md",
-          "is_clipboard": false,
-          "full_content": "- 岂",
-          "parent_lower": "岂",
-          "char_map": [
-            {
-              "char": "岂",
-              "keys": [
-                "q",
-                "岂"
-              ],
-              "index": 0
-            }
-          ]
-        }
-      ]
-    },
-    "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\词库-临时测试.md": {
-      "hash": "0ca0b9251ccb422bf4687e415c9f2338",
-      "data": [
-        {
-          "parent": "import sys",
-          "raw_lines": [
-            "- import sys"
-          ],
-          "exclude_parent": false,
-          "shortcut_code": null,
-          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\词库-临时测试.md",
-          "is_clipboard": false,
-          "full_content": "- import sys",
-          "parent_lower": "import sys",
-          "char_map": [
-            {
-              "char": "i",
-              "keys": [
-                "i"
-              ],
-              "index": 0
-            },
-            {
-              "char": "m",
-              "keys": [
-                "m"
-              ],
-              "index": 1
-            },
-            {
-              "char": "p",
-              "keys": [
-                "p"
-              ],
-              "index": 2
-            },
-            {
-              "char": "o",
-              "keys": [
-                "o"
-              ],
-              "index": 3
-            },
-            {
-              "char": "r",
-              "keys": [
-                "r"
-              ],
-              "index": 4
-            },
-            {
-              "char": "t",
-              "keys": [
-                "t"
-              ],
-              "index": 5
-            },
-            {
-              "char": " ",
-              "keys": [
-                " "
-              ],
-              "index": 6
-            },
-            {
-              "char": "s",
-              "keys": [
-                "s"
-              ],
-              "index": 7
-            },
-            {
-              "char": "y",
-              "keys": [
-                "y"
-              ],
-              "index": 8
-            },
-            {
-              "char": "s",
-              "keys": [
-                "s"
-              ],
-              "index": 9
-            }
-          ]
-        }
-      ]
-    },
     "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\词库.md": {
       "hash": "54ef987195802c1a2b65346cc417dec8",
       "data": [
@@ -1365,6 +1157,327 @@
                 "词"
               ],
               "index": 1
+            }
+          ]
+        }
+      ]
+    },
+    "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\多音字测试词库.md": {
+      "hash": "cb32cafbaddc79efc422687db85288b8",
+      "data": [
+        {
+          "parent": "卡住",
+          "raw_lines": [
+            "- 卡住"
+          ],
+          "exclude_parent": false,
+          "shortcut_code": null,
+          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\多音字测试词库.md",
+          "is_clipboard": false,
+          "full_content": "- 卡住",
+          "parent_lower": "卡住",
+          "char_map": [
+            {
+              "char": "卡",
+              "keys": [
+                "k",
+                "q",
+                "卡"
+              ],
+              "index": 0
+            },
+            {
+              "char": "住",
+              "keys": [
+                "z",
+                "住"
+              ],
+              "index": 1
+            }
+          ]
+        },
+        {
+          "parent": "多音字",
+          "raw_lines": [
+            "- 多音字"
+          ],
+          "exclude_parent": false,
+          "shortcut_code": null,
+          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\多音字测试词库.md",
+          "is_clipboard": false,
+          "full_content": "- 多音字",
+          "parent_lower": "多音字",
+          "char_map": [
+            {
+              "char": "多",
+              "keys": [
+                "d",
+                "多"
+              ],
+              "index": 0
+            },
+            {
+              "char": "音",
+              "keys": [
+                "y",
+                "音"
+              ],
+              "index": 1
+            },
+            {
+              "char": "字",
+              "keys": [
+                "z",
+                "字"
+              ],
+              "index": 2
+            }
+          ]
+        },
+        {
+          "parent": "车",
+          "raw_lines": [
+            "- 车"
+          ],
+          "exclude_parent": false,
+          "shortcut_code": null,
+          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\多音字测试词库.md",
+          "is_clipboard": false,
+          "full_content": "- 车",
+          "parent_lower": "车",
+          "char_map": [
+            {
+              "char": "车",
+              "keys": [
+                "c",
+                "j",
+                "车"
+              ],
+              "index": 0
+            }
+          ]
+        },
+        {
+          "parent": "岂",
+          "raw_lines": [
+            "- 岂"
+          ],
+          "exclude_parent": false,
+          "shortcut_code": null,
+          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\多音字测试词库.md",
+          "is_clipboard": false,
+          "full_content": "- 岂",
+          "parent_lower": "岂",
+          "char_map": [
+            {
+              "char": "岂",
+              "keys": [
+                "q",
+                "岂"
+              ],
+              "index": 0
+            }
+          ]
+        }
+      ]
+    },
+    "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\词库-临时测试.md": {
+      "hash": "0ca0b9251ccb422bf4687e415c9f2338",
+      "data": [
+        {
+          "parent": "import sys",
+          "raw_lines": [
+            "- import sys"
+          ],
+          "exclude_parent": false,
+          "shortcut_code": null,
+          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\词库-临时测试.md",
+          "is_clipboard": false,
+          "full_content": "- import sys",
+          "parent_lower": "import sys",
+          "char_map": [
+            {
+              "char": "i",
+              "keys": [
+                "i"
+              ],
+              "index": 0
+            },
+            {
+              "char": "m",
+              "keys": [
+                "m"
+              ],
+              "index": 1
+            },
+            {
+              "char": "p",
+              "keys": [
+                "p"
+              ],
+              "index": 2
+            },
+            {
+              "char": "o",
+              "keys": [
+                "o"
+              ],
+              "index": 3
+            },
+            {
+              "char": "r",
+              "keys": [
+                "r"
+              ],
+              "index": 4
+            },
+            {
+              "char": "t",
+              "keys": [
+                "t"
+              ],
+              "index": 5
+            },
+            {
+              "char": " ",
+              "keys": [
+                " "
+              ],
+              "index": 6
+            },
+            {
+              "char": "s",
+              "keys": [
+                "s"
+              ],
+              "index": 7
+            },
+            {
+              "char": "y",
+              "keys": [
+                "y"
+              ],
+              "index": 8
+            },
+            {
+              "char": "s",
+              "keys": [
+                "s"
+              ],
+              "index": 9
+            }
+          ]
+        }
+      ]
+    },
+    "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\剪贴板词库-勿删.md": {
+      "hash": "212e69ee507a6735d27c6fd220f60f7a",
+      "data": [
+        {
+          "parent": "(这里是剪贴板历史记录)",
+          "raw_lines": [
+            "- (这里是剪贴板历史记录)"
+          ],
+          "exclude_parent": false,
+          "shortcut_code": null,
+          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\剪贴板词库-勿删.md",
+          "is_clipboard": false,
+          "full_content": "- (这里是剪贴板历史记录)",
+          "parent_lower": "(这里是剪贴板历史记录)",
+          "char_map": [
+            {
+              "char": "(",
+              "keys": [
+                "("
+              ],
+              "index": 0
+            },
+            {
+              "char": "这",
+              "keys": [
+                "z",
+                "这"
+              ],
+              "index": 1
+            },
+            {
+              "char": "里",
+              "keys": [
+                "l",
+                "里"
+              ],
+              "index": 2
+            },
+            {
+              "char": "是",
+              "keys": [
+                "s",
+                "是"
+              ],
+              "index": 3
+            },
+            {
+              "char": "剪",
+              "keys": [
+                "j",
+                "剪"
+              ],
+              "index": 4
+            },
+            {
+              "char": "贴",
+              "keys": [
+                "t",
+                "贴"
+              ],
+              "index": 5
+            },
+            {
+              "char": "板",
+              "keys": [
+                "b",
+                "板"
+              ],
+              "index": 6
+            },
+            {
+              "char": "历",
+              "keys": [
+                "l",
+                "历"
+              ],
+              "index": 7
+            },
+            {
+              "char": "史",
+              "keys": [
+                "s",
+                "史"
+              ],
+              "index": 8
+            },
+            {
+              "char": "记",
+              "keys": [
+                "j",
+                "记"
+              ],
+              "index": 9
+            },
+            {
+              "char": "录",
+              "keys": [
+                "l",
+                "录"
+              ],
+              "index": 10
+            },
+            {
+              "char": ")",
+              "keys": [
+                ")"
+              ],
+              "index": 11
             }
           ]
         }

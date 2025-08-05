@@ -53,9 +53,9 @@ def resource_path(relative_path):
 # --- 外部数据文件 ---
 BASE_PATH = get_base_path()
 WORD_FILE = os.path.join(BASE_PATH, "词库.md")
-CLIPBOARD_HISTORY_FILE = os.path.join(BASE_PATH, "剪贴板词库.md")
 CONFIG_FILE = os.path.join(BASE_PATH, "config.ini")
 AUTO_LOAD_DIR = os.path.join(BASE_PATH, "MD词库-需自动载入的请放入")
+CLIPBOARD_HISTORY_FILE = os.path.join(AUTO_LOAD_DIR, "剪贴板词库-勿删.md")
 CACHE_FILE = os.path.join(BASE_PATH, "cache.json") # 新增：缓存文件路径
 
 # --- 内部资源 ---
@@ -63,7 +63,7 @@ ICON_PATH = resource_path("icon.png")
 
 # --- 其他配置 ---
 DEBUG_MODE = True
-VERSION = "1.0.5.36.1" # 版本号
+VERSION = "1.0.5.37" # 版本号
 
 def log(message):
     if DEBUG_MODE:
@@ -619,9 +619,8 @@ class WordManager:
         self.clipboard_history = []
         for block in raw_history:
             block['is_clipboard'] = True # 添加标志
-            self.clipboard_history.append(block)
+            self.clipboard_history.append(self._preprocess_block(block))
         log(f"已加载 {len(self.clipboard_history)} 条剪贴板历史。")
-
 
     def add_to_clipboard_history(self, text):
         """向剪贴板历史中添加新条目"""
@@ -675,13 +674,20 @@ class WordManager:
         全新的、基于字符映射表的精确匹配算法。
         取代了旧的 fuzzywuzzy 模糊匹配。
         """
+        # 根据设置决定搜索范围和默认返回内容
+        if self.settings.clipboard_memory_enabled:
+            search_pool = self.clipboard_history + self.word_blocks
+            default_return = self.clipboard_history + self.word_blocks
+        else:
+            search_pool = self.word_blocks
+            default_return = self.word_blocks
+
         if not query:
             # 清空高亮并返回默认列表
-            for block in self.word_blocks + self.clipboard_history:
+            for block in search_pool:
                 if 'highlight_groups' in block: del block['highlight_groups']
-            return [b for b in self.clipboard_history] if self.settings.clipboard_memory_enabled else self.word_blocks
+            return default_return
 
-        search_pool = self.word_blocks + self.clipboard_history
         query_lower = query.lower()
         keywords = [k for k in query_lower.split(' ') if k] if multi_word_search_enabled and ' ' in query_lower.strip() else [query_lower]
         
@@ -707,6 +713,11 @@ class WordManager:
                     
                     # 尝试从 start_idx 开始匹配
                     while kw_ptr < len(kw) and map_ptr < len(char_map):
+                        # 跳过已经被使用的索引
+                        if map_ptr in used_indices_for_block:
+                            map_ptr += 1
+                            continue
+
                         char_info = char_map[map_ptr]
                         
                         # 1. 优先原文匹配
@@ -791,6 +802,7 @@ class WordManager:
 
         scored_blocks.sort(key=lambda x: x[1], reverse=True)
         return [block for block, score in scored_blocks]
+
 
     def get_source_by_path(self, path):
         """
@@ -1844,10 +1856,10 @@ class MainController(QObject):
             QMessageBox.warning(self.popup, "错误", "找不到要编辑的词条。")
             return
 
-        is_clipboard = found_block.get('is_clipboard', False)
+        is_clipboard = found_block.get('source_path') == CLIPBOARD_HISTORY_FILE
         source_path = found_block.get('source_path')
         
-        source = self.word_manager.clipboard_source if is_clipboard else self.word_manager.get_source_by_path(source_path)
+        source = self.word_manager.get_source_by_path(source_path)
 
         if not source:
             QMessageBox.warning(self.popup, "错误", "找不到词条的来源文件对象。")
@@ -1881,10 +1893,10 @@ class MainController(QObject):
             QMessageBox.warning(self.popup, "错误", "找不到要删除的词条。")
             return
 
-        is_clipboard = found_block.get('is_clipboard', False)
+        is_clipboard = found_block.get('source_path') == CLIPBOARD_HISTORY_FILE
         source_path = found_block.get('source_path')
-
-        source = self.word_manager.clipboard_source if is_clipboard else self.word_manager.get_source_by_path(source_path)
+ 
+        source = self.word_manager.get_source_by_path(source_path)
 
         if not source:
             QMessageBox.warning(self.popup, "错误", "找不到词条的来源文件对象。")
