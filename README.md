@@ -22,6 +22,8 @@
 ![20210606180518](https://github.com/user-attachments/assets/3fc1af9b-9ce7-448e-b68a-695b3bb743d4)
 <img width="1911" height="993" alt="PixPin_2025-07-28_14-01-50" src="https://github.com/user-attachments/assets/cdb09453-9761-4790-87f0-325a2f4bd80b" />
 <img width="1911" height="993" alt="PixPin_2025-07-28_14-12-41" src="https://github.com/user-attachments/assets/33ecb4d8-fe0f-4dc9-90f0-e0ee6702c9ed" />
+<img width="1911" height="991" alt="PixPin_2025-08-05_18-37-04" src="https://github.com/user-attachments/assets/df7e170b-6fc1-40fa-8812-86be66481ec1" />
+
 <img width="1894" height="986" alt="PixPin_2025-08-02_00-11-00" src="https://github.com/user-attachments/assets/a10595ac-bada-4a4b-93f6-39bef4bf405a" />
 <img width="1911" height="993" alt="PixPin_2025-07-28_14-20-04" src="https://github.com/user-attachments/assets/be0a526a-8dc2-4179-8935-7caf4e70a3b1" />
 <img width="1911" height="993" alt="PixPin_2025-07-28_14-23-06" src="https://github.com/user-attachments/assets/000ccf0e-5585-4880-97d6-243dbd70a293" />
