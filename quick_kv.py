@@ -687,22 +687,20 @@ class WordManager:
             highlight_groups = {}
             last_match_end = -1
             all_keywords_matched = True
+            matched_keywords_count = 0
 
             parent_text = block['parent']
             parent_text_lower = parent_text.lower()
 
             for i, kw in enumerate(keywords):
-                # --- 优先在原文中进行模糊匹配 ---
                 score, indices = self.fuzzy_match(kw, parent_text_lower, last_match_end + 1)
                 
-                # --- 如果原文匹配不上，再尝试拼音 ---
                 pinyin_score, pinyin_indices = 0, []
                 if pinyin_search_enabled and score == 0:
                     for pinyin_key in block.get('hybrid_initials', []):
                         s, p_indices = self.fuzzy_match(kw, pinyin_key, 0)
                         if s > pinyin_score:
                             pinyin_score = s
-                            # --- 精准拼音反查高亮 ---
                             temp_indices = set()
                             p_idx_counter = 0
                             for char_idx, char in enumerate(parent_text):
@@ -715,37 +713,58 @@ class WordManager:
                 
                 pinyin_score *= 0.9
 
-                if score > 0:
-                    total_score += score
-                    highlight_groups[i] = set(indices)
-                    last_match_end = max(indices) if indices else -1
-                elif pinyin_score > 0:
-                    total_score += pinyin_score
-                    highlight_groups[i] = set(pinyin_indices)
-                    last_match_end = max(pinyin_indices) if pinyin_indices else -1
+                if score > 0 or pinyin_score > 0:
+                    matched_keywords_count += 1
+                    if score >= pinyin_score:
+                        total_score += score
+                        highlight_groups[i] = set(indices)
+                        last_match_end = max(indices) if indices else -1
+                    else:
+                        total_score += pinyin_score
+                        highlight_groups[i] = set(pinyin_indices)
+                        last_match_end = max(pinyin_indices) if pinyin_indices else -1
                 else:
-                    all_keywords_matched = False
-                    break
+                    # 即使一个词不匹配，我们也不立即放弃，而是继续看能匹配多少个
+                    pass
 
-            if all_keywords_matched:
-                full_content = block['full_content']
-                parent_start_in_full = full_content.find(parent_text)
-                if parent_start_in_full == -1 and full_content.startswith('- '):
-                    parent_start_in_full = full_content.find(parent_text, 2)
+            # --- 最终版相关性优化 ---
+            if matched_keywords_count > 0:
+                # 1. 多词匹配超级奖励：匹配上的关键词越多，分数越高
+                total_score *= (1 + matched_keywords_count * 0.5)
 
-                if parent_start_in_full != -1:
-                    block['highlight_groups'] = {
-                        group_idx: {idx + parent_start_in_full for idx in indices}
-                        for group_idx, indices in highlight_groups.items()
-                    }
-                else:
-                    block['highlight_groups'] = {}
+                # 2. 距离惩罚
+                if matched_keywords_count > 1:
+                    all_indices = set()
+                    for indices in highlight_groups.values():
+                        all_indices.update(indices)
+                    if all_indices:
+                        span = max(all_indices) - min(all_indices)
+                        total_score /= (1 + span * 0.1)
                 
-                if parent_text_lower.startswith(query_lower): total_score *= 1.5
-                scored_blocks.append((block, total_score))
+                # 3. 开头匹配奖励
+                if parent_text_lower.startswith(query_lower):
+                    total_score *= 1.5
+                
+                # 只有当所有关键词都匹配时，才加入最终结果
+                if matched_keywords_count == len(keywords):
+                    full_content = block['full_content']
+                    parent_start_in_full = full_content.find(parent_text)
+                    if parent_start_in_full == -1 and full_content.startswith('- '):
+                        parent_start_in_full = full_content.find(parent_text, 2)
+
+                    if parent_start_in_full != -1:
+                        block['highlight_groups'] = {
+                            g_idx: {idx + parent_start_in_full for idx in g_indices}
+                            for g_idx, g_indices in highlight_groups.items()
+                        }
+                    else:
+                        block['highlight_groups'] = {}
+                    
+                    scored_blocks.append((block, total_score))
 
         scored_blocks.sort(key=lambda x: x[1], reverse=True)
         return [block for block, score in scored_blocks]
+
 
     def get_source_by_path(self, path):
         """
