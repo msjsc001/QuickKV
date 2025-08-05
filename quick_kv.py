@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-QuickKV v1.0.5.31
-"""
 import sys
 import os
 import webbrowser
@@ -54,7 +51,7 @@ ICON_PATH = resource_path("icon.png")
 
 # --- 其他配置 ---
 DEBUG_MODE = True
-VERSION = "1.0.5.31" # 版本号
+VERSION = "1.0.5.35" # 版本号
 
 def log(message):
     if DEBUG_MODE:
@@ -64,15 +61,17 @@ def log(message):
 THEMES = {
     "dark": {
         "bg_color": "#21252b", "border_color": "#3c424b", "text_color": "#d1d5db",
-        "title_color": "#8c929c", # 新增：弱化的标题颜色
+        "title_color": "#8c929c",
         "input_bg_color": "#2c313a", "item_hover_bg": "#3a3f4b",
-        "item_selected_bg": "#405061", "item_selected_text": "#d1d5db"
+        "item_selected_bg": "#405061", "item_selected_text": "#d1d5db",
+        "highlight_color": "#5294e2" # 新增：高亮颜色
     },
     "light": {
         "bg_color": "#fdfdfd", "border_color": "#cccccc", "text_color": "#202020",
-        "title_color": "#a0a0a0", # 新增：弱化的标题颜色
+        "title_color": "#a0a0a0",
         "input_bg_color": "#ffffff", "item_hover_bg": "#f0f0f0",
-        "item_selected_bg": "#dbe4ee", "item_selected_text": "#202020"
+        "item_selected_bg": "#dbe4ee", "item_selected_text": "#202020",
+        "highlight_color": "#007acc" # 新增：高亮颜色
     }
 }
 
@@ -90,6 +89,19 @@ class StyledItemDelegate(QStyledItemDelegate):
         full_text = index.data(Qt.DisplayRole)
         lines = full_text.split('\n')
         
+        # --- 核心改动：读取分组高亮数据 ---
+        block_data = index.data(Qt.UserRole)
+        highlight_groups = block_data.get('highlight_groups', {}) if self.settings.highlight_matches else {}
+        
+        # --- 定义多种高亮颜色 ---
+        highlight_colors = [
+            QColor(theme['highlight_color']),
+            QColor("#e5c07b"), # 黄色
+            QColor("#c678dd"), # 紫色
+            QColor("#98c379"), # 绿色
+            QColor("#e06c75")  # 红色
+        ]
+
         # 绘制背景
         if option.state & QStyle.State_Selected:
             painter.fillRect(rect, QColor(theme['item_selected_bg']))
@@ -98,31 +110,59 @@ class StyledItemDelegate(QStyledItemDelegate):
         else:
             painter.fillRect(rect, QColor(theme['bg_color']))
 
-        # 准备绘制文本
         fm = option.fontMetrics
         line_height = fm.height()
         padding_v = 5
         padding_h = 8
         
+        char_offset = 0
         for i, line in enumerate(lines):
-            text_rect = QRect(rect.x() + padding_h, rect.y() + padding_v + i * line_height, rect.width() - (padding_h * 2), line_height)
+            current_x = rect.x() + padding_h
+            text_rect_y = rect.y() + padding_v + i * line_height
             
-            if i == 0:
-                parent_text = line[2:].strip() if line.startswith('- ') else line
-                if option.state & QStyle.State_Selected:
+            line = line.replace('\t', '    ') # 将 Tab 替换为 4 个空格一样的显示
+
+            text_to_draw = line
+            if i == 0 and line.startswith('- '):
+                text_to_draw = line[2:].strip()
+                char_offset += len(line) - len(text_to_draw)
+
+            for char_idx, char in enumerate(text_to_draw):
+                global_char_idx = char_offset + char_idx
+                char_width = fm.horizontalAdvance(char)
+                char_rect = QRect(current_x, text_rect_y, char_width, line_height)
+
+                # --- 判断当前字符属于哪个高亮组 ---
+                highlight_group_idx = -1
+                for group_idx, indices in highlight_groups.items():
+                    if global_char_idx in indices:
+                        highlight_group_idx = group_idx
+                        break
+                
+                # 设置画笔颜色
+                is_selected = option.state & QStyle.State_Selected
+                if highlight_group_idx != -1:
+                    # 使用模运算来循环选择高亮颜色
+                    color_idx = highlight_group_idx % len(highlight_colors)
+                    painter.setPen(highlight_colors[color_idx])
+                elif is_selected:
                     painter.setPen(QColor(theme['item_selected_text']))
                 else:
-                    painter.setPen(QColor(theme['text_color']))
-                painter.drawText(text_rect, Qt.AlignVCenter | Qt.AlignLeft, parent_text)
-            else:
-                child_color_base = QColor(theme['item_selected_text']) if option.state & QStyle.State_Selected else QColor(theme['text_color'])
-                child_color_base.setAlpha(150)
-                painter.setPen(child_color_base)
-                painter.drawText(text_rect, Qt.AlignVCenter | Qt.AlignLeft, line)
-        
+                    if i > 0:
+                         child_color_base = QColor(theme['text_color'])
+                         child_color_base.setAlpha(150)
+                         painter.setPen(child_color_base)
+                    else:
+                         painter.setPen(QColor(theme['text_color']))
+
+                painter.drawText(char_rect, Qt.AlignVCenter | Qt.AlignLeft, char)
+                current_x += char_width
+            
+            char_offset += len(line) + 1
+
         painter.restore()
         
-        # 在每个项目底部画一条分隔线
+        # 分隔线（保持不变）
         painter.save()
         pen = painter.pen()
         pen.setColor(QColor(theme['border_color']))
@@ -182,6 +222,7 @@ class SettingsManager:
             self.font_size = self.config.getint('Font', 'size', fallback=14)
             self.multi_word_search = self.config.getboolean('Search', 'multi_word_search', fallback=True)
             self.pinyin_initial_search = self.config.getboolean('Search', 'pinyin_initial_search', fallback=True)
+            self.highlight_matches = self.config.getboolean('Search', 'highlight_matches', fallback=True) # 新增
             self.clipboard_memory_enabled = self.config.getboolean('Clipboard', 'enabled', fallback=False)
             self.clipboard_memory_count = self.config.getint('Clipboard', 'count', fallback=10)
             self.auto_restart_enabled = self.config.getboolean('Restart', 'enabled', fallback=False)
@@ -225,6 +266,7 @@ class SettingsManager:
         self.config['Font']['size'] = str(self.font_size)
         self.config['Search']['multi_word_search'] = str(self.multi_word_search)
         self.config['Search']['pinyin_initial_search'] = str(self.pinyin_initial_search)
+        self.config['Search']['highlight_matches'] = str(self.highlight_matches) # 新增
         self.config['General']['libraries'] = json.dumps(self.libraries, ensure_ascii=False)
         self.config['General']['auto_libraries'] = json.dumps(self.auto_libraries, ensure_ascii=False)
         self.config['Clipboard']['enabled'] = str(self.clipboard_memory_enabled)
@@ -457,8 +499,8 @@ class WordManager:
                 return {}
 
             # 版本校验
-            if cache_data.get("version") != "1.0":
-                log("缓存版本不兼容，将创建新缓存。")
+            if cache_data.get("version") != VERSION:
+                log(f"缓存版本不兼容 (需要 {VERSION}，但发现 {cache_data.get('version')})，将创建新缓存。")
                 return {}
             
             files_data = cache_data.get("files")
@@ -484,7 +526,7 @@ class WordManager:
         """将当前缓存数据保存到文件"""
         try:
             with open(CACHE_FILE, 'w', encoding='utf-8') as f:
-                json.dump({"version": "1.0", "files": self.cache}, f, ensure_ascii=False, indent=2)
+                json.dump({"version": VERSION, "files": self.cache}, f, ensure_ascii=False, indent=2)
             log("缓存已成功保存。")
         except Exception as e:
             log(f"保存缓存失败: {e}")
@@ -494,7 +536,6 @@ class WordManager:
         parent_text = block['parent']
         block['parent_lower'] = parent_text.lower()
         # 同时生成纯拼音首字母和混合首字母
-        block['pinyin_initials'] = self._get_pinyin_initials(parent_text)
         block['hybrid_initials'] = self._generate_hybrid_initials(parent_text)
         return block
 
@@ -615,99 +656,94 @@ class WordManager:
         # 为了安全起见，暂时保留，但其逻辑已被移至 reload_all。
         pass
 
-    def _calculate_match_score(self, parent_text, query_lower, keywords):
-        score = 0
-        parent_lower = parent_text.lower()
-
-        # 基础分：只要包含就给分
-        if query_lower in parent_lower:
-            score += 10
-        
-        # 奖励分
-        if parent_lower == query_lower:
-            score += 1000  # 完全匹配
-        elif parent_lower.startswith(query_lower):
-            score += 100   # 起始匹配
-        
-        # 长度惩罚 (倒数形式，差值越大，加分越少)
-        length_diff = len(parent_lower) - len(query_lower)
-        if length_diff >= 0:
-            score += 50 / (length_diff + 1)
-
-        # 多词匹配奖励
-        if keywords and all(kw in parent_lower for kw in keywords):
-            keywords_len = sum(len(kw) for kw in keywords)
-            # 关键词占比越高，分数越高
-            score += (keywords_len / len(parent_lower)) * 30
-        
-        return score
+    def fuzzy_match(self, query, text, start_pos=0):
+        if not query or not text: return 0, []
+        q_idx, t_idx, score, indices = 0, start_pos, 0, []
+        while q_idx < len(query) and t_idx < len(text):
+            if query[q_idx].lower() == text[t_idx].lower():
+                current_score = 10
+                if not indices or t_idx == indices[-1] + 1: current_score += 15
+                if t_idx == 0 or text[t_idx-1] in ' /\\_-.': current_score += 10
+                score += current_score
+                indices.append(t_idx)
+                q_idx += 1
+            t_idx += 1
+        return (score, indices) if len(indices) == len(query) else (0, [])
 
     def find_matches(self, query, multi_word_search_enabled=False, pinyin_search_enabled=False):
-        # 1. 特殊情况：无搜索时，按要求显示
         if not query:
-            if self.settings.clipboard_memory_enabled:
-                # 预处理剪贴板历史以便显示
-                return [self._preprocess_block(b) for b in self.clipboard_history]
-            else:
-                return self.word_blocks # 返回所有词库
+            for block in self.word_blocks + self.clipboard_history:
+                if 'highlight_groups' in block: del block['highlight_groups']
+            return [self._preprocess_block(b) for b in self.clipboard_history] if self.settings.clipboard_memory_enabled else self.word_blocks
 
-        # 2. 有搜索时，构建搜索池并进行评分排序
-        search_pool = self.word_blocks[:] # 创建副本
-        if self.settings.clipboard_memory_enabled:
-            # 实时预处理剪贴板历史记录以进行搜索
-            processed_clipboard = [self._preprocess_block(b) for b in self.clipboard_history]
-            search_pool.extend(processed_clipboard)
-
+        search_pool = self.word_blocks + self.clipboard_history
         query_lower = query.lower()
-        scored_blocks = []
+        keywords = [k for k in query_lower.split(' ') if k] if multi_word_search_enabled and ' ' in query_lower.strip() else [query_lower]
         
-        keywords = [k for k in query_lower.split(' ') if k] if multi_word_search_enabled and ' ' in query_lower.strip() else []
+        scored_blocks = []
 
         for block in search_pool:
+            total_score = 0
+            highlight_groups = {}
+            last_match_end = -1
+            all_keywords_matched = True
+
             parent_text = block['parent']
-            # 使用缓存的 parent_lower 和 pinyin_initials
-            parent_lower = block.get('parent_lower', parent_text.lower())
-            # 根据 pinyin_search_enabled 决定使用哪个索引
-            if pinyin_search_enabled:
-                # 混合模式：纯拼音+混合键
-                search_keys = block.get('pinyin_initials', []) + block.get('hybrid_initials', [])
-            else:
-                # 非拼音模式，只在原文搜索
-                search_keys = []
+            parent_text_lower = parent_text.lower()
 
-            is_match, is_pinyin_match = False, False
-
-            # --- 匹配逻辑 ---
-            if keywords:
-                all_keywords_matched = True
-                for kw in keywords:
-                    # 关键词必须在原文或启用的搜索键中找到
-                    keyword_found = kw in parent_lower or any(kw in key for key in search_keys)
-                    if not keyword_found:
-                        all_keywords_matched = False
-                        break
+            for i, kw in enumerate(keywords):
+                # --- 优先在原文中进行模糊匹配 ---
+                score, indices = self.fuzzy_match(kw, parent_text_lower, last_match_end + 1)
                 
-                if all_keywords_matched:
-                    is_match = True
-                    # 如果不在原文中，则认为是拼音匹配
-                    if not all(kw in parent_lower for kw in keywords):
-                        is_pinyin_match = True
-            else:
-                text_match = query_lower in parent_lower
-                pinyin_match = any(query_lower in key for key in search_keys)
+                # --- 如果原文匹配不上，再尝试拼音 ---
+                pinyin_score, pinyin_indices = 0, []
+                if pinyin_search_enabled and score == 0:
+                    for pinyin_key in block.get('hybrid_initials', []):
+                        s, p_indices = self.fuzzy_match(kw, pinyin_key, 0)
+                        if s > pinyin_score:
+                            pinyin_score = s
+                            # --- 精准拼音反查高亮 ---
+                            temp_indices = set()
+                            p_idx_counter = 0
+                            for char_idx, char in enumerate(parent_text):
+                                if p_idx_counter < len(p_indices):
+                                    char_initials = self._generate_hybrid_initials(char)
+                                    if char_initials and pinyin_key[p_indices[p_idx_counter]] == char_initials[0][0]:
+                                        temp_indices.add(char_idx)
+                                        p_idx_counter += 1
+                            pinyin_indices = list(temp_indices)
+                
+                pinyin_score *= 0.9
 
-                if text_match or pinyin_match:
-                    is_match = True
-                    if pinyin_match and not text_match:
-                        is_pinyin_match = True
+                if score > 0:
+                    total_score += score
+                    highlight_groups[i] = set(indices)
+                    last_match_end = max(indices) if indices else -1
+                elif pinyin_score > 0:
+                    total_score += pinyin_score
+                    highlight_groups[i] = set(pinyin_indices)
+                    last_match_end = max(pinyin_indices) if pinyin_indices else -1
+                else:
+                    all_keywords_matched = False
+                    break
 
-            # --- 计分 ---
-            if is_match:
-                score = self._calculate_match_score(parent_text, query_lower, keywords)
-                if is_pinyin_match: score *= 0.5
-                scored_blocks.append((block, score))
+            if all_keywords_matched:
+                full_content = block['full_content']
+                parent_start_in_full = full_content.find(parent_text)
+                if parent_start_in_full == -1 and full_content.startswith('- '):
+                    parent_start_in_full = full_content.find(parent_text, 2)
 
-        # --- 排序 ---
+                if parent_start_in_full != -1:
+                    block['highlight_groups'] = {
+                        group_idx: {idx + parent_start_in_full for idx in indices}
+                        for group_idx, indices in highlight_groups.items()
+                    }
+                else:
+                    block['highlight_groups'] = {}
+                
+                if parent_text_lower.startswith(query_lower): total_score *= 1.5
+                scored_blocks.append((block, total_score))
+
         scored_blocks.sort(key=lambda x: x[1], reverse=True)
         return [block for block, score in scored_blocks]
 
@@ -1229,7 +1265,7 @@ class SearchPopup(QWidget):
         
         for block in matched_blocks:
             item = QListWidgetItem(block['full_content'])
-            item.setData(Qt.UserRole, block) # 存储完整数据块
+            item.setData(Qt.UserRole, block)
             self.list_widget.addItem(item)
             
         if self.list_widget.count() > 0: self.list_widget.setCurrentRow(0)
@@ -2070,6 +2106,18 @@ class MainController(QObject):
             QMessageBox.information(None, "成功", f"字体大小已设置为 {new_size}！")
 
     @Slot()
+    def toggle_highlight_matches(self):
+        """切换匹配高亮的启用状态"""
+        self.settings.highlight_matches = not self.settings.highlight_matches
+        self.settings.save()
+        log(f"匹配高亮: {'开启' if self.settings.highlight_matches else '关闭'}")
+        if hasattr(self, 'highlight_matches_action'):
+            self.highlight_matches_action.setChecked(self.settings.highlight_matches)
+        # 强制刷新列表以立即看到效果
+        if self.popup.isVisible():
+            self.popup.update_list(self.popup.search_box.text())
+
+    @Slot()
     def toggle_pinyin_initial_search(self):
         self.settings.pinyin_initial_search = not self.settings.pinyin_initial_search
         self.settings.save()
@@ -2132,7 +2180,7 @@ class MainController(QObject):
     def toggle_clipboard_memory(self):
         self.settings.clipboard_memory_enabled = not self.settings.clipboard_memory_enabled
         self.settings.save()
-        self.update_clipboard_monitor_status()
+        # self.update_clipboard_monitor_status()
         if hasattr(self, 'clipboard_memory_action'):
             self.clipboard_memory_action.setChecked(self.settings.clipboard_memory_enabled)
         # 刷新列表
@@ -2397,12 +2445,17 @@ if __name__ == "__main__":
     initial_toggle_text = f"切换到 {'夜间' if settings_manager.theme == 'light' else '日间'} 模式"
     controller.toggle_theme_action = QAction(initial_toggle_text); controller.toggle_theme_action.triggered.connect(controller.toggle_theme); menu.addAction(controller.toggle_theme_action)
     
-    font_size_action = QAction("设置字体大小(&F)..."); font_size_action.triggered.connect(controller.set_font_size); menu.addAction(font_size_action)
+    controller.highlight_matches_action = QAction("高亮匹配字符", checkable=True)
+    controller.highlight_matches_action.setChecked(settings_manager.highlight_matches)
+    controller.highlight_matches_action.triggered.connect(controller.toggle_highlight_matches)
+    menu.addAction(controller.highlight_matches_action)
 
+    font_size_action = QAction("设置字体大小(&F)..."); font_size_action.triggered.connect(controller.set_font_size); menu.addAction(font_size_action)
+ 
     # --- 退出 ---
     menu.addSeparator()
     quit_action = QAction("退出(&Q)"); quit_action.triggered.connect(app.quit); menu.addAction(quit_action)
-    
+
     controller.apply_menu_theme() # 初始化时应用主题
     controller.rebuild_library_menu() # 首次构建手动词库菜单
     controller.scan_and_update_auto_libraries() # 首次扫描以同步自动词库列表

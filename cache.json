@@ -1,112 +1,6 @@
 {
-  "version": "1.0",
+  "version": "1.0.5.35",
   "files": {
-    "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\多音字测试词库.md": {
-      "hash": "cb32cafbaddc79efc422687db85288b8",
-      "data": [
-        {
-          "parent": "卡住",
-          "raw_lines": [
-            "- 卡住"
-          ],
-          "exclude_parent": false,
-          "shortcut_code": null,
-          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\多音字测试词库.md",
-          "is_clipboard": false,
-          "full_content": "- 卡住",
-          "parent_lower": "卡住",
-          "pinyin_initials": [
-            "kz",
-            "qz"
-          ],
-          "hybrid_initials": [
-            "kz",
-            "qz"
-          ]
-        },
-        {
-          "parent": "多音字",
-          "raw_lines": [
-            "- 多音字"
-          ],
-          "exclude_parent": false,
-          "shortcut_code": null,
-          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\多音字测试词库.md",
-          "is_clipboard": false,
-          "full_content": "- 多音字",
-          "parent_lower": "多音字",
-          "pinyin_initials": [
-            "dyz"
-          ],
-          "hybrid_initials": [
-            "dyz"
-          ]
-        },
-        {
-          "parent": "车",
-          "raw_lines": [
-            "- 车"
-          ],
-          "exclude_parent": false,
-          "shortcut_code": null,
-          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\多音字测试词库.md",
-          "is_clipboard": false,
-          "full_content": "- 车",
-          "parent_lower": "车",
-          "pinyin_initials": [
-            "c",
-            "j"
-          ],
-          "hybrid_initials": [
-            "c",
-            "j"
-          ]
-        },
-        {
-          "parent": "岂",
-          "raw_lines": [
-            "- 岂"
-          ],
-          "exclude_parent": false,
-          "shortcut_code": null,
-          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\多音字测试词库.md",
-          "is_clipboard": false,
-          "full_content": "- 岂",
-          "parent_lower": "岂",
-          "pinyin_initials": [
-            "q",
-            "k"
-          ],
-          "hybrid_initials": [
-            "q",
-            "k"
-          ]
-        }
-      ]
-    },
-    "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\词库-临时测试.md": {
-      "hash": "0ca0b9251ccb422bf4687e415c9f2338",
-      "data": [
-        {
-          "parent": "import sys",
-          "raw_lines": [
-            "- import sys"
-          ],
-          "exclude_parent": false,
-          "shortcut_code": null,
-          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\词库-临时测试.md",
-          "is_clipboard": false,
-          "full_content": "- import sys",
-          "parent_lower": "import sys",
-          "pinyin_initials": [
-            "import sys"
-          ],
-          "hybrid_initials": [
-            "importsys"
-          ]
-        }
-      ]
-    },
     "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\词库.md": {
       "hash": "54ef987195802c1a2b65346cc417dec8",
       "data": [
@@ -125,9 +19,6 @@
           "is_clipboard": false,
           "full_content": "- 父级\n\t这是子级1\n\n\t- 这也是被包括的子级2\n\t这也是被包括的子级3",
           "parent_lower": "父级",
-          "pinyin_initials": [
-            "fj"
-          ],
           "hybrid_initials": [
             "fj"
           ]
@@ -145,10 +36,6 @@
           "is_clipboard": false,
           "full_content": "- 这是一个模板标题 ``不出现``\n这是模板的内容1\n这也是模板的内容2",
           "parent_lower": "这是一个模板标题",
-          "pinyin_initials": [
-            "zsygmbbt",
-            "ztygmbbt"
-          ],
           "hybrid_initials": [
             "zsygmbbt",
             "ztygmbbt"
@@ -167,10 +54,6 @@
           "is_clipboard": false,
           "full_content": "- 这是一个模板标题\n这是模板的内容1\n这也是模板的内容2",
           "parent_lower": "这是一个模板标题",
-          "pinyin_initials": [
-            "zsygmbbt",
-            "ztygmbbt"
-          ],
           "hybrid_initials": [
             "zsygmbbt",
             "ztygmbbt"
@@ -193,11 +76,6 @@
           "is_clipboard": false,
           "full_content": "- - 购物清单：超市采购\n\t- 生鲜区\n\t\t- 苹果 2斤\n\t\t- 西红柿 1袋\n\t- 日用品区\n\t\t- 牙膏 1支\n\t\t- 洗发水 1瓶",
           "parent_lower": "- 购物清单：超市采购",
-          "pinyin_initials": [
-            "- gwqd：cscg",
-            "- gwqc：cscg",
-            "- gwqs：cscg"
-          ],
           "hybrid_initials": [
             "-gwqdcscg",
             "-gwqdcfcg",
@@ -237,10 +115,6 @@
           "is_clipboard": false,
           "full_content": "- SWOT 分析：[分析对象，如：新产品A、公司B、个人职业发展]\n\t- 优势 (Strengths)：[内部积极因素]\n\t\t- [优势1]\n\t\t\t- [优势2]\n\t\t\t- 劣势 (Weaknesses)：[内部消极因素]\n\t\t\t- [劣势1]\n\t\t\t- [劣势2]\n\t\t\t- 机会 (Opportunities)：[外部积极因素]\n\t\t\t- [机会1]\n\t\t\t- [机会2]\n\t\t\t- 威胁 (Threats)：[外部消极因素]\n\t\t\t- [威胁1]\n\t\t\t- [威胁2]\n",
           "parent_lower": "swot 分析：[分析对象，如：新产品a、公司b、个人职业发展]",
-          "pinyin_initials": [
-            "SWOT fx：[fxdx，r：xcpA、gsB、grzyfz]",
-            "SWOT fx：[fxdx，r：xcpA、gcB、grzyfz]"
-          ],
           "hybrid_initials": [
             "swotfxfxdxrxcpagsbgrzyfz",
             "swotfxfxdxrxcpagcbgrzyfz",
@@ -280,10 +154,6 @@
           "is_clipboard": false,
           "full_content": "- 费曼学习法[学习主题/概念]\n\t- 1. 像教给孩子一样解释\n\t\t- `用最简单、非专业化的语言描述这个概念。`\n\t\t- `避免术语，或解释术语，确保一个非专业人士也能听懂。`\n\t\t- `可以加入简单的比喻或例子来帮助理解。`\n\t- 2. 识别知识盲区/卡壳点\n\t\t- `在解释过程中，哪些地方我卡壳了？`\n\t\t- `哪些概念我无法用简单语言表达？`\n\t\t- `哪些问题我无法回答？`\n\t- 3. 回顾与简化\n\t\t- `查阅资料（课本、论文、视频），填补知识盲区。`\n\t\t- `重新组织解释，使其更清晰、简洁、准确。`\n\t\t- `思考：还有哪些地方可以更简单？是否能用更直观的方式表达？`\n\t- 4. 最终理解/核心要点\n\t\t- `用一两句话总结这个概念的核心。`\n\t\t- `它最重要的应用或意义是什么？`\n\n",
           "parent_lower": "费曼学习法[学习主题/概念]",
-          "pinyin_initials": [
-            "fmxxf[xxzt/gn]",
-            "fmxxf[xxzt/jn]"
-          ],
           "hybrid_initials": [
             "fmxxfxxztgn",
             "fmxxfxxztjn"
@@ -317,9 +187,6 @@
           "is_clipboard": false,
           "full_content": "- 术语卡片 ``不出现``\n# [概念/术语名称]\n## 来源：[书名/章节] (页码)\n## 定义：\n\t- [官方/书中定义]\n\t- [我的通俗理解]\n## 关键特征/组成：\n\t- [特征1]\n\t- [特征2]\n## 应用/例子：\n\t- [书中例子]\n\t- [我能想到的例子]\n## 相关/对比概念：\n\t- [概念A] - [异同点]\n\t- [概念B] - [异同点]\n## 我的疑问/思考：\n\t- [疑问]\n\t- [思考]",
           "parent_lower": "术语卡片",
-          "pinyin_initials": [
-            "sykp"
-          ],
           "hybrid_initials": [
             "sykp",
             "syqp",
@@ -338,9 +205,6 @@
           "is_clipboard": false,
           "full_content": "- 如何制作 蛋糕",
           "parent_lower": "如何制作 蛋糕",
-          "pinyin_initials": [
-            "rhzz dg"
-          ],
           "hybrid_initials": [
             "rhzzdg"
           ]
@@ -356,10 +220,6 @@
           "is_clipboard": false,
           "full_content": "- 如何制作 寿司",
           "parent_lower": "如何制作 寿司",
-          "pinyin_initials": [
-            "rhzz ss",
-            "rhzz sc"
-          ],
           "hybrid_initials": [
             "rhzzss",
             "rhzzsc"
@@ -376,9 +236,6 @@
           "is_clipboard": false,
           "full_content": "- 如何制作 PPT",
           "parent_lower": "如何制作 ppt",
-          "pinyin_initials": [
-            "rhzz PPT"
-          ],
           "hybrid_initials": [
             "rhzzppt"
           ]
@@ -394,9 +251,6 @@
           "is_clipboard": false,
           "full_content": "- 如何制作 简历 ``k:jl;``",
           "parent_lower": "如何制作 简历",
-          "pinyin_initials": [
-            "rhzz jl"
-          ],
           "hybrid_initials": [
             "rhzzjl"
           ]
@@ -412,9 +266,6 @@
           "is_clipboard": false,
           "full_content": "- 如何制作 手工",
           "parent_lower": "如何制作 手工",
-          "pinyin_initials": [
-            "rhzz sg"
-          ],
           "hybrid_initials": [
             "rhzzsg"
           ]
@@ -430,11 +281,96 @@
           "is_clipboard": false,
           "full_content": "- 新词",
           "parent_lower": "新词",
-          "pinyin_initials": [
-            "xc"
-          ],
           "hybrid_initials": [
             "xc"
+          ]
+        }
+      ]
+    },
+    "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\多音字测试词库.md": {
+      "hash": "cb32cafbaddc79efc422687db85288b8",
+      "data": [
+        {
+          "parent": "卡住",
+          "raw_lines": [
+            "- 卡住"
+          ],
+          "exclude_parent": false,
+          "shortcut_code": null,
+          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\多音字测试词库.md",
+          "is_clipboard": false,
+          "full_content": "- 卡住",
+          "parent_lower": "卡住",
+          "hybrid_initials": [
+            "kz",
+            "qz"
+          ]
+        },
+        {
+          "parent": "多音字",
+          "raw_lines": [
+            "- 多音字"
+          ],
+          "exclude_parent": false,
+          "shortcut_code": null,
+          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\多音字测试词库.md",
+          "is_clipboard": false,
+          "full_content": "- 多音字",
+          "parent_lower": "多音字",
+          "hybrid_initials": [
+            "dyz"
+          ]
+        },
+        {
+          "parent": "车",
+          "raw_lines": [
+            "- 车"
+          ],
+          "exclude_parent": false,
+          "shortcut_code": null,
+          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\多音字测试词库.md",
+          "is_clipboard": false,
+          "full_content": "- 车",
+          "parent_lower": "车",
+          "hybrid_initials": [
+            "c",
+            "j"
+          ]
+        },
+        {
+          "parent": "岂",
+          "raw_lines": [
+            "- 岂"
+          ],
+          "exclude_parent": false,
+          "shortcut_code": null,
+          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\多音字测试词库.md",
+          "is_clipboard": false,
+          "full_content": "- 岂",
+          "parent_lower": "岂",
+          "hybrid_initials": [
+            "q",
+            "k"
+          ]
+        }
+      ]
+    },
+    "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\词库-临时测试.md": {
+      "hash": "0ca0b9251ccb422bf4687e415c9f2338",
+      "data": [
+        {
+          "parent": "import sys",
+          "raw_lines": [
+            "- import sys"
+          ],
+          "exclude_parent": false,
+          "shortcut_code": null,
+          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\词库-临时测试.md",
+          "is_clipboard": false,
+          "full_content": "- import sys",
+          "parent_lower": "import sys",
+          "hybrid_initials": [
+            "importsys"
           ]
         }
       ]
