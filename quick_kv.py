@@ -63,7 +63,7 @@ ICON_PATH = resource_path("icon.png")
 
 # --- 其他配置 ---
 DEBUG_MODE = True
-VERSION = "1.0.5.37" # 版本号
+VERSION = "1.0.5.38" # 版本号
 
 def log(message):
     if DEBUG_MODE:
@@ -625,17 +625,20 @@ class WordManager:
     def add_to_clipboard_history(self, text):
         """向剪贴板历史中添加新条目"""
         if not self.clipboard_source:
-            log("剪贴板源未初始化，无法添加历史。")
-            return False
+            # 确保 clipboard_source 已被初始化
+            self.clipboard_source = WordSource(CLIPBOARD_HISTORY_FILE)
 
+        # 在添加前，重新加载一次，确保拿到最新的历史记录
+        self.clipboard_source.load()
+        
         # 避免重复添加
-        if any(block['parent'] == text for block in self.clipboard_history):
+        if any(block['parent'] == text for block in self.clipboard_source.word_blocks):
             log(f"剪贴板历史中已存在: '{text}'")
             return False
 
         # 限制历史数量
-        while len(self.clipboard_history) >= self.settings.clipboard_memory_count:
-            oldest_item = self.clipboard_history.pop(-1) # 移除最旧的
+        while len(self.clipboard_source.word_blocks) >= self.settings.clipboard_memory_count:
+            oldest_item = self.clipboard_source.word_blocks.pop(0) # 移除最旧的
             self.clipboard_source.delete_entry(oldest_item['full_content'])
             log(f"剪贴板历史已满，移除最旧条目: {oldest_item['parent']}")
 
@@ -643,8 +646,8 @@ class WordManager:
         content_to_add = f"- {text}"
         if self.clipboard_source.add_entry(content_to_add):
             log(f"已添加新剪贴板历史: '{text}'")
-            # 重新加载以更新内部状态，并返回成功状态
-            self.load_clipboard_history()
+            # 重新加载以更新内部状态
+            self.reload_all()
             return True
         return False
 
