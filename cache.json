@@ -1,6 +1,214 @@
 {
-  "version": "1.0.5.35",
+  "version": "1.0.5.36.1",
   "files": {
+    "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\多音字测试词库.md": {
+      "hash": "cb32cafbaddc79efc422687db85288b8",
+      "data": [
+        {
+          "parent": "卡住",
+          "raw_lines": [
+            "- 卡住"
+          ],
+          "exclude_parent": false,
+          "shortcut_code": null,
+          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\多音字测试词库.md",
+          "is_clipboard": false,
+          "full_content": "- 卡住",
+          "parent_lower": "卡住",
+          "char_map": [
+            {
+              "char": "卡",
+              "keys": [
+                "k",
+                "q",
+                "卡"
+              ],
+              "index": 0
+            },
+            {
+              "char": "住",
+              "keys": [
+                "z",
+                "住"
+              ],
+              "index": 1
+            }
+          ]
+        },
+        {
+          "parent": "多音字",
+          "raw_lines": [
+            "- 多音字"
+          ],
+          "exclude_parent": false,
+          "shortcut_code": null,
+          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\多音字测试词库.md",
+          "is_clipboard": false,
+          "full_content": "- 多音字",
+          "parent_lower": "多音字",
+          "char_map": [
+            {
+              "char": "多",
+              "keys": [
+                "d",
+                "多"
+              ],
+              "index": 0
+            },
+            {
+              "char": "音",
+              "keys": [
+                "y",
+                "音"
+              ],
+              "index": 1
+            },
+            {
+              "char": "字",
+              "keys": [
+                "z",
+                "字"
+              ],
+              "index": 2
+            }
+          ]
+        },
+        {
+          "parent": "车",
+          "raw_lines": [
+            "- 车"
+          ],
+          "exclude_parent": false,
+          "shortcut_code": null,
+          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\多音字测试词库.md",
+          "is_clipboard": false,
+          "full_content": "- 车",
+          "parent_lower": "车",
+          "char_map": [
+            {
+              "char": "车",
+              "keys": [
+                "c",
+                "j",
+                "车"
+              ],
+              "index": 0
+            }
+          ]
+        },
+        {
+          "parent": "岂",
+          "raw_lines": [
+            "- 岂"
+          ],
+          "exclude_parent": false,
+          "shortcut_code": null,
+          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\多音字测试词库.md",
+          "is_clipboard": false,
+          "full_content": "- 岂",
+          "parent_lower": "岂",
+          "char_map": [
+            {
+              "char": "岂",
+              "keys": [
+                "q",
+                "岂"
+              ],
+              "index": 0
+            }
+          ]
+        }
+      ]
+    },
+    "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\词库-临时测试.md": {
+      "hash": "0ca0b9251ccb422bf4687e415c9f2338",
+      "data": [
+        {
+          "parent": "import sys",
+          "raw_lines": [
+            "- import sys"
+          ],
+          "exclude_parent": false,
+          "shortcut_code": null,
+          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\词库-临时测试.md",
+          "is_clipboard": false,
+          "full_content": "- import sys",
+          "parent_lower": "import sys",
+          "char_map": [
+            {
+              "char": "i",
+              "keys": [
+                "i"
+              ],
+              "index": 0
+            },
+            {
+              "char": "m",
+              "keys": [
+                "m"
+              ],
+              "index": 1
+            },
+            {
+              "char": "p",
+              "keys": [
+                "p"
+              ],
+              "index": 2
+            },
+            {
+              "char": "o",
+              "keys": [
+                "o"
+              ],
+              "index": 3
+            },
+            {
+              "char": "r",
+              "keys": [
+                "r"
+              ],
+              "index": 4
+            },
+            {
+              "char": "t",
+              "keys": [
+                "t"
+              ],
+              "index": 5
+            },
+            {
+              "char": " ",
+              "keys": [
+                " "
+              ],
+              "index": 6
+            },
+            {
+              "char": "s",
+              "keys": [
+                "s"
+              ],
+              "index": 7
+            },
+            {
+              "char": "y",
+              "keys": [
+                "y"
+              ],
+              "index": 8
+            },
+            {
+              "char": "s",
+              "keys": [
+                "s"
+              ],
+              "index": 9
+            }
+          ]
+        }
+      ]
+    },
     "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\词库.md": {
       "hash": "54ef987195802c1a2b65346cc417dec8",
       "data": [
@@ -19,8 +227,23 @@
           "is_clipboard": false,
           "full_content": "- 父级\n\t这是子级1\n\n\t- 这也是被包括的子级2\n\t这也是被包括的子级3",
           "parent_lower": "父级",
-          "hybrid_initials": [
-            "fj"
+          "char_map": [
+            {
+              "char": "父",
+              "keys": [
+                "f",
+                "父"
+              ],
+              "index": 0
+            },
+            {
+              "char": "级",
+              "keys": [
+                "j",
+                "级"
+              ],
+              "index": 1
+            }
           ]
         },
         {
@@ -36,9 +259,71 @@
           "is_clipboard": false,
           "full_content": "- 这是一个模板标题 ``不出现``\n这是模板的内容1\n这也是模板的内容2",
           "parent_lower": "这是一个模板标题",
-          "hybrid_initials": [
-            "zsygmbbt",
-            "ztygmbbt"
+          "char_map": [
+            {
+              "char": "这",
+              "keys": [
+                "z",
+                "这"
+              ],
+              "index": 0
+            },
+            {
+              "char": "是",
+              "keys": [
+                "s",
+                "是"
+              ],
+              "index": 1
+            },
+            {
+              "char": "一",
+              "keys": [
+                "y",
+                "一"
+              ],
+              "index": 2
+            },
+            {
+              "char": "个",
+              "keys": [
+                "g",
+                "个"
+              ],
+              "index": 3
+            },
+            {
+              "char": "模",
+              "keys": [
+                "m",
+                "模"
+              ],
+              "index": 4
+            },
+            {
+              "char": "板",
+              "keys": [
+                "b",
+                "板"
+              ],
+              "index": 5
+            },
+            {
+              "char": "标",
+              "keys": [
+                "b",
+                "标"
+              ],
+              "index": 6
+            },
+            {
+              "char": "题",
+              "keys": [
+                "t",
+                "题"
+              ],
+              "index": 7
+            }
           ]
         },
         {
@@ -54,9 +339,71 @@
           "is_clipboard": false,
           "full_content": "- 这是一个模板标题\n这是模板的内容1\n这也是模板的内容2",
           "parent_lower": "这是一个模板标题",
-          "hybrid_initials": [
-            "zsygmbbt",
-            "ztygmbbt"
+          "char_map": [
+            {
+              "char": "这",
+              "keys": [
+                "z",
+                "这"
+              ],
+              "index": 0
+            },
+            {
+              "char": "是",
+              "keys": [
+                "s",
+                "是"
+              ],
+              "index": 1
+            },
+            {
+              "char": "一",
+              "keys": [
+                "y",
+                "一"
+              ],
+              "index": 2
+            },
+            {
+              "char": "个",
+              "keys": [
+                "g",
+                "个"
+              ],
+              "index": 3
+            },
+            {
+              "char": "模",
+              "keys": [
+                "m",
+                "模"
+              ],
+              "index": 4
+            },
+            {
+              "char": "板",
+              "keys": [
+                "b",
+                "板"
+              ],
+              "index": 5
+            },
+            {
+              "char": "标",
+              "keys": [
+                "b",
+                "标"
+              ],
+              "index": 6
+            },
+            {
+              "char": "题",
+              "keys": [
+                "t",
+                "题"
+              ],
+              "index": 7
+            }
           ]
         },
         {
@@ -76,19 +423,95 @@
           "is_clipboard": false,
           "full_content": "- - 购物清单：超市采购\n\t- 生鲜区\n\t\t- 苹果 2斤\n\t\t- 西红柿 1袋\n\t- 日用品区\n\t\t- 牙膏 1支\n\t\t- 洗发水 1瓶",
           "parent_lower": "- 购物清单：超市采购",
-          "hybrid_initials": [
-            "-gwqdcscg",
-            "-gwqdcfcg",
-            "-gwqdtscg",
-            "-gwqdtfcg",
-            "-gwqccscg",
-            "-gwqccfcg",
-            "-gwqctscg",
-            "-gwqctfcg",
-            "-gwqscscg",
-            "-gwqscfcg",
-            "-gwqstscg",
-            "-gwqstfcg"
+          "char_map": [
+            {
+              "char": "-",
+              "keys": [
+                "-"
+              ],
+              "index": 0
+            },
+            {
+              "char": " ",
+              "keys": [
+                " "
+              ],
+              "index": 1
+            },
+            {
+              "char": "购",
+              "keys": [
+                "g",
+                "购"
+              ],
+              "index": 2
+            },
+            {
+              "char": "物",
+              "keys": [
+                "w",
+                "物"
+              ],
+              "index": 3
+            },
+            {
+              "char": "清",
+              "keys": [
+                "q",
+                "清"
+              ],
+              "index": 4
+            },
+            {
+              "char": "单",
+              "keys": [
+                "c",
+                "d",
+                "s",
+                "单"
+              ],
+              "index": 5
+            },
+            {
+              "char": "：",
+              "keys": [
+                "："
+              ],
+              "index": 6
+            },
+            {
+              "char": "超",
+              "keys": [
+                "c",
+                "超"
+              ],
+              "index": 7
+            },
+            {
+              "char": "市",
+              "keys": [
+                "f",
+                "s",
+                "市"
+              ],
+              "index": 8
+            },
+            {
+              "char": "采",
+              "keys": [
+                "c",
+                "采"
+              ],
+              "index": 9
+            },
+            {
+              "char": "购",
+              "keys": [
+                "g",
+                "购"
+              ],
+              "index": 10
+            }
           ]
         },
         {
@@ -115,15 +538,249 @@
           "is_clipboard": false,
           "full_content": "- SWOT 分析：[分析对象，如：新产品A、公司B、个人职业发展]\n\t- 优势 (Strengths)：[内部积极因素]\n\t\t- [优势1]\n\t\t\t- [优势2]\n\t\t\t- 劣势 (Weaknesses)：[内部消极因素]\n\t\t\t- [劣势1]\n\t\t\t- [劣势2]\n\t\t\t- 机会 (Opportunities)：[外部积极因素]\n\t\t\t- [机会1]\n\t\t\t- [机会2]\n\t\t\t- 威胁 (Threats)：[外部消极因素]\n\t\t\t- [威胁1]\n\t\t\t- [威胁2]\n",
           "parent_lower": "swot 分析：[分析对象，如：新产品a、公司b、个人职业发展]",
-          "hybrid_initials": [
-            "swotfxfxdxrxcpagsbgrzyfz",
-            "swotfxfxdxrxcpagcbgrzyfz",
-            "swotfxfsdxrxcpagsbgrzyfz",
-            "swotfxfsdxrxcpagcbgrzyfz",
-            "swotfsfxdxrxcpagsbgrzyfz",
-            "swotfsfxdxrxcpagcbgrzyfz",
-            "swotfsfsdxrxcpagsbgrzyfz",
-            "swotfsfsdxrxcpagcbgrzyfz"
+          "char_map": [
+            {
+              "char": "S",
+              "keys": [
+                "s"
+              ],
+              "index": 0
+            },
+            {
+              "char": "W",
+              "keys": [
+                "w"
+              ],
+              "index": 1
+            },
+            {
+              "char": "O",
+              "keys": [
+                "o"
+              ],
+              "index": 2
+            },
+            {
+              "char": "T",
+              "keys": [
+                "t"
+              ],
+              "index": 3
+            },
+            {
+              "char": " ",
+              "keys": [
+                " "
+              ],
+              "index": 4
+            },
+            {
+              "char": "分",
+              "keys": [
+                "f",
+                "分"
+              ],
+              "index": 5
+            },
+            {
+              "char": "析",
+              "keys": [
+                "x",
+                "析"
+              ],
+              "index": 6
+            },
+            {
+              "char": "：",
+              "keys": [
+                "："
+              ],
+              "index": 7
+            },
+            {
+              "char": "[",
+              "keys": [
+                "["
+              ],
+              "index": 8
+            },
+            {
+              "char": "分",
+              "keys": [
+                "f",
+                "分"
+              ],
+              "index": 9
+            },
+            {
+              "char": "析",
+              "keys": [
+                "x",
+                "析"
+              ],
+              "index": 10
+            },
+            {
+              "char": "对",
+              "keys": [
+                "d",
+                "对"
+              ],
+              "index": 11
+            },
+            {
+              "char": "象",
+              "keys": [
+                "x",
+                "象"
+              ],
+              "index": 12
+            },
+            {
+              "char": "，",
+              "keys": [
+                "，"
+              ],
+              "index": 13
+            },
+            {
+              "char": "如",
+              "keys": [
+                "r",
+                "如"
+              ],
+              "index": 14
+            },
+            {
+              "char": "：",
+              "keys": [
+                "："
+              ],
+              "index": 15
+            },
+            {
+              "char": "新",
+              "keys": [
+                "x",
+                "新"
+              ],
+              "index": 16
+            },
+            {
+              "char": "产",
+              "keys": [
+                "c",
+                "产"
+              ],
+              "index": 17
+            },
+            {
+              "char": "品",
+              "keys": [
+                "p",
+                "品"
+              ],
+              "index": 18
+            },
+            {
+              "char": "A",
+              "keys": [
+                "a"
+              ],
+              "index": 19
+            },
+            {
+              "char": "、",
+              "keys": [
+                "、"
+              ],
+              "index": 20
+            },
+            {
+              "char": "公",
+              "keys": [
+                "g",
+                "公"
+              ],
+              "index": 21
+            },
+            {
+              "char": "司",
+              "keys": [
+                "s",
+                "司"
+              ],
+              "index": 22
+            },
+            {
+              "char": "B",
+              "keys": [
+                "b"
+              ],
+              "index": 23
+            },
+            {
+              "char": "、",
+              "keys": [
+                "、"
+              ],
+              "index": 24
+            },
+            {
+              "char": "个",
+              "keys": [
+                "g",
+                "个"
+              ],
+              "index": 25
+            },
+            {
+              "char": "人",
+              "keys": [
+                "r",
+                "人"
+              ],
+              "index": 26
+            },
+            {
+              "char": "职",
+              "keys": [
+                "z",
+                "职"
+              ],
+              "index": 27
+            },
+            {
+              "char": "业",
+              "keys": [
+                "y",
+                "业"
+              ],
+              "index": 28
+            },
+            {
+              "char": "发",
+              "keys": [
+                "f",
+                "发"
+              ],
+              "index": 29
+            },
+            {
+              "char": "展",
+              "keys": [
+                "z",
+                "展"
+              ],
+              "index": 30
+            },
+            {
+              "char": "]",
+              "keys": [
+                "]"
+              ],
+              "index": 31
+            }
           ]
         },
         {
@@ -154,9 +811,116 @@
           "is_clipboard": false,
           "full_content": "- 费曼学习法[学习主题/概念]\n\t- 1. 像教给孩子一样解释\n\t\t- `用最简单、非专业化的语言描述这个概念。`\n\t\t- `避免术语，或解释术语，确保一个非专业人士也能听懂。`\n\t\t- `可以加入简单的比喻或例子来帮助理解。`\n\t- 2. 识别知识盲区/卡壳点\n\t\t- `在解释过程中，哪些地方我卡壳了？`\n\t\t- `哪些概念我无法用简单语言表达？`\n\t\t- `哪些问题我无法回答？`\n\t- 3. 回顾与简化\n\t\t- `查阅资料（课本、论文、视频），填补知识盲区。`\n\t\t- `重新组织解释，使其更清晰、简洁、准确。`\n\t\t- `思考：还有哪些地方可以更简单？是否能用更直观的方式表达？`\n\t- 4. 最终理解/核心要点\n\t\t- `用一两句话总结这个概念的核心。`\n\t\t- `它最重要的应用或意义是什么？`\n\n",
           "parent_lower": "费曼学习法[学习主题/概念]",
-          "hybrid_initials": [
-            "fmxxfxxztgn",
-            "fmxxfxxztjn"
+          "char_map": [
+            {
+              "char": "费",
+              "keys": [
+                "f",
+                "费"
+              ],
+              "index": 0
+            },
+            {
+              "char": "曼",
+              "keys": [
+                "m",
+                "曼"
+              ],
+              "index": 1
+            },
+            {
+              "char": "学",
+              "keys": [
+                "x",
+                "学"
+              ],
+              "index": 2
+            },
+            {
+              "char": "习",
+              "keys": [
+                "x",
+                "习"
+              ],
+              "index": 3
+            },
+            {
+              "char": "法",
+              "keys": [
+                "f",
+                "法"
+              ],
+              "index": 4
+            },
+            {
+              "char": "[",
+              "keys": [
+                "["
+              ],
+              "index": 5
+            },
+            {
+              "char": "学",
+              "keys": [
+                "x",
+                "学"
+              ],
+              "index": 6
+            },
+            {
+              "char": "习",
+              "keys": [
+                "x",
+                "习"
+              ],
+              "index": 7
+            },
+            {
+              "char": "主",
+              "keys": [
+                "z",
+                "主"
+              ],
+              "index": 8
+            },
+            {
+              "char": "题",
+              "keys": [
+                "t",
+                "题"
+              ],
+              "index": 9
+            },
+            {
+              "char": "/",
+              "keys": [
+                "/"
+              ],
+              "index": 10
+            },
+            {
+              "char": "概",
+              "keys": [
+                "g",
+                "概"
+              ],
+              "index": 11
+            },
+            {
+              "char": "念",
+              "keys": [
+                "n",
+                "念"
+              ],
+              "index": 12
+            },
+            {
+              "char": "]",
+              "keys": [
+                "]"
+              ],
+              "index": 13
+            }
           ]
         },
         {
@@ -187,11 +951,41 @@
           "is_clipboard": false,
           "full_content": "- 术语卡片 ``不出现``\n# [概念/术语名称]\n## 来源：[书名/章节] (页码)\n## 定义：\n\t- [官方/书中定义]\n\t- [我的通俗理解]\n## 关键特征/组成：\n\t- [特征1]\n\t- [特征2]\n## 应用/例子：\n\t- [书中例子]\n\t- [我能想到的例子]\n## 相关/对比概念：\n\t- [概念A] - [异同点]\n\t- [概念B] - [异同点]\n## 我的疑问/思考：\n\t- [疑问]\n\t- [思考]",
           "parent_lower": "术语卡片",
-          "hybrid_initials": [
-            "sykp",
-            "syqp",
-            "zykp",
-            "zyqp"
+          "char_map": [
+            {
+              "char": "术",
+              "keys": [
+                "s",
+                "z",
+                "术"
+              ],
+              "index": 0
+            },
+            {
+              "char": "语",
+              "keys": [
+                "y",
+                "语"
+              ],
+              "index": 1
+            },
+            {
+              "char": "卡",
+              "keys": [
+                "k",
+                "q",
+                "卡"
+              ],
+              "index": 2
+            },
+            {
+              "char": "片",
+              "keys": [
+                "p",
+                "片"
+              ],
+              "index": 3
+            }
           ]
         },
         {
@@ -205,8 +999,62 @@
           "is_clipboard": false,
           "full_content": "- 如何制作 蛋糕",
           "parent_lower": "如何制作 蛋糕",
-          "hybrid_initials": [
-            "rhzzdg"
+          "char_map": [
+            {
+              "char": "如",
+              "keys": [
+                "r",
+                "如"
+              ],
+              "index": 0
+            },
+            {
+              "char": "何",
+              "keys": [
+                "h",
+                "何"
+              ],
+              "index": 1
+            },
+            {
+              "char": "制",
+              "keys": [
+                "z",
+                "制"
+              ],
+              "index": 2
+            },
+            {
+              "char": "作",
+              "keys": [
+                "z",
+                "作"
+              ],
+              "index": 3
+            },
+            {
+              "char": " ",
+              "keys": [
+                " "
+              ],
+              "index": 4
+            },
+            {
+              "char": "蛋",
+              "keys": [
+                "d",
+                "蛋"
+              ],
+              "index": 5
+            },
+            {
+              "char": "糕",
+              "keys": [
+                "g",
+                "糕"
+              ],
+              "index": 6
+            }
           ]
         },
         {
@@ -220,9 +1068,62 @@
           "is_clipboard": false,
           "full_content": "- 如何制作 寿司",
           "parent_lower": "如何制作 寿司",
-          "hybrid_initials": [
-            "rhzzss",
-            "rhzzsc"
+          "char_map": [
+            {
+              "char": "如",
+              "keys": [
+                "r",
+                "如"
+              ],
+              "index": 0
+            },
+            {
+              "char": "何",
+              "keys": [
+                "h",
+                "何"
+              ],
+              "index": 1
+            },
+            {
+              "char": "制",
+              "keys": [
+                "z",
+                "制"
+              ],
+              "index": 2
+            },
+            {
+              "char": "作",
+              "keys": [
+                "z",
+                "作"
+              ],
+              "index": 3
+            },
+            {
+              "char": " ",
+              "keys": [
+                " "
+              ],
+              "index": 4
+            },
+            {
+              "char": "寿",
+              "keys": [
+                "s",
+                "寿"
+              ],
+              "index": 5
+            },
+            {
+              "char": "司",
+              "keys": [
+                "s",
+                "司"
+              ],
+              "index": 6
+            }
           ]
         },
         {
@@ -236,8 +1137,67 @@
           "is_clipboard": false,
           "full_content": "- 如何制作 PPT",
           "parent_lower": "如何制作 ppt",
-          "hybrid_initials": [
-            "rhzzppt"
+          "char_map": [
+            {
+              "char": "如",
+              "keys": [
+                "r",
+                "如"
+              ],
+              "index": 0
+            },
+            {
+              "char": "何",
+              "keys": [
+                "h",
+                "何"
+              ],
+              "index": 1
+            },
+            {
+              "char": "制",
+              "keys": [
+                "z",
+                "制"
+              ],
+              "index": 2
+            },
+            {
+              "char": "作",
+              "keys": [
+                "z",
+                "作"
+              ],
+              "index": 3
+            },
+            {
+              "char": " ",
+              "keys": [
+                " "
+              ],
+              "index": 4
+            },
+            {
+              "char": "P",
+              "keys": [
+                "p"
+              ],
+              "index": 5
+            },
+            {
+              "char": "P",
+              "keys": [
+                "p"
+              ],
+              "index": 6
+            },
+            {
+              "char": "T",
+              "keys": [
+                "t"
+              ],
+              "index": 7
+            }
           ]
         },
         {
@@ -251,8 +1211,62 @@
           "is_clipboard": false,
           "full_content": "- 如何制作 简历 ``k:jl;``",
           "parent_lower": "如何制作 简历",
-          "hybrid_initials": [
-            "rhzzjl"
+          "char_map": [
+            {
+              "char": "如",
+              "keys": [
+                "r",
+                "如"
+              ],
+              "index": 0
+            },
+            {
+              "char": "何",
+              "keys": [
+                "h",
+                "何"
+              ],
+              "index": 1
+            },
+            {
+              "char": "制",
+              "keys": [
+                "z",
+                "制"
+              ],
+              "index": 2
+            },
+            {
+              "char": "作",
+              "keys": [
+                "z",
+                "作"
+              ],
+              "index": 3
+            },
+            {
+              "char": " ",
+              "keys": [
+                " "
+              ],
+              "index": 4
+            },
+            {
+              "char": "简",
+              "keys": [
+                "j",
+                "简"
+              ],
+              "index": 5
+            },
+            {
+              "char": "历",
+              "keys": [
+                "l",
+                "历"
+              ],
+              "index": 6
+            }
           ]
         },
         {
@@ -266,8 +1280,62 @@
           "is_clipboard": false,
           "full_content": "- 如何制作 手工",
           "parent_lower": "如何制作 手工",
-          "hybrid_initials": [
-            "rhzzsg"
+          "char_map": [
+            {
+              "char": "如",
+              "keys": [
+                "r",
+                "如"
+              ],
+              "index": 0
+            },
+            {
+              "char": "何",
+              "keys": [
+                "h",
+                "何"
+              ],
+              "index": 1
+            },
+            {
+              "char": "制",
+              "keys": [
+                "z",
+                "制"
+              ],
+              "index": 2
+            },
+            {
+              "char": "作",
+              "keys": [
+                "z",
+                "作"
+              ],
+              "index": 3
+            },
+            {
+              "char": " ",
+              "keys": [
+                " "
+              ],
+              "index": 4
+            },
+            {
+              "char": "手",
+              "keys": [
+                "s",
+                "手"
+              ],
+              "index": 5
+            },
+            {
+              "char": "工",
+              "keys": [
+                "g",
+                "工"
+              ],
+              "index": 6
+            }
           ]
         },
         {
@@ -281,96 +1349,23 @@
           "is_clipboard": false,
           "full_content": "- 新词",
           "parent_lower": "新词",
-          "hybrid_initials": [
-            "xc"
-          ]
-        }
-      ]
-    },
-    "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\多音字测试词库.md": {
-      "hash": "cb32cafbaddc79efc422687db85288b8",
-      "data": [
-        {
-          "parent": "卡住",
-          "raw_lines": [
-            "- 卡住"
-          ],
-          "exclude_parent": false,
-          "shortcut_code": null,
-          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\多音字测试词库.md",
-          "is_clipboard": false,
-          "full_content": "- 卡住",
-          "parent_lower": "卡住",
-          "hybrid_initials": [
-            "kz",
-            "qz"
-          ]
-        },
-        {
-          "parent": "多音字",
-          "raw_lines": [
-            "- 多音字"
-          ],
-          "exclude_parent": false,
-          "shortcut_code": null,
-          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\多音字测试词库.md",
-          "is_clipboard": false,
-          "full_content": "- 多音字",
-          "parent_lower": "多音字",
-          "hybrid_initials": [
-            "dyz"
-          ]
-        },
-        {
-          "parent": "车",
-          "raw_lines": [
-            "- 车"
-          ],
-          "exclude_parent": false,
-          "shortcut_code": null,
-          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\多音字测试词库.md",
-          "is_clipboard": false,
-          "full_content": "- 车",
-          "parent_lower": "车",
-          "hybrid_initials": [
-            "c",
-            "j"
-          ]
-        },
-        {
-          "parent": "岂",
-          "raw_lines": [
-            "- 岂"
-          ],
-          "exclude_parent": false,
-          "shortcut_code": null,
-          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\多音字测试词库.md",
-          "is_clipboard": false,
-          "full_content": "- 岂",
-          "parent_lower": "岂",
-          "hybrid_initials": [
-            "q",
-            "k"
-          ]
-        }
-      ]
-    },
-    "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\词库-临时测试.md": {
-      "hash": "0ca0b9251ccb422bf4687e415c9f2338",
-      "data": [
-        {
-          "parent": "import sys",
-          "raw_lines": [
-            "- import sys"
-          ],
-          "exclude_parent": false,
-          "shortcut_code": null,
-          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\词库-临时测试.md",
-          "is_clipboard": false,
-          "full_content": "- import sys",
-          "parent_lower": "import sys",
-          "hybrid_initials": [
-            "importsys"
+          "char_map": [
+            {
+              "char": "新",
+              "keys": [
+                "x",
+                "新"
+              ],
+              "index": 0
+            },
+            {
+              "char": "词",
+              "keys": [
+                "c",
+                "词"
+              ],
+              "index": 1
+            }
           ]
         }
       ]

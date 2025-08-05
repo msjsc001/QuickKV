@@ -21,6 +21,18 @@ from PySide6.QtGui import QIcon, QAction, QCursor, QPixmap, QPainter, QColor, QP
 import pyperclip
 from pypinyin import pinyin, Style
 from pynput import keyboard
+from fuzzywuzzy import fuzz
+
+# --- 拼音库修正 ---
+# 导入 pypinyin-dict 的高质量词典数据，以修正 pypinyin 默认词典中的罕见音问题
+try:
+    from pypinyin_dict.pinyin_data import kxhc1983
+    kxhc1983.load()
+    from pypinyin_dict.phrase_pinyin_data import cc_cedict
+    cc_cedict.load()
+    print("成功加载 pypinyin-dict 修正词典。")
+except ImportError:
+    print("警告: 未找到 pypinyin-dict 库，拼音首字母可能不准确。建议安装: pip install pypinyin-dict")
 
 # --- 全局配置 ---
 def get_base_path():
@@ -51,7 +63,7 @@ ICON_PATH = resource_path("icon.png")
 
 # --- 其他配置 ---
 DEBUG_MODE = True
-VERSION = "1.0.5.35" # 版本号
+VERSION = "1.0.5.36.1" # 版本号
 
 def log(message):
     if DEBUG_MODE:
@@ -444,31 +456,30 @@ class WordManager:
         # -> ['dq', 'tq']
         return ["".join(combo) for combo in all_combinations]
 
-    def _generate_hybrid_initials(self, text):
-        """生成汉字拼音首字母与非汉字字符的混合搜索键"""
-        # 正则表达式匹配汉字或连续的非汉字字符
-        pattern = re.compile(r'([\u4e00-\u9fa5])|([a-zA-Z0-9_.-]+)')
-        parts = pattern.findall(text)
-        
-        # 收集每个位置的可能性
-        # '扩张ET' -> [[('k',)], [('z',)], [('et',)]]
-        # '长(chang)城' -> [[('c', 'z')], [('c',)]]
-        char_options = []
-        for hanzi, other in parts:
-            if hanzi:
-                # 汉字，获取所有多音字首字母
-                initials = pinyin(hanzi, style=Style.FIRST_LETTER, heteronym=True)[0]
-                char_options.append(tuple(initials))
-            elif other:
-                # 非汉字，直接使用小写形式
-                char_options.append((other.lower(),))
-        
-        # 使用 itertools.product 生成所有组合
-        if not char_options:
-            return []
+    def _build_char_map(self, text):
+        """
+        为文本中的每个字符构建一个详细的搜索映射表。
+        这是新搜索算法的核心，取代了旧的 _generate_hybrid_initials。
+        """
+        char_map = []
+        for index, char in enumerate(text):
+            char_lower = char.lower()
+            # 默认搜索键是字符本身的小写形式
+            keys = [char_lower]
             
-        all_combinations = list(itertools.product(*char_options))
-        return ["".join(combo) for combo in all_combinations]
+            # 如果是汉字，添加所有可能的拼音首字母
+            if '\u4e00' <= char <= '\u9fa5':
+                initials = pinyin(char, style=Style.FIRST_LETTER, heteronym=True)[0]
+                keys.extend(initials)
+                # 去重，例如对于 '和'，keys 会是 ['h', 'h', 'h']，去重后为 ['h']
+                keys = sorted(list(set(keys)))
+            
+            char_map.append({
+                'char': char,
+                'keys': keys,
+                'index': index
+            })
+        return char_map
 
     def _get_file_hash(self, file_path):
         """计算文件的MD5哈希值"""
@@ -532,11 +543,14 @@ class WordManager:
             log(f"保存缓存失败: {e}")
 
     def _preprocess_block(self, block):
-        """对单个词条块进行预处理"""
+        """对单个词条块进行预处理（已重构）"""
         parent_text = block['parent']
         block['parent_lower'] = parent_text.lower()
-        # 同时生成纯拼音首字母和混合首字母
-        block['hybrid_initials'] = self._generate_hybrid_initials(parent_text)
+        # 新的核心数据结构：字符映射表
+        block['char_map'] = self._build_char_map(parent_text)
+        # 移除旧的、不再使用的键
+        if 'hybrid_initials' in block:
+            del block['hybrid_initials']
         return block
 
     def reload_all(self):
@@ -656,25 +670,16 @@ class WordManager:
         # 为了安全起见，暂时保留，但其逻辑已被移至 reload_all。
         pass
 
-    def fuzzy_match(self, query, text, start_pos=0):
-        if not query or not text: return 0, []
-        q_idx, t_idx, score, indices = 0, start_pos, 0, []
-        while q_idx < len(query) and t_idx < len(text):
-            if query[q_idx].lower() == text[t_idx].lower():
-                current_score = 10
-                if not indices or t_idx == indices[-1] + 1: current_score += 15
-                if t_idx == 0 or text[t_idx-1] in ' /\\_-.': current_score += 10
-                score += current_score
-                indices.append(t_idx)
-                q_idx += 1
-            t_idx += 1
-        return (score, indices) if len(indices) == len(query) else (0, [])
-
     def find_matches(self, query, multi_word_search_enabled=False, pinyin_search_enabled=False):
+        """
+        全新的、基于字符映射表的精确匹配算法。
+        取代了旧的 fuzzywuzzy 模糊匹配。
+        """
         if not query:
+            # 清空高亮并返回默认列表
             for block in self.word_blocks + self.clipboard_history:
                 if 'highlight_groups' in block: del block['highlight_groups']
-            return [self._preprocess_block(b) for b in self.clipboard_history] if self.settings.clipboard_memory_enabled else self.word_blocks
+            return [b for b in self.clipboard_history] if self.settings.clipboard_memory_enabled else self.word_blocks
 
         search_pool = self.word_blocks + self.clipboard_history
         query_lower = query.lower()
@@ -683,88 +688,109 @@ class WordManager:
         scored_blocks = []
 
         for block in search_pool:
+            char_map = block.get('char_map', [])
+            if not char_map: continue
+
+            all_match_groups = {}
             total_score = 0
-            highlight_groups = {}
-            last_match_end = -1
-            all_keywords_matched = True
-            matched_keywords_count = 0
+            all_keywords_found = True
+            used_indices_for_block = set() # 新增：跟踪此块中已使用的索引
 
-            parent_text = block['parent']
-            parent_text_lower = parent_text.lower()
-
-            for i, kw in enumerate(keywords):
-                score, indices = self.fuzzy_match(kw, parent_text_lower, last_match_end + 1)
-                
-                pinyin_score, pinyin_indices = 0, []
-                if pinyin_search_enabled and score == 0:
-                    for pinyin_key in block.get('hybrid_initials', []):
-                        s, p_indices = self.fuzzy_match(kw, pinyin_key, 0)
-                        if s > pinyin_score:
-                            pinyin_score = s
-                            temp_indices = set()
-                            p_idx_counter = 0
-                            for char_idx, char in enumerate(parent_text):
-                                if p_idx_counter < len(p_indices):
-                                    char_initials = self._generate_hybrid_initials(char)
-                                    if char_initials and pinyin_key[p_indices[p_idx_counter]] == char_initials[0][0]:
-                                        temp_indices.add(char_idx)
-                                        p_idx_counter += 1
-                            pinyin_indices = list(temp_indices)
-                
-                pinyin_score *= 0.9
-
-                if score > 0 or pinyin_score > 0:
-                    matched_keywords_count += 1
-                    if score >= pinyin_score:
-                        total_score += score
-                        highlight_groups[i] = set(indices)
-                        last_match_end = max(indices) if indices else -1
-                    else:
-                        total_score += pinyin_score
-                        highlight_groups[i] = set(pinyin_indices)
-                        last_match_end = max(pinyin_indices) if pinyin_indices else -1
-                else:
-                    # 即使一个词不匹配，我们也不立即放弃，而是继续看能匹配多少个
-                    pass
-
-            # --- 最终版相关性优化 ---
-            if matched_keywords_count > 0:
-                # 1. 多词匹配超级奖励：匹配上的关键词越多，分数越高
-                total_score *= (1 + matched_keywords_count * 0.5)
-
-                # 2. 距离惩罚
-                if matched_keywords_count > 1:
-                    all_indices = set()
-                    for indices in highlight_groups.values():
-                        all_indices.update(indices)
-                    if all_indices:
-                        span = max(all_indices) - min(all_indices)
-                        total_score /= (1 + span * 0.1)
-                
-                # 3. 开头匹配奖励
-                if parent_text_lower.startswith(query_lower):
-                    total_score *= 1.5
-                
-                # 只有当所有关键词都匹配时，才加入最终结果
-                if matched_keywords_count == len(keywords):
-                    full_content = block['full_content']
-                    parent_start_in_full = full_content.find(parent_text)
-                    if parent_start_in_full == -1 and full_content.startswith('- '):
-                        parent_start_in_full = full_content.find(parent_text, 2)
-
-                    if parent_start_in_full != -1:
-                        block['highlight_groups'] = {
-                            g_idx: {idx + parent_start_in_full for idx in g_indices}
-                            for g_idx, g_indices in highlight_groups.items()
-                        }
-                    else:
-                        block['highlight_groups'] = {}
+            for kw_idx, kw in enumerate(keywords):
+                best_match_for_kw = None
+                # 遍历所有可能的起始点
+                for start_idx in range(len(char_map)):
+                    match_indices = []
+                    match_types = []
+                    kw_ptr = 0
+                    map_ptr = start_idx
                     
-                    scored_blocks.append((block, total_score))
+                    # 尝试从 start_idx 开始匹配
+                    while kw_ptr < len(kw) and map_ptr < len(char_map):
+                        char_info = char_map[map_ptr]
+                        
+                        # 1. 优先原文匹配
+                        original_match = False
+                        if kw[kw_ptr:].startswith(char_info['char'].lower()):
+                            match_len = len(char_info['char'])
+                            match_indices.extend(range(map_ptr, map_ptr + 1)) # 原文匹配总是单字符
+                            match_types.append('original')
+                            kw_ptr += match_len
+                            map_ptr += 1
+                            original_match = True
+                        
+                        # 2. 拼音匹配
+                        elif pinyin_search_enabled:
+                            pinyin_matched = False
+                            for pinyin_key in char_info['keys']:
+                                if kw[kw_ptr:].startswith(pinyin_key):
+                                    match_indices.append(map_ptr)
+                                    match_types.append('pinyin')
+                                    kw_ptr += len(pinyin_key)
+                                    map_ptr += 1
+                                    pinyin_matched = True
+                                    break
+                            if not pinyin_matched and not original_match:
+                                break # 当前字符无法匹配，中断
+                        else:
+                            break
+ 
+                    # 如果整个关键词都匹配成功
+                    if kw_ptr == len(kw):
+                        current_match_indices = set(match_indices)
+                        # 检查找到的匹配是否与已使用的索引重叠
+                        if used_indices_for_block.isdisjoint(current_match_indices):
+                            score = 0
+                            # 计算得分
+                            for mt in match_types:
+                                score += 2 if mt == 'original' else 1 # 原文匹配得分更高
+                            
+                            # 连续性奖励
+                            if len(current_match_indices) > 0 and len(current_match_indices) == (max(current_match_indices) - min(current_match_indices) + 1):
+                                score *= 1.5
+                            
+                            if best_match_for_kw is None or score > best_match_for_kw['score']:
+                                best_match_for_kw = {
+                                    'score': score,
+                                    'indices': current_match_indices
+                                }
+                
+                if best_match_for_kw:
+                    # 将找到的最佳匹配的索引添加到已使用集合中
+                    used_indices_for_block.update(best_match_for_kw['indices'])
+                    all_match_groups[kw_idx] = best_match_for_kw['indices']
+                    total_score += best_match_for_kw['score']
+                else:
+                    all_keywords_found = False
+                    break
+            
+            if all_keywords_found:
+                # 距离惩罚
+                if len(all_match_groups) > 1:
+                    all_indices = set().union(*all_match_groups.values())
+                    span = max(all_indices) - min(all_indices)
+                    total_score /= (1 + span * 0.1)
+
+                # 开头匹配奖励
+                if 0 in all_match_groups.get(0, set()):
+                    total_score *= 1.2
+
+                # --- 精确高亮 ---
+                parent_text = block['parent']
+                full_content = block['full_content']
+                parent_start_in_full = full_content.find(parent_text)
+                if parent_start_in_full != -1:
+                    block['highlight_groups'] = {
+                        g_idx: {idx + parent_start_in_full for idx in g_indices}
+                        for g_idx, g_indices in all_match_groups.items()
+                    }
+                else:
+                    block['highlight_groups'] = {}
+                
+                scored_blocks.append((block, total_score))
 
         scored_blocks.sort(key=lambda x: x[1], reverse=True)
         return [block for block, score in scored_blocks]
-
 
     def get_source_by_path(self, path):
         """
