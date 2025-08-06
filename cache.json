@@ -121,354 +121,2461 @@
       ]
     },
     "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\剪贴板词库-勿删.md": {
-      "hash": "f4185b7ac980e62148b48a18f9816ca9",
+      "hash": "a63a4bd77f45e323a2782d52cfc8f79a",
       "data": [
         {
-          "parent": "✔️1.0.5.38 修复：剪贴板内容的二次复制",
+          "parent": "file:///C:/Users/lulu/Downloads/模板.md",
           "raw_lines": [
-            "- ✔️1.0.5.38 修复：剪贴板内容的二次复制"
+            "- file:///C:/Users/lulu/Downloads/模板.md"
           ],
           "exclude_parent": false,
           "shortcut_code": null,
           "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\剪贴板词库-勿删.md",
           "is_clipboard": false,
-          "full_content": "- ✔️1.0.5.38 修复：剪贴板内容的二次复制",
-          "parent_lower": "✔️1.0.5.38 修复：剪贴板内容的二次复制",
+          "full_content": "- file:///C:/Users/lulu/Downloads/模板.md",
+          "parent_lower": "file:///c:/users/lulu/downloads/模板.md",
           "char_map": [
             {
-              "char": "✔",
+              "char": "f",
               "keys": [
-                "✔"
+                "f"
               ],
               "index": 0
             },
             {
-              "char": "️",
+              "char": "i",
               "keys": [
-                "️"
+                "i"
               ],
               "index": 1
             },
             {
-              "char": "1",
+              "char": "l",
               "keys": [
-                "1"
+                "l"
               ],
               "index": 2
+            },
+            {
+              "char": "e",
+              "keys": [
+                "e"
+              ],
+              "index": 3
+            },
+            {
+              "char": ":",
+              "keys": [
+                ":"
+              ],
+              "index": 4
+            },
+            {
+              "char": "/",
+              "keys": [
+                "/"
+              ],
+              "index": 5
+            },
+            {
+              "char": "/",
+              "keys": [
+                "/"
+              ],
+              "index": 6
+            },
+            {
+              "char": "/",
+              "keys": [
+                "/"
+              ],
+              "index": 7
+            },
+            {
+              "char": "C",
+              "keys": [
+                "c"
+              ],
+              "index": 8
+            },
+            {
+              "char": ":",
+              "keys": [
+                ":"
+              ],
+              "index": 9
+            },
+            {
+              "char": "/",
+              "keys": [
+                "/"
+              ],
+              "index": 10
+            },
+            {
+              "char": "U",
+              "keys": [
+                "u"
+              ],
+              "index": 11
+            },
+            {
+              "char": "s",
+              "keys": [
+                "s"
+              ],
+              "index": 12
+            },
+            {
+              "char": "e",
+              "keys": [
+                "e"
+              ],
+              "index": 13
+            },
+            {
+              "char": "r",
+              "keys": [
+                "r"
+              ],
+              "index": 14
+            },
+            {
+              "char": "s",
+              "keys": [
+                "s"
+              ],
+              "index": 15
+            },
+            {
+              "char": "/",
+              "keys": [
+                "/"
+              ],
+              "index": 16
+            },
+            {
+              "char": "l",
+              "keys": [
+                "l"
+              ],
+              "index": 17
+            },
+            {
+              "char": "u",
+              "keys": [
+                "u"
+              ],
+              "index": 18
+            },
+            {
+              "char": "l",
+              "keys": [
+                "l"
+              ],
+              "index": 19
+            },
+            {
+              "char": "u",
+              "keys": [
+                "u"
+              ],
+              "index": 20
+            },
+            {
+              "char": "/",
+              "keys": [
+                "/"
+              ],
+              "index": 21
+            },
+            {
+              "char": "D",
+              "keys": [
+                "d"
+              ],
+              "index": 22
+            },
+            {
+              "char": "o",
+              "keys": [
+                "o"
+              ],
+              "index": 23
+            },
+            {
+              "char": "w",
+              "keys": [
+                "w"
+              ],
+              "index": 24
+            },
+            {
+              "char": "n",
+              "keys": [
+                "n"
+              ],
+              "index": 25
+            },
+            {
+              "char": "l",
+              "keys": [
+                "l"
+              ],
+              "index": 26
+            },
+            {
+              "char": "o",
+              "keys": [
+                "o"
+              ],
+              "index": 27
+            },
+            {
+              "char": "a",
+              "keys": [
+                "a"
+              ],
+              "index": 28
+            },
+            {
+              "char": "d",
+              "keys": [
+                "d"
+              ],
+              "index": 29
+            },
+            {
+              "char": "s",
+              "keys": [
+                "s"
+              ],
+              "index": 30
+            },
+            {
+              "char": "/",
+              "keys": [
+                "/"
+              ],
+              "index": 31
+            },
+            {
+              "char": "模",
+              "keys": [
+                "m",
+                "模"
+              ],
+              "index": 32
+            },
+            {
+              "char": "板",
+              "keys": [
+                "b",
+                "板"
+              ],
+              "index": 33
             },
             {
               "char": ".",
               "keys": [
                 "."
               ],
+              "index": 34
+            },
+            {
+              "char": "m",
+              "keys": [
+                "m"
+              ],
+              "index": 35
+            },
+            {
+              "char": "d",
+              "keys": [
+                "d"
+              ],
+              "index": 36
+            }
+          ]
+        },
+        {
+          "parent": "file:///C:/Users/lulu/AppData/Local/Programs/PixPin/Temp/PixPin_2025-08-06_14-14-48.png",
+          "raw_lines": [
+            "- file:///C:/Users/lulu/AppData/Local/Programs/PixPin/Temp/PixPin_2025-08-06_14-14-48.png"
+          ],
+          "exclude_parent": false,
+          "shortcut_code": null,
+          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\剪贴板词库-勿删.md",
+          "is_clipboard": false,
+          "full_content": "- file:///C:/Users/lulu/AppData/Local/Programs/PixPin/Temp/PixPin_2025-08-06_14-14-48.png",
+          "parent_lower": "file:///c:/users/lulu/appdata/local/programs/pixpin/temp/pixpin_2025-08-06_14-14-48.png",
+          "char_map": [
+            {
+              "char": "f",
+              "keys": [
+                "f"
+              ],
+              "index": 0
+            },
+            {
+              "char": "i",
+              "keys": [
+                "i"
+              ],
+              "index": 1
+            },
+            {
+              "char": "l",
+              "keys": [
+                "l"
+              ],
+              "index": 2
+            },
+            {
+              "char": "e",
+              "keys": [
+                "e"
+              ],
               "index": 3
+            },
+            {
+              "char": ":",
+              "keys": [
+                ":"
+              ],
+              "index": 4
+            },
+            {
+              "char": "/",
+              "keys": [
+                "/"
+              ],
+              "index": 5
+            },
+            {
+              "char": "/",
+              "keys": [
+                "/"
+              ],
+              "index": 6
+            },
+            {
+              "char": "/",
+              "keys": [
+                "/"
+              ],
+              "index": 7
+            },
+            {
+              "char": "C",
+              "keys": [
+                "c"
+              ],
+              "index": 8
+            },
+            {
+              "char": ":",
+              "keys": [
+                ":"
+              ],
+              "index": 9
+            },
+            {
+              "char": "/",
+              "keys": [
+                "/"
+              ],
+              "index": 10
+            },
+            {
+              "char": "U",
+              "keys": [
+                "u"
+              ],
+              "index": 11
+            },
+            {
+              "char": "s",
+              "keys": [
+                "s"
+              ],
+              "index": 12
+            },
+            {
+              "char": "e",
+              "keys": [
+                "e"
+              ],
+              "index": 13
+            },
+            {
+              "char": "r",
+              "keys": [
+                "r"
+              ],
+              "index": 14
+            },
+            {
+              "char": "s",
+              "keys": [
+                "s"
+              ],
+              "index": 15
+            },
+            {
+              "char": "/",
+              "keys": [
+                "/"
+              ],
+              "index": 16
+            },
+            {
+              "char": "l",
+              "keys": [
+                "l"
+              ],
+              "index": 17
+            },
+            {
+              "char": "u",
+              "keys": [
+                "u"
+              ],
+              "index": 18
+            },
+            {
+              "char": "l",
+              "keys": [
+                "l"
+              ],
+              "index": 19
+            },
+            {
+              "char": "u",
+              "keys": [
+                "u"
+              ],
+              "index": 20
+            },
+            {
+              "char": "/",
+              "keys": [
+                "/"
+              ],
+              "index": 21
+            },
+            {
+              "char": "A",
+              "keys": [
+                "a"
+              ],
+              "index": 22
+            },
+            {
+              "char": "p",
+              "keys": [
+                "p"
+              ],
+              "index": 23
+            },
+            {
+              "char": "p",
+              "keys": [
+                "p"
+              ],
+              "index": 24
+            },
+            {
+              "char": "D",
+              "keys": [
+                "d"
+              ],
+              "index": 25
+            },
+            {
+              "char": "a",
+              "keys": [
+                "a"
+              ],
+              "index": 26
+            },
+            {
+              "char": "t",
+              "keys": [
+                "t"
+              ],
+              "index": 27
+            },
+            {
+              "char": "a",
+              "keys": [
+                "a"
+              ],
+              "index": 28
+            },
+            {
+              "char": "/",
+              "keys": [
+                "/"
+              ],
+              "index": 29
+            },
+            {
+              "char": "L",
+              "keys": [
+                "l"
+              ],
+              "index": 30
+            },
+            {
+              "char": "o",
+              "keys": [
+                "o"
+              ],
+              "index": 31
+            },
+            {
+              "char": "c",
+              "keys": [
+                "c"
+              ],
+              "index": 32
+            },
+            {
+              "char": "a",
+              "keys": [
+                "a"
+              ],
+              "index": 33
+            },
+            {
+              "char": "l",
+              "keys": [
+                "l"
+              ],
+              "index": 34
+            },
+            {
+              "char": "/",
+              "keys": [
+                "/"
+              ],
+              "index": 35
+            },
+            {
+              "char": "P",
+              "keys": [
+                "p"
+              ],
+              "index": 36
+            },
+            {
+              "char": "r",
+              "keys": [
+                "r"
+              ],
+              "index": 37
+            },
+            {
+              "char": "o",
+              "keys": [
+                "o"
+              ],
+              "index": 38
+            },
+            {
+              "char": "g",
+              "keys": [
+                "g"
+              ],
+              "index": 39
+            },
+            {
+              "char": "r",
+              "keys": [
+                "r"
+              ],
+              "index": 40
+            },
+            {
+              "char": "a",
+              "keys": [
+                "a"
+              ],
+              "index": 41
+            },
+            {
+              "char": "m",
+              "keys": [
+                "m"
+              ],
+              "index": 42
+            },
+            {
+              "char": "s",
+              "keys": [
+                "s"
+              ],
+              "index": 43
+            },
+            {
+              "char": "/",
+              "keys": [
+                "/"
+              ],
+              "index": 44
+            },
+            {
+              "char": "P",
+              "keys": [
+                "p"
+              ],
+              "index": 45
+            },
+            {
+              "char": "i",
+              "keys": [
+                "i"
+              ],
+              "index": 46
+            },
+            {
+              "char": "x",
+              "keys": [
+                "x"
+              ],
+              "index": 47
+            },
+            {
+              "char": "P",
+              "keys": [
+                "p"
+              ],
+              "index": 48
+            },
+            {
+              "char": "i",
+              "keys": [
+                "i"
+              ],
+              "index": 49
+            },
+            {
+              "char": "n",
+              "keys": [
+                "n"
+              ],
+              "index": 50
+            },
+            {
+              "char": "/",
+              "keys": [
+                "/"
+              ],
+              "index": 51
+            },
+            {
+              "char": "T",
+              "keys": [
+                "t"
+              ],
+              "index": 52
+            },
+            {
+              "char": "e",
+              "keys": [
+                "e"
+              ],
+              "index": 53
+            },
+            {
+              "char": "m",
+              "keys": [
+                "m"
+              ],
+              "index": 54
+            },
+            {
+              "char": "p",
+              "keys": [
+                "p"
+              ],
+              "index": 55
+            },
+            {
+              "char": "/",
+              "keys": [
+                "/"
+              ],
+              "index": 56
+            },
+            {
+              "char": "P",
+              "keys": [
+                "p"
+              ],
+              "index": 57
+            },
+            {
+              "char": "i",
+              "keys": [
+                "i"
+              ],
+              "index": 58
+            },
+            {
+              "char": "x",
+              "keys": [
+                "x"
+              ],
+              "index": 59
+            },
+            {
+              "char": "P",
+              "keys": [
+                "p"
+              ],
+              "index": 60
+            },
+            {
+              "char": "i",
+              "keys": [
+                "i"
+              ],
+              "index": 61
+            },
+            {
+              "char": "n",
+              "keys": [
+                "n"
+              ],
+              "index": 62
+            },
+            {
+              "char": "_",
+              "keys": [
+                "_"
+              ],
+              "index": 63
+            },
+            {
+              "char": "2",
+              "keys": [
+                "2"
+              ],
+              "index": 64
             },
             {
               "char": "0",
               "keys": [
                 "0"
               ],
-              "index": 4
+              "index": 65
             },
             {
-              "char": ".",
+              "char": "2",
               "keys": [
-                "."
+                "2"
               ],
-              "index": 5
+              "index": 66
             },
             {
               "char": "5",
               "keys": [
                 "5"
               ],
-              "index": 6
+              "index": 67
             },
             {
-              "char": ".",
+              "char": "-",
               "keys": [
-                "."
+                "-"
               ],
-              "index": 7
+              "index": 68
             },
             {
-              "char": "3",
+              "char": "0",
               "keys": [
-                "3"
+                "0"
               ],
-              "index": 8
+              "index": 69
             },
             {
               "char": "8",
               "keys": [
                 "8"
               ],
+              "index": 70
+            },
+            {
+              "char": "-",
+              "keys": [
+                "-"
+              ],
+              "index": 71
+            },
+            {
+              "char": "0",
+              "keys": [
+                "0"
+              ],
+              "index": 72
+            },
+            {
+              "char": "6",
+              "keys": [
+                "6"
+              ],
+              "index": 73
+            },
+            {
+              "char": "_",
+              "keys": [
+                "_"
+              ],
+              "index": 74
+            },
+            {
+              "char": "1",
+              "keys": [
+                "1"
+              ],
+              "index": 75
+            },
+            {
+              "char": "4",
+              "keys": [
+                "4"
+              ],
+              "index": 76
+            },
+            {
+              "char": "-",
+              "keys": [
+                "-"
+              ],
+              "index": 77
+            },
+            {
+              "char": "1",
+              "keys": [
+                "1"
+              ],
+              "index": 78
+            },
+            {
+              "char": "4",
+              "keys": [
+                "4"
+              ],
+              "index": 79
+            },
+            {
+              "char": "-",
+              "keys": [
+                "-"
+              ],
+              "index": 80
+            },
+            {
+              "char": "4",
+              "keys": [
+                "4"
+              ],
+              "index": 81
+            },
+            {
+              "char": "8",
+              "keys": [
+                "8"
+              ],
+              "index": 82
+            },
+            {
+              "char": ".",
+              "keys": [
+                "."
+              ],
+              "index": 83
+            },
+            {
+              "char": "p",
+              "keys": [
+                "p"
+              ],
+              "index": 84
+            },
+            {
+              "char": "n",
+              "keys": [
+                "n"
+              ],
+              "index": 85
+            },
+            {
+              "char": "g",
+              "keys": [
+                "g"
+              ],
+              "index": 86
+            }
+          ]
+        },
+        {
+          "parent": "file:///D:/软件临时文件/QQ的零时文件/2501180369/ScreenRecorder/1754460936750.mp4",
+          "raw_lines": [
+            "- file:///D:/软件临时文件/QQ的零时文件/2501180369/ScreenRecorder/1754460936750.mp4"
+          ],
+          "exclude_parent": false,
+          "shortcut_code": null,
+          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\剪贴板词库-勿删.md",
+          "is_clipboard": false,
+          "full_content": "- file:///D:/软件临时文件/QQ的零时文件/2501180369/ScreenRecorder/1754460936750.mp4",
+          "parent_lower": "file:///d:/软件临时文件/qq的零时文件/2501180369/screenrecorder/1754460936750.mp4",
+          "char_map": [
+            {
+              "char": "f",
+              "keys": [
+                "f"
+              ],
+              "index": 0
+            },
+            {
+              "char": "i",
+              "keys": [
+                "i"
+              ],
+              "index": 1
+            },
+            {
+              "char": "l",
+              "keys": [
+                "l"
+              ],
+              "index": 2
+            },
+            {
+              "char": "e",
+              "keys": [
+                "e"
+              ],
+              "index": 3
+            },
+            {
+              "char": ":",
+              "keys": [
+                ":"
+              ],
+              "index": 4
+            },
+            {
+              "char": "/",
+              "keys": [
+                "/"
+              ],
+              "index": 5
+            },
+            {
+              "char": "/",
+              "keys": [
+                "/"
+              ],
+              "index": 6
+            },
+            {
+              "char": "/",
+              "keys": [
+                "/"
+              ],
+              "index": 7
+            },
+            {
+              "char": "D",
+              "keys": [
+                "d"
+              ],
+              "index": 8
+            },
+            {
+              "char": ":",
+              "keys": [
+                ":"
+              ],
               "index": 9
+            },
+            {
+              "char": "/",
+              "keys": [
+                "/"
+              ],
+              "index": 10
+            },
+            {
+              "char": "软",
+              "keys": [
+                "r",
+                "软"
+              ],
+              "index": 11
+            },
+            {
+              "char": "件",
+              "keys": [
+                "j",
+                "件"
+              ],
+              "index": 12
+            },
+            {
+              "char": "临",
+              "keys": [
+                "l",
+                "临"
+              ],
+              "index": 13
+            },
+            {
+              "char": "时",
+              "keys": [
+                "s",
+                "时"
+              ],
+              "index": 14
+            },
+            {
+              "char": "文",
+              "keys": [
+                "w",
+                "文"
+              ],
+              "index": 15
+            },
+            {
+              "char": "件",
+              "keys": [
+                "j",
+                "件"
+              ],
+              "index": 16
+            },
+            {
+              "char": "/",
+              "keys": [
+                "/"
+              ],
+              "index": 17
+            },
+            {
+              "char": "Q",
+              "keys": [
+                "q"
+              ],
+              "index": 18
+            },
+            {
+              "char": "Q",
+              "keys": [
+                "q"
+              ],
+              "index": 19
+            },
+            {
+              "char": "的",
+              "keys": [
+                "d",
+                "的"
+              ],
+              "index": 20
+            },
+            {
+              "char": "零",
+              "keys": [
+                "l",
+                "零"
+              ],
+              "index": 21
+            },
+            {
+              "char": "时",
+              "keys": [
+                "s",
+                "时"
+              ],
+              "index": 22
+            },
+            {
+              "char": "文",
+              "keys": [
+                "w",
+                "文"
+              ],
+              "index": 23
+            },
+            {
+              "char": "件",
+              "keys": [
+                "j",
+                "件"
+              ],
+              "index": 24
+            },
+            {
+              "char": "/",
+              "keys": [
+                "/"
+              ],
+              "index": 25
+            },
+            {
+              "char": "2",
+              "keys": [
+                "2"
+              ],
+              "index": 26
+            },
+            {
+              "char": "5",
+              "keys": [
+                "5"
+              ],
+              "index": 27
+            },
+            {
+              "char": "0",
+              "keys": [
+                "0"
+              ],
+              "index": 28
+            },
+            {
+              "char": "1",
+              "keys": [
+                "1"
+              ],
+              "index": 29
+            },
+            {
+              "char": "1",
+              "keys": [
+                "1"
+              ],
+              "index": 30
+            },
+            {
+              "char": "8",
+              "keys": [
+                "8"
+              ],
+              "index": 31
+            },
+            {
+              "char": "0",
+              "keys": [
+                "0"
+              ],
+              "index": 32
+            },
+            {
+              "char": "3",
+              "keys": [
+                "3"
+              ],
+              "index": 33
+            },
+            {
+              "char": "6",
+              "keys": [
+                "6"
+              ],
+              "index": 34
+            },
+            {
+              "char": "9",
+              "keys": [
+                "9"
+              ],
+              "index": 35
+            },
+            {
+              "char": "/",
+              "keys": [
+                "/"
+              ],
+              "index": 36
+            },
+            {
+              "char": "S",
+              "keys": [
+                "s"
+              ],
+              "index": 37
+            },
+            {
+              "char": "c",
+              "keys": [
+                "c"
+              ],
+              "index": 38
+            },
+            {
+              "char": "r",
+              "keys": [
+                "r"
+              ],
+              "index": 39
+            },
+            {
+              "char": "e",
+              "keys": [
+                "e"
+              ],
+              "index": 40
+            },
+            {
+              "char": "e",
+              "keys": [
+                "e"
+              ],
+              "index": 41
+            },
+            {
+              "char": "n",
+              "keys": [
+                "n"
+              ],
+              "index": 42
+            },
+            {
+              "char": "R",
+              "keys": [
+                "r"
+              ],
+              "index": 43
+            },
+            {
+              "char": "e",
+              "keys": [
+                "e"
+              ],
+              "index": 44
+            },
+            {
+              "char": "c",
+              "keys": [
+                "c"
+              ],
+              "index": 45
+            },
+            {
+              "char": "o",
+              "keys": [
+                "o"
+              ],
+              "index": 46
+            },
+            {
+              "char": "r",
+              "keys": [
+                "r"
+              ],
+              "index": 47
+            },
+            {
+              "char": "d",
+              "keys": [
+                "d"
+              ],
+              "index": 48
+            },
+            {
+              "char": "e",
+              "keys": [
+                "e"
+              ],
+              "index": 49
+            },
+            {
+              "char": "r",
+              "keys": [
+                "r"
+              ],
+              "index": 50
+            },
+            {
+              "char": "/",
+              "keys": [
+                "/"
+              ],
+              "index": 51
+            },
+            {
+              "char": "1",
+              "keys": [
+                "1"
+              ],
+              "index": 52
+            },
+            {
+              "char": "7",
+              "keys": [
+                "7"
+              ],
+              "index": 53
+            },
+            {
+              "char": "5",
+              "keys": [
+                "5"
+              ],
+              "index": 54
+            },
+            {
+              "char": "4",
+              "keys": [
+                "4"
+              ],
+              "index": 55
+            },
+            {
+              "char": "4",
+              "keys": [
+                "4"
+              ],
+              "index": 56
+            },
+            {
+              "char": "6",
+              "keys": [
+                "6"
+              ],
+              "index": 57
+            },
+            {
+              "char": "0",
+              "keys": [
+                "0"
+              ],
+              "index": 58
+            },
+            {
+              "char": "9",
+              "keys": [
+                "9"
+              ],
+              "index": 59
+            },
+            {
+              "char": "3",
+              "keys": [
+                "3"
+              ],
+              "index": 60
+            },
+            {
+              "char": "6",
+              "keys": [
+                "6"
+              ],
+              "index": 61
+            },
+            {
+              "char": "7",
+              "keys": [
+                "7"
+              ],
+              "index": 62
+            },
+            {
+              "char": "5",
+              "keys": [
+                "5"
+              ],
+              "index": 63
+            },
+            {
+              "char": "0",
+              "keys": [
+                "0"
+              ],
+              "index": 64
+            },
+            {
+              "char": ".",
+              "keys": [
+                "."
+              ],
+              "index": 65
+            },
+            {
+              "char": "m",
+              "keys": [
+                "m"
+              ],
+              "index": 66
+            },
+            {
+              "char": "p",
+              "keys": [
+                "p"
+              ],
+              "index": 67
+            },
+            {
+              "char": "4",
+              "keys": [
+                "4"
+              ],
+              "index": 68
+            }
+          ]
+        },
+        {
+          "parent": "https://github.com/msjsc001/QuickKV",
+          "raw_lines": [
+            "- https://github.com/msjsc001/QuickKV"
+          ],
+          "exclude_parent": false,
+          "shortcut_code": null,
+          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\剪贴板词库-勿删.md",
+          "is_clipboard": false,
+          "full_content": "- https://github.com/msjsc001/QuickKV",
+          "parent_lower": "https://github.com/msjsc001/quickkv",
+          "char_map": [
+            {
+              "char": "h",
+              "keys": [
+                "h"
+              ],
+              "index": 0
+            },
+            {
+              "char": "t",
+              "keys": [
+                "t"
+              ],
+              "index": 1
+            },
+            {
+              "char": "t",
+              "keys": [
+                "t"
+              ],
+              "index": 2
+            },
+            {
+              "char": "p",
+              "keys": [
+                "p"
+              ],
+              "index": 3
+            },
+            {
+              "char": "s",
+              "keys": [
+                "s"
+              ],
+              "index": 4
+            },
+            {
+              "char": ":",
+              "keys": [
+                ":"
+              ],
+              "index": 5
+            },
+            {
+              "char": "/",
+              "keys": [
+                "/"
+              ],
+              "index": 6
+            },
+            {
+              "char": "/",
+              "keys": [
+                "/"
+              ],
+              "index": 7
+            },
+            {
+              "char": "g",
+              "keys": [
+                "g"
+              ],
+              "index": 8
+            },
+            {
+              "char": "i",
+              "keys": [
+                "i"
+              ],
+              "index": 9
+            },
+            {
+              "char": "t",
+              "keys": [
+                "t"
+              ],
+              "index": 10
+            },
+            {
+              "char": "h",
+              "keys": [
+                "h"
+              ],
+              "index": 11
+            },
+            {
+              "char": "u",
+              "keys": [
+                "u"
+              ],
+              "index": 12
+            },
+            {
+              "char": "b",
+              "keys": [
+                "b"
+              ],
+              "index": 13
+            },
+            {
+              "char": ".",
+              "keys": [
+                "."
+              ],
+              "index": 14
+            },
+            {
+              "char": "c",
+              "keys": [
+                "c"
+              ],
+              "index": 15
+            },
+            {
+              "char": "o",
+              "keys": [
+                "o"
+              ],
+              "index": 16
+            },
+            {
+              "char": "m",
+              "keys": [
+                "m"
+              ],
+              "index": 17
+            },
+            {
+              "char": "/",
+              "keys": [
+                "/"
+              ],
+              "index": 18
+            },
+            {
+              "char": "m",
+              "keys": [
+                "m"
+              ],
+              "index": 19
+            },
+            {
+              "char": "s",
+              "keys": [
+                "s"
+              ],
+              "index": 20
+            },
+            {
+              "char": "j",
+              "keys": [
+                "j"
+              ],
+              "index": 21
+            },
+            {
+              "char": "s",
+              "keys": [
+                "s"
+              ],
+              "index": 22
+            },
+            {
+              "char": "c",
+              "keys": [
+                "c"
+              ],
+              "index": 23
+            },
+            {
+              "char": "0",
+              "keys": [
+                "0"
+              ],
+              "index": 24
+            },
+            {
+              "char": "0",
+              "keys": [
+                "0"
+              ],
+              "index": 25
+            },
+            {
+              "char": "1",
+              "keys": [
+                "1"
+              ],
+              "index": 26
+            },
+            {
+              "char": "/",
+              "keys": [
+                "/"
+              ],
+              "index": 27
+            },
+            {
+              "char": "Q",
+              "keys": [
+                "q"
+              ],
+              "index": 28
+            },
+            {
+              "char": "u",
+              "keys": [
+                "u"
+              ],
+              "index": 29
+            },
+            {
+              "char": "i",
+              "keys": [
+                "i"
+              ],
+              "index": 30
+            },
+            {
+              "char": "c",
+              "keys": [
+                "c"
+              ],
+              "index": 31
+            },
+            {
+              "char": "k",
+              "keys": [
+                "k"
+              ],
+              "index": 32
+            },
+            {
+              "char": "K",
+              "keys": [
+                "k"
+              ],
+              "index": 33
+            },
+            {
+              "char": "V",
+              "keys": [
+                "v"
+              ],
+              "index": 34
+            }
+          ]
+        },
+        {
+          "parent": "httpsgithub.commsjsc001QuickKV",
+          "raw_lines": [
+            "- httpsgithub.commsjsc001QuickKV"
+          ],
+          "exclude_parent": false,
+          "shortcut_code": null,
+          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\剪贴板词库-勿删.md",
+          "is_clipboard": false,
+          "full_content": "- httpsgithub.commsjsc001QuickKV",
+          "parent_lower": "httpsgithub.commsjsc001quickkv",
+          "char_map": [
+            {
+              "char": "h",
+              "keys": [
+                "h"
+              ],
+              "index": 0
+            },
+            {
+              "char": "t",
+              "keys": [
+                "t"
+              ],
+              "index": 1
+            },
+            {
+              "char": "t",
+              "keys": [
+                "t"
+              ],
+              "index": 2
+            },
+            {
+              "char": "p",
+              "keys": [
+                "p"
+              ],
+              "index": 3
+            },
+            {
+              "char": "s",
+              "keys": [
+                "s"
+              ],
+              "index": 4
+            },
+            {
+              "char": "g",
+              "keys": [
+                "g"
+              ],
+              "index": 5
+            },
+            {
+              "char": "i",
+              "keys": [
+                "i"
+              ],
+              "index": 6
+            },
+            {
+              "char": "t",
+              "keys": [
+                "t"
+              ],
+              "index": 7
+            },
+            {
+              "char": "h",
+              "keys": [
+                "h"
+              ],
+              "index": 8
+            },
+            {
+              "char": "u",
+              "keys": [
+                "u"
+              ],
+              "index": 9
+            },
+            {
+              "char": "b",
+              "keys": [
+                "b"
+              ],
+              "index": 10
+            },
+            {
+              "char": ".",
+              "keys": [
+                "."
+              ],
+              "index": 11
+            },
+            {
+              "char": "c",
+              "keys": [
+                "c"
+              ],
+              "index": 12
+            },
+            {
+              "char": "o",
+              "keys": [
+                "o"
+              ],
+              "index": 13
+            },
+            {
+              "char": "m",
+              "keys": [
+                "m"
+              ],
+              "index": 14
+            },
+            {
+              "char": "m",
+              "keys": [
+                "m"
+              ],
+              "index": 15
+            },
+            {
+              "char": "s",
+              "keys": [
+                "s"
+              ],
+              "index": 16
+            },
+            {
+              "char": "j",
+              "keys": [
+                "j"
+              ],
+              "index": 17
+            },
+            {
+              "char": "s",
+              "keys": [
+                "s"
+              ],
+              "index": 18
+            },
+            {
+              "char": "c",
+              "keys": [
+                "c"
+              ],
+              "index": 19
+            },
+            {
+              "char": "0",
+              "keys": [
+                "0"
+              ],
+              "index": 20
+            },
+            {
+              "char": "0",
+              "keys": [
+                "0"
+              ],
+              "index": 21
+            },
+            {
+              "char": "1",
+              "keys": [
+                "1"
+              ],
+              "index": 22
+            },
+            {
+              "char": "Q",
+              "keys": [
+                "q"
+              ],
+              "index": 23
+            },
+            {
+              "char": "u",
+              "keys": [
+                "u"
+              ],
+              "index": 24
+            },
+            {
+              "char": "i",
+              "keys": [
+                "i"
+              ],
+              "index": 25
+            },
+            {
+              "char": "c",
+              "keys": [
+                "c"
+              ],
+              "index": 26
+            },
+            {
+              "char": "k",
+              "keys": [
+                "k"
+              ],
+              "index": 27
+            },
+            {
+              "char": "K",
+              "keys": [
+                "k"
+              ],
+              "index": 28
+            },
+            {
+              "char": "V",
+              "keys": [
+                "v"
+              ],
+              "index": 29
+            }
+          ]
+        },
+        {
+          "parent": "pyinstaller --noconsole --icon=\"icon.png\" --add-data \"icon.png;.\" quick_kv.py",
+          "raw_lines": [
+            "- pyinstaller --noconsole --icon=\"icon.png\" --add-data \"icon.png;.\" quick_kv.py"
+          ],
+          "exclude_parent": false,
+          "shortcut_code": null,
+          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\剪贴板词库-勿删.md",
+          "is_clipboard": false,
+          "full_content": "- pyinstaller --noconsole --icon=\"icon.png\" --add-data \"icon.png;.\" quick_kv.py",
+          "parent_lower": "pyinstaller --noconsole --icon=\"icon.png\" --add-data \"icon.png;.\" quick_kv.py",
+          "char_map": [
+            {
+              "char": "p",
+              "keys": [
+                "p"
+              ],
+              "index": 0
+            },
+            {
+              "char": "y",
+              "keys": [
+                "y"
+              ],
+              "index": 1
+            },
+            {
+              "char": "i",
+              "keys": [
+                "i"
+              ],
+              "index": 2
+            },
+            {
+              "char": "n",
+              "keys": [
+                "n"
+              ],
+              "index": 3
+            },
+            {
+              "char": "s",
+              "keys": [
+                "s"
+              ],
+              "index": 4
+            },
+            {
+              "char": "t",
+              "keys": [
+                "t"
+              ],
+              "index": 5
+            },
+            {
+              "char": "a",
+              "keys": [
+                "a"
+              ],
+              "index": 6
+            },
+            {
+              "char": "l",
+              "keys": [
+                "l"
+              ],
+              "index": 7
+            },
+            {
+              "char": "l",
+              "keys": [
+                "l"
+              ],
+              "index": 8
+            },
+            {
+              "char": "e",
+              "keys": [
+                "e"
+              ],
+              "index": 9
+            },
+            {
+              "char": "r",
+              "keys": [
+                "r"
+              ],
+              "index": 10
             },
             {
               "char": " ",
               "keys": [
                 " "
               ],
-              "index": 10
-            },
-            {
-              "char": "修",
-              "keys": [
-                "x",
-                "修"
-              ],
               "index": 11
             },
             {
-              "char": "复",
+              "char": "-",
               "keys": [
-                "f",
-                "复"
+                "-"
               ],
               "index": 12
             },
             {
-              "char": "：",
+              "char": "-",
               "keys": [
-                "："
+                "-"
               ],
               "index": 13
             },
             {
-              "char": "剪",
+              "char": "n",
               "keys": [
-                "j",
-                "剪"
+                "n"
               ],
               "index": 14
             },
             {
-              "char": "贴",
+              "char": "o",
               "keys": [
-                "t",
-                "贴"
+                "o"
               ],
               "index": 15
             },
             {
-              "char": "板",
+              "char": "c",
               "keys": [
-                "b",
-                "板"
+                "c"
               ],
               "index": 16
             },
             {
-              "char": "内",
+              "char": "o",
               "keys": [
-                "n",
-                "内"
+                "o"
               ],
               "index": 17
             },
             {
-              "char": "容",
+              "char": "n",
               "keys": [
-                "r",
-                "容"
+                "n"
               ],
               "index": 18
             },
             {
-              "char": "的",
+              "char": "s",
               "keys": [
-                "d",
-                "的"
+                "s"
               ],
               "index": 19
             },
             {
-              "char": "二",
+              "char": "o",
               "keys": [
-                "e",
-                "二"
+                "o"
               ],
               "index": 20
             },
             {
-              "char": "次",
+              "char": "l",
               "keys": [
-                "c",
-                "次"
+                "l"
               ],
               "index": 21
             },
             {
-              "char": "复",
+              "char": "e",
               "keys": [
-                "f",
-                "复"
+                "e"
               ],
               "index": 22
             },
             {
-              "char": "制",
+              "char": " ",
               "keys": [
-                "z",
-                "制"
+                " "
               ],
               "index": 23
+            },
+            {
+              "char": "-",
+              "keys": [
+                "-"
+              ],
+              "index": 24
+            },
+            {
+              "char": "-",
+              "keys": [
+                "-"
+              ],
+              "index": 25
+            },
+            {
+              "char": "i",
+              "keys": [
+                "i"
+              ],
+              "index": 26
+            },
+            {
+              "char": "c",
+              "keys": [
+                "c"
+              ],
+              "index": 27
+            },
+            {
+              "char": "o",
+              "keys": [
+                "o"
+              ],
+              "index": 28
+            },
+            {
+              "char": "n",
+              "keys": [
+                "n"
+              ],
+              "index": 29
+            },
+            {
+              "char": "=",
+              "keys": [
+                "="
+              ],
+              "index": 30
+            },
+            {
+              "char": "\"",
+              "keys": [
+                "\""
+              ],
+              "index": 31
+            },
+            {
+              "char": "i",
+              "keys": [
+                "i"
+              ],
+              "index": 32
+            },
+            {
+              "char": "c",
+              "keys": [
+                "c"
+              ],
+              "index": 33
+            },
+            {
+              "char": "o",
+              "keys": [
+                "o"
+              ],
+              "index": 34
+            },
+            {
+              "char": "n",
+              "keys": [
+                "n"
+              ],
+              "index": 35
+            },
+            {
+              "char": ".",
+              "keys": [
+                "."
+              ],
+              "index": 36
+            },
+            {
+              "char": "p",
+              "keys": [
+                "p"
+              ],
+              "index": 37
+            },
+            {
+              "char": "n",
+              "keys": [
+                "n"
+              ],
+              "index": 38
+            },
+            {
+              "char": "g",
+              "keys": [
+                "g"
+              ],
+              "index": 39
+            },
+            {
+              "char": "\"",
+              "keys": [
+                "\""
+              ],
+              "index": 40
+            },
+            {
+              "char": " ",
+              "keys": [
+                " "
+              ],
+              "index": 41
+            },
+            {
+              "char": "-",
+              "keys": [
+                "-"
+              ],
+              "index": 42
+            },
+            {
+              "char": "-",
+              "keys": [
+                "-"
+              ],
+              "index": 43
+            },
+            {
+              "char": "a",
+              "keys": [
+                "a"
+              ],
+              "index": 44
+            },
+            {
+              "char": "d",
+              "keys": [
+                "d"
+              ],
+              "index": 45
+            },
+            {
+              "char": "d",
+              "keys": [
+                "d"
+              ],
+              "index": 46
+            },
+            {
+              "char": "-",
+              "keys": [
+                "-"
+              ],
+              "index": 47
+            },
+            {
+              "char": "d",
+              "keys": [
+                "d"
+              ],
+              "index": 48
+            },
+            {
+              "char": "a",
+              "keys": [
+                "a"
+              ],
+              "index": 49
+            },
+            {
+              "char": "t",
+              "keys": [
+                "t"
+              ],
+              "index": 50
+            },
+            {
+              "char": "a",
+              "keys": [
+                "a"
+              ],
+              "index": 51
+            },
+            {
+              "char": " ",
+              "keys": [
+                " "
+              ],
+              "index": 52
+            },
+            {
+              "char": "\"",
+              "keys": [
+                "\""
+              ],
+              "index": 53
+            },
+            {
+              "char": "i",
+              "keys": [
+                "i"
+              ],
+              "index": 54
+            },
+            {
+              "char": "c",
+              "keys": [
+                "c"
+              ],
+              "index": 55
+            },
+            {
+              "char": "o",
+              "keys": [
+                "o"
+              ],
+              "index": 56
+            },
+            {
+              "char": "n",
+              "keys": [
+                "n"
+              ],
+              "index": 57
+            },
+            {
+              "char": ".",
+              "keys": [
+                "."
+              ],
+              "index": 58
+            },
+            {
+              "char": "p",
+              "keys": [
+                "p"
+              ],
+              "index": 59
+            },
+            {
+              "char": "n",
+              "keys": [
+                "n"
+              ],
+              "index": 60
+            },
+            {
+              "char": "g",
+              "keys": [
+                "g"
+              ],
+              "index": 61
+            },
+            {
+              "char": ";",
+              "keys": [
+                ";"
+              ],
+              "index": 62
+            },
+            {
+              "char": ".",
+              "keys": [
+                "."
+              ],
+              "index": 63
+            },
+            {
+              "char": "\"",
+              "keys": [
+                "\""
+              ],
+              "index": 64
+            },
+            {
+              "char": " ",
+              "keys": [
+                " "
+              ],
+              "index": 65
+            },
+            {
+              "char": "q",
+              "keys": [
+                "q"
+              ],
+              "index": 66
+            },
+            {
+              "char": "u",
+              "keys": [
+                "u"
+              ],
+              "index": 67
+            },
+            {
+              "char": "i",
+              "keys": [
+                "i"
+              ],
+              "index": 68
+            },
+            {
+              "char": "c",
+              "keys": [
+                "c"
+              ],
+              "index": 69
+            },
+            {
+              "char": "k",
+              "keys": [
+                "k"
+              ],
+              "index": 70
+            },
+            {
+              "char": "_",
+              "keys": [
+                "_"
+              ],
+              "index": 71
+            },
+            {
+              "char": "k",
+              "keys": [
+                "k"
+              ],
+              "index": 72
+            },
+            {
+              "char": "v",
+              "keys": [
+                "v"
+              ],
+              "index": 73
+            },
+            {
+              "char": ".",
+              "keys": [
+                "."
+              ],
+              "index": 74
+            },
+            {
+              "char": "p",
+              "keys": [
+                "p"
+              ],
+              "index": 75
+            },
+            {
+              "char": "y",
+              "keys": [
+                "y"
+              ],
+              "index": 76
             }
           ]
         },
         {
-          "parent": "修复：剪贴板内容到词库的二次复制",
+          "parent": "QuickKV V1.0.5.38",
           "raw_lines": [
-            "- 修复：剪贴板内容到词库的二次复制"
+            "- QuickKV V1.0.5.38"
           ],
           "exclude_parent": false,
           "shortcut_code": null,
           "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\剪贴板词库-勿删.md",
           "is_clipboard": false,
-          "full_content": "- 修复：剪贴板内容到词库的二次复制",
-          "parent_lower": "修复：剪贴板内容到词库的二次复制",
-          "char_map": [
-            {
-              "char": "修",
-              "keys": [
-                "x",
-                "修"
-              ],
-              "index": 0
-            },
-            {
-              "char": "复",
-              "keys": [
-                "f",
-                "复"
-              ],
-              "index": 1
-            },
-            {
-              "char": "：",
-              "keys": [
-                "："
-              ],
-              "index": 2
-            },
-            {
-              "char": "剪",
-              "keys": [
-                "j",
-                "剪"
-              ],
-              "index": 3
-            },
-            {
-              "char": "贴",
-              "keys": [
-                "t",
-                "贴"
-              ],
-              "index": 4
-            },
-            {
-              "char": "板",
-              "keys": [
-                "b",
-                "板"
-              ],
-              "index": 5
-            },
-            {
-              "char": "内",
-              "keys": [
-                "n",
-                "内"
-              ],
-              "index": 6
-            },
-            {
-              "char": "容",
-              "keys": [
-                "r",
-                "容"
-              ],
-              "index": 7
-            },
-            {
-              "char": "到",
-              "keys": [
-                "d",
-                "到"
-              ],
-              "index": 8
-            },
-            {
-              "char": "词",
-              "keys": [
-                "c",
-                "词"
-              ],
-              "index": 9
-            },
-            {
-              "char": "库",
-              "keys": [
-                "k",
-                "库"
-              ],
-              "index": 10
-            },
-            {
-              "char": "的",
-              "keys": [
-                "d",
-                "的"
-              ],
-              "index": 11
-            },
-            {
-              "char": "二",
-              "keys": [
-                "e",
-                "二"
-              ],
-              "index": 12
-            },
-            {
-              "char": "次",
-              "keys": [
-                "c",
-                "次"
-              ],
-              "index": 13
-            },
-            {
-              "char": "复",
-              "keys": [
-                "f",
-                "复"
-              ],
-              "index": 14
-            },
-            {
-              "char": "制",
-              "keys": [
-                "z",
-                "制"
-              ],
-              "index": 15
-            }
-          ]
-        },
-        {
-          "parent": "QuickKV V1.0.5.37",
-          "raw_lines": [
-            "- QuickKV V1.0.5.37"
-          ],
-          "exclude_parent": false,
-          "shortcut_code": null,
-          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\剪贴板词库-勿删.md",
-          "is_clipboard": false,
-          "full_content": "- QuickKV V1.0.5.37",
-          "parent_lower": "quickkv v1.0.5.37",
+          "full_content": "- QuickKV V1.0.5.38",
+          "parent_lower": "quickkv v1.0.5.38",
           "char_map": [
             {
               "char": "Q",
@@ -583,58 +2690,63 @@
               "index": 15
             },
             {
-              "char": "7",
+              "char": "8",
               "keys": [
-                "7"
+                "8"
               ],
               "index": 16
             }
           ]
         },
         {
-          "parent": "✔️1.0.5.38 修复：剪贴板内容到词库的二次复制",
+          "parent": "- ✔️1.0.5.39 声明与许可协议与帮助文档",
           "raw_lines": [
-            "- ✔️1.0.5.38 修复：剪贴板内容到词库的二次复制"
+            "- - ✔️1.0.5.39 声明与许可协议与帮助文档",
+            "\t- ✔️1.0.5.39.1 声明与许可协议(变更版本、新设备首次运行都会提示，并内嵌在系统托盘菜单内)",
+            "\t\t- 您同意协议后的设备ID，被记录在了与 程序 同一个目录下的`config.ini`](config.ini)文件中。",
+            "\t\t\t- accepted_disclaimer_info = {\"id\": \"一个哈希值\", \"version\": \"当前软件版本号\"}",
+            "\t- ✔️1.0.5.39.2 帮助文档",
+            "\t\t- 使用一个本地的md和PDF文件，在系统托盘菜单\"帮助\"能打开它"
           ],
           "exclude_parent": false,
           "shortcut_code": null,
           "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\剪贴板词库-勿删.md",
           "is_clipboard": false,
-          "full_content": "- ✔️1.0.5.38 修复：剪贴板内容到词库的二次复制",
-          "parent_lower": "✔️1.0.5.38 修复：剪贴板内容到词库的二次复制",
+          "full_content": "- - ✔️1.0.5.39 声明与许可协议与帮助文档\n\t- ✔️1.0.5.39.1 声明与许可协议(变更版本、新设备首次运行都会提示，并内嵌在系统托盘菜单内)\n\t\t- 您同意协议后的设备ID，被记录在了与 程序 同一个目录下的`config.ini`](config.ini)文件中。\n\t\t\t- accepted_disclaimer_info = {\"id\": \"一个哈希值\", \"version\": \"当前软件版本号\"}\n\t- ✔️1.0.5.39.2 帮助文档\n\t\t- 使用一个本地的md和PDF文件，在系统托盘菜单\"帮助\"能打开它",
+          "parent_lower": "- ✔️1.0.5.39 声明与许可协议与帮助文档",
           "char_map": [
+            {
+              "char": "-",
+              "keys": [
+                "-"
+              ],
+              "index": 0
+            },
+            {
+              "char": " ",
+              "keys": [
+                " "
+              ],
+              "index": 1
+            },
             {
               "char": "✔",
               "keys": [
                 "✔"
               ],
-              "index": 0
+              "index": 2
             },
             {
               "char": "️",
               "keys": [
                 "️"
               ],
-              "index": 1
+              "index": 3
             },
             {
               "char": "1",
               "keys": [
                 "1"
-              ],
-              "index": 2
-            },
-            {
-              "char": ".",
-              "keys": [
-                "."
-              ],
-              "index": 3
-            },
-            {
-              "char": "0",
-              "keys": [
-                "0"
               ],
               "index": 4
             },
@@ -646,9 +2758,9 @@
               "index": 5
             },
             {
-              "char": "5",
+              "char": "0",
               "keys": [
-                "5"
+                "0"
               ],
               "index": 6
             },
@@ -660,166 +2772,355 @@
               "index": 7
             },
             {
-              "char": "3",
+              "char": "5",
               "keys": [
-                "3"
+                "5"
               ],
               "index": 8
             },
             {
-              "char": "8",
+              "char": ".",
               "keys": [
-                "8"
+                "."
               ],
               "index": 9
+            },
+            {
+              "char": "3",
+              "keys": [
+                "3"
+              ],
+              "index": 10
+            },
+            {
+              "char": "9",
+              "keys": [
+                "9"
+              ],
+              "index": 11
             },
             {
               "char": " ",
               "keys": [
                 " "
               ],
-              "index": 10
-            },
-            {
-              "char": "修",
-              "keys": [
-                "x",
-                "修"
-              ],
-              "index": 11
-            },
-            {
-              "char": "复",
-              "keys": [
-                "f",
-                "复"
-              ],
               "index": 12
             },
             {
-              "char": "：",
+              "char": "声",
               "keys": [
-                "："
+                "s",
+                "声"
               ],
               "index": 13
             },
             {
-              "char": "剪",
+              "char": "明",
               "keys": [
-                "j",
-                "剪"
+                "m",
+                "明"
               ],
               "index": 14
             },
             {
-              "char": "贴",
+              "char": "与",
               "keys": [
-                "t",
-                "贴"
+                "y",
+                "与"
               ],
               "index": 15
             },
             {
-              "char": "板",
+              "char": "许",
               "keys": [
-                "b",
-                "板"
+                "x",
+                "许"
               ],
               "index": 16
             },
             {
-              "char": "内",
+              "char": "可",
               "keys": [
-                "n",
-                "内"
+                "k",
+                "可"
               ],
               "index": 17
             },
             {
-              "char": "容",
+              "char": "协",
               "keys": [
-                "r",
-                "容"
+                "x",
+                "协"
               ],
               "index": 18
             },
             {
-              "char": "到",
+              "char": "议",
               "keys": [
-                "d",
-                "到"
+                "y",
+                "议"
               ],
               "index": 19
             },
             {
-              "char": "词",
+              "char": "与",
               "keys": [
-                "c",
-                "词"
+                "y",
+                "与"
               ],
               "index": 20
             },
             {
-              "char": "库",
+              "char": "帮",
               "keys": [
-                "k",
-                "库"
+                "b",
+                "帮"
               ],
               "index": 21
             },
             {
-              "char": "的",
+              "char": "助",
               "keys": [
-                "d",
-                "的"
+                "z",
+                "助"
               ],
               "index": 22
             },
             {
-              "char": "二",
+              "char": "文",
               "keys": [
-                "e",
-                "二"
+                "w",
+                "文"
               ],
               "index": 23
             },
             {
-              "char": "次",
+              "char": "档",
               "keys": [
-                "c",
-                "次"
+                "d",
+                "档"
               ],
               "index": 24
-            },
-            {
-              "char": "复",
-              "keys": [
-                "f",
-                "复"
-              ],
-              "index": 25
-            },
-            {
-              "char": "制",
-              "keys": [
-                "z",
-                "制"
-              ],
-              "index": 26
             }
           ]
         },
         {
-          "parent": "git add . && git commit -m \"更新: v1.0.5.36.1\" && git push",
+          "parent": "- ✔️1.0.5.39 声明与许可协议与帮助文档",
           "raw_lines": [
-            "- git add . && git commit -m \"更新: v1.0.5.36.1\" && git push"
+            "- - ✔️1.0.5.39 声明与许可协议与帮助文档",
+            "\t- ✔️1.0.5.39.1 声明与许可协议(变更版本、新设备首次运行都会提示，并内嵌在软件内的系统托盘菜单内)",
+            "\t\t- 您同意协议后的设备ID，被记录在了与 程序 同一个目录下的`config.ini`](config.ini)文件中。",
+            "\t\t\t- accepted_disclaimer_info = {\"id\": \"一个哈希值\", \"version\": \"当前软件版本号\"}",
+            "\t- ✔️1.0.5.39.2 帮助文档",
+            "\t\t- 使用一个本地的md和PDF文件，在系统托盘菜单\"帮助\"能打开它"
           ],
           "exclude_parent": false,
           "shortcut_code": null,
           "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\剪贴板词库-勿删.md",
           "is_clipboard": false,
-          "full_content": "- git add . && git commit -m \"更新: v1.0.5.36.1\" && git push",
-          "parent_lower": "git add . && git commit -m \"更新: v1.0.5.36.1\" && git push",
+          "full_content": "- - ✔️1.0.5.39 声明与许可协议与帮助文档\n\t- ✔️1.0.5.39.1 声明与许可协议(变更版本、新设备首次运行都会提示，并内嵌在软件内的系统托盘菜单内)\n\t\t- 您同意协议后的设备ID，被记录在了与 程序 同一个目录下的`config.ini`](config.ini)文件中。\n\t\t\t- accepted_disclaimer_info = {\"id\": \"一个哈希值\", \"version\": \"当前软件版本号\"}\n\t- ✔️1.0.5.39.2 帮助文档\n\t\t- 使用一个本地的md和PDF文件，在系统托盘菜单\"帮助\"能打开它",
+          "parent_lower": "- ✔️1.0.5.39 声明与许可协议与帮助文档",
+          "char_map": [
+            {
+              "char": "-",
+              "keys": [
+                "-"
+              ],
+              "index": 0
+            },
+            {
+              "char": " ",
+              "keys": [
+                " "
+              ],
+              "index": 1
+            },
+            {
+              "char": "✔",
+              "keys": [
+                "✔"
+              ],
+              "index": 2
+            },
+            {
+              "char": "️",
+              "keys": [
+                "️"
+              ],
+              "index": 3
+            },
+            {
+              "char": "1",
+              "keys": [
+                "1"
+              ],
+              "index": 4
+            },
+            {
+              "char": ".",
+              "keys": [
+                "."
+              ],
+              "index": 5
+            },
+            {
+              "char": "0",
+              "keys": [
+                "0"
+              ],
+              "index": 6
+            },
+            {
+              "char": ".",
+              "keys": [
+                "."
+              ],
+              "index": 7
+            },
+            {
+              "char": "5",
+              "keys": [
+                "5"
+              ],
+              "index": 8
+            },
+            {
+              "char": ".",
+              "keys": [
+                "."
+              ],
+              "index": 9
+            },
+            {
+              "char": "3",
+              "keys": [
+                "3"
+              ],
+              "index": 10
+            },
+            {
+              "char": "9",
+              "keys": [
+                "9"
+              ],
+              "index": 11
+            },
+            {
+              "char": " ",
+              "keys": [
+                " "
+              ],
+              "index": 12
+            },
+            {
+              "char": "声",
+              "keys": [
+                "s",
+                "声"
+              ],
+              "index": 13
+            },
+            {
+              "char": "明",
+              "keys": [
+                "m",
+                "明"
+              ],
+              "index": 14
+            },
+            {
+              "char": "与",
+              "keys": [
+                "y",
+                "与"
+              ],
+              "index": 15
+            },
+            {
+              "char": "许",
+              "keys": [
+                "x",
+                "许"
+              ],
+              "index": 16
+            },
+            {
+              "char": "可",
+              "keys": [
+                "k",
+                "可"
+              ],
+              "index": 17
+            },
+            {
+              "char": "协",
+              "keys": [
+                "x",
+                "协"
+              ],
+              "index": 18
+            },
+            {
+              "char": "议",
+              "keys": [
+                "y",
+                "议"
+              ],
+              "index": 19
+            },
+            {
+              "char": "与",
+              "keys": [
+                "y",
+                "与"
+              ],
+              "index": 20
+            },
+            {
+              "char": "帮",
+              "keys": [
+                "b",
+                "帮"
+              ],
+              "index": 21
+            },
+            {
+              "char": "助",
+              "keys": [
+                "z",
+                "助"
+              ],
+              "index": 22
+            },
+            {
+              "char": "文",
+              "keys": [
+                "w",
+                "文"
+              ],
+              "index": 23
+            },
+            {
+              "char": "档",
+              "keys": [
+                "d",
+                "档"
+              ],
+              "index": 24
+            }
+          ]
+        },
+        {
+          "parent": "git add . && git commit -m \"更新: v1.0.5.39\" && git push",
+          "raw_lines": [
+            "- git add . && git commit -m \"更新: v1.0.5.39\" && git push"
+          ],
+          "exclude_parent": false,
+          "shortcut_code": null,
+          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\剪贴板词库-勿删.md",
+          "is_clipboard": false,
+          "full_content": "- git add . && git commit -m \"更新: v1.0.5.39\" && git push",
+          "parent_lower": "git add . && git commit -m \"更新: v1.0.5.39\" && git push",
           "char_map": [
             {
               "char": "g",
@@ -1104,2059 +3405,102 @@
               "index": 39
             },
             {
-              "char": "6",
+              "char": "9",
               "keys": [
-                "6"
+                "9"
               ],
               "index": 40
-            },
-            {
-              "char": ".",
-              "keys": [
-                "."
-              ],
-              "index": 41
-            },
-            {
-              "char": "1",
-              "keys": [
-                "1"
-              ],
-              "index": 42
             },
             {
               "char": "\"",
               "keys": [
                 "\""
               ],
-              "index": 43
+              "index": 41
             },
             {
               "char": " ",
               "keys": [
                 " "
+              ],
+              "index": 42
+            },
+            {
+              "char": "&",
+              "keys": [
+                "&"
+              ],
+              "index": 43
+            },
+            {
+              "char": "&",
+              "keys": [
+                "&"
               ],
               "index": 44
             },
             {
-              "char": "&",
-              "keys": [
-                "&"
-              ],
-              "index": 45
-            },
-            {
-              "char": "&",
-              "keys": [
-                "&"
-              ],
-              "index": 46
-            },
-            {
               "char": " ",
               "keys": [
                 " "
               ],
-              "index": 47
+              "index": 45
             },
             {
               "char": "g",
               "keys": [
                 "g"
               ],
-              "index": 48
+              "index": 46
             },
             {
               "char": "i",
               "keys": [
                 "i"
               ],
-              "index": 49
+              "index": 47
             },
             {
               "char": "t",
               "keys": [
                 "t"
               ],
-              "index": 50
+              "index": 48
             },
             {
               "char": " ",
               "keys": [
                 " "
               ],
-              "index": 51
+              "index": 49
             },
             {
               "char": "p",
               "keys": [
                 "p"
               ],
-              "index": 52
+              "index": 50
             },
             {
               "char": "u",
               "keys": [
                 "u"
               ],
-              "index": 53
+              "index": 51
             },
             {
               "char": "s",
               "keys": [
                 "s"
               ],
-              "index": 54
+              "index": 52
             },
             {
               "char": "h",
               "keys": [
                 "h"
               ],
-              "index": 55
-            }
-          ]
-        },
-        {
-          "parent": "file:///D:/软件编写/QuickKV",
-          "raw_lines": [
-            "- file:///D:/软件编写/QuickKV"
-          ],
-          "exclude_parent": false,
-          "shortcut_code": null,
-          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\剪贴板词库-勿删.md",
-          "is_clipboard": false,
-          "full_content": "- file:///D:/软件编写/QuickKV",
-          "parent_lower": "file:///d:/软件编写/quickkv",
-          "char_map": [
-            {
-              "char": "f",
-              "keys": [
-                "f"
-              ],
-              "index": 0
-            },
-            {
-              "char": "i",
-              "keys": [
-                "i"
-              ],
-              "index": 1
-            },
-            {
-              "char": "l",
-              "keys": [
-                "l"
-              ],
-              "index": 2
-            },
-            {
-              "char": "e",
-              "keys": [
-                "e"
-              ],
-              "index": 3
-            },
-            {
-              "char": ":",
-              "keys": [
-                ":"
-              ],
-              "index": 4
-            },
-            {
-              "char": "/",
-              "keys": [
-                "/"
-              ],
-              "index": 5
-            },
-            {
-              "char": "/",
-              "keys": [
-                "/"
-              ],
-              "index": 6
-            },
-            {
-              "char": "/",
-              "keys": [
-                "/"
-              ],
-              "index": 7
-            },
-            {
-              "char": "D",
-              "keys": [
-                "d"
-              ],
-              "index": 8
-            },
-            {
-              "char": ":",
-              "keys": [
-                ":"
-              ],
-              "index": 9
-            },
-            {
-              "char": "/",
-              "keys": [
-                "/"
-              ],
-              "index": 10
-            },
-            {
-              "char": "软",
-              "keys": [
-                "r",
-                "软"
-              ],
-              "index": 11
-            },
-            {
-              "char": "件",
-              "keys": [
-                "j",
-                "件"
-              ],
-              "index": 12
-            },
-            {
-              "char": "编",
-              "keys": [
-                "b",
-                "编"
-              ],
-              "index": 13
-            },
-            {
-              "char": "写",
-              "keys": [
-                "x",
-                "写"
-              ],
-              "index": 14
-            },
-            {
-              "char": "/",
-              "keys": [
-                "/"
-              ],
-              "index": 15
-            },
-            {
-              "char": "Q",
-              "keys": [
-                "q"
-              ],
-              "index": 16
-            },
-            {
-              "char": "u",
-              "keys": [
-                "u"
-              ],
-              "index": 17
-            },
-            {
-              "char": "i",
-              "keys": [
-                "i"
-              ],
-              "index": 18
-            },
-            {
-              "char": "c",
-              "keys": [
-                "c"
-              ],
-              "index": 19
-            },
-            {
-              "char": "k",
-              "keys": [
-                "k"
-              ],
-              "index": 20
-            },
-            {
-              "char": "K",
-              "keys": [
-                "k"
-              ],
-              "index": 21
-            },
-            {
-              "char": "V",
-              "keys": [
-                "v"
-              ],
-              "index": 22
-            }
-          ]
-        },
-        {
-          "parent": "file:///C:/Users/lulu/AppData/Local/Programs/PixPin/Temp/PixPin_2025-08-06_13-23-35.png",
-          "raw_lines": [
-            "- file:///C:/Users/lulu/AppData/Local/Programs/PixPin/Temp/PixPin_2025-08-06_13-23-35.png"
-          ],
-          "exclude_parent": false,
-          "shortcut_code": null,
-          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\剪贴板词库-勿删.md",
-          "is_clipboard": false,
-          "full_content": "- file:///C:/Users/lulu/AppData/Local/Programs/PixPin/Temp/PixPin_2025-08-06_13-23-35.png",
-          "parent_lower": "file:///c:/users/lulu/appdata/local/programs/pixpin/temp/pixpin_2025-08-06_13-23-35.png",
-          "char_map": [
-            {
-              "char": "f",
-              "keys": [
-                "f"
-              ],
-              "index": 0
-            },
-            {
-              "char": "i",
-              "keys": [
-                "i"
-              ],
-              "index": 1
-            },
-            {
-              "char": "l",
-              "keys": [
-                "l"
-              ],
-              "index": 2
-            },
-            {
-              "char": "e",
-              "keys": [
-                "e"
-              ],
-              "index": 3
-            },
-            {
-              "char": ":",
-              "keys": [
-                ":"
-              ],
-              "index": 4
-            },
-            {
-              "char": "/",
-              "keys": [
-                "/"
-              ],
-              "index": 5
-            },
-            {
-              "char": "/",
-              "keys": [
-                "/"
-              ],
-              "index": 6
-            },
-            {
-              "char": "/",
-              "keys": [
-                "/"
-              ],
-              "index": 7
-            },
-            {
-              "char": "C",
-              "keys": [
-                "c"
-              ],
-              "index": 8
-            },
-            {
-              "char": ":",
-              "keys": [
-                ":"
-              ],
-              "index": 9
-            },
-            {
-              "char": "/",
-              "keys": [
-                "/"
-              ],
-              "index": 10
-            },
-            {
-              "char": "U",
-              "keys": [
-                "u"
-              ],
-              "index": 11
-            },
-            {
-              "char": "s",
-              "keys": [
-                "s"
-              ],
-              "index": 12
-            },
-            {
-              "char": "e",
-              "keys": [
-                "e"
-              ],
-              "index": 13
-            },
-            {
-              "char": "r",
-              "keys": [
-                "r"
-              ],
-              "index": 14
-            },
-            {
-              "char": "s",
-              "keys": [
-                "s"
-              ],
-              "index": 15
-            },
-            {
-              "char": "/",
-              "keys": [
-                "/"
-              ],
-              "index": 16
-            },
-            {
-              "char": "l",
-              "keys": [
-                "l"
-              ],
-              "index": 17
-            },
-            {
-              "char": "u",
-              "keys": [
-                "u"
-              ],
-              "index": 18
-            },
-            {
-              "char": "l",
-              "keys": [
-                "l"
-              ],
-              "index": 19
-            },
-            {
-              "char": "u",
-              "keys": [
-                "u"
-              ],
-              "index": 20
-            },
-            {
-              "char": "/",
-              "keys": [
-                "/"
-              ],
-              "index": 21
-            },
-            {
-              "char": "A",
-              "keys": [
-                "a"
-              ],
-              "index": 22
-            },
-            {
-              "char": "p",
-              "keys": [
-                "p"
-              ],
-              "index": 23
-            },
-            {
-              "char": "p",
-              "keys": [
-                "p"
-              ],
-              "index": 24
-            },
-            {
-              "char": "D",
-              "keys": [
-                "d"
-              ],
-              "index": 25
-            },
-            {
-              "char": "a",
-              "keys": [
-                "a"
-              ],
-              "index": 26
-            },
-            {
-              "char": "t",
-              "keys": [
-                "t"
-              ],
-              "index": 27
-            },
-            {
-              "char": "a",
-              "keys": [
-                "a"
-              ],
-              "index": 28
-            },
-            {
-              "char": "/",
-              "keys": [
-                "/"
-              ],
-              "index": 29
-            },
-            {
-              "char": "L",
-              "keys": [
-                "l"
-              ],
-              "index": 30
-            },
-            {
-              "char": "o",
-              "keys": [
-                "o"
-              ],
-              "index": 31
-            },
-            {
-              "char": "c",
-              "keys": [
-                "c"
-              ],
-              "index": 32
-            },
-            {
-              "char": "a",
-              "keys": [
-                "a"
-              ],
-              "index": 33
-            },
-            {
-              "char": "l",
-              "keys": [
-                "l"
-              ],
-              "index": 34
-            },
-            {
-              "char": "/",
-              "keys": [
-                "/"
-              ],
-              "index": 35
-            },
-            {
-              "char": "P",
-              "keys": [
-                "p"
-              ],
-              "index": 36
-            },
-            {
-              "char": "r",
-              "keys": [
-                "r"
-              ],
-              "index": 37
-            },
-            {
-              "char": "o",
-              "keys": [
-                "o"
-              ],
-              "index": 38
-            },
-            {
-              "char": "g",
-              "keys": [
-                "g"
-              ],
-              "index": 39
-            },
-            {
-              "char": "r",
-              "keys": [
-                "r"
-              ],
-              "index": 40
-            },
-            {
-              "char": "a",
-              "keys": [
-                "a"
-              ],
-              "index": 41
-            },
-            {
-              "char": "m",
-              "keys": [
-                "m"
-              ],
-              "index": 42
-            },
-            {
-              "char": "s",
-              "keys": [
-                "s"
-              ],
-              "index": 43
-            },
-            {
-              "char": "/",
-              "keys": [
-                "/"
-              ],
-              "index": 44
-            },
-            {
-              "char": "P",
-              "keys": [
-                "p"
-              ],
-              "index": 45
-            },
-            {
-              "char": "i",
-              "keys": [
-                "i"
-              ],
-              "index": 46
-            },
-            {
-              "char": "x",
-              "keys": [
-                "x"
-              ],
-              "index": 47
-            },
-            {
-              "char": "P",
-              "keys": [
-                "p"
-              ],
-              "index": 48
-            },
-            {
-              "char": "i",
-              "keys": [
-                "i"
-              ],
-              "index": 49
-            },
-            {
-              "char": "n",
-              "keys": [
-                "n"
-              ],
-              "index": 50
-            },
-            {
-              "char": "/",
-              "keys": [
-                "/"
-              ],
-              "index": 51
-            },
-            {
-              "char": "T",
-              "keys": [
-                "t"
-              ],
-              "index": 52
-            },
-            {
-              "char": "e",
-              "keys": [
-                "e"
-              ],
               "index": 53
-            },
-            {
-              "char": "m",
-              "keys": [
-                "m"
-              ],
-              "index": 54
-            },
-            {
-              "char": "p",
-              "keys": [
-                "p"
-              ],
-              "index": 55
-            },
-            {
-              "char": "/",
-              "keys": [
-                "/"
-              ],
-              "index": 56
-            },
-            {
-              "char": "P",
-              "keys": [
-                "p"
-              ],
-              "index": 57
-            },
-            {
-              "char": "i",
-              "keys": [
-                "i"
-              ],
-              "index": 58
-            },
-            {
-              "char": "x",
-              "keys": [
-                "x"
-              ],
-              "index": 59
-            },
-            {
-              "char": "P",
-              "keys": [
-                "p"
-              ],
-              "index": 60
-            },
-            {
-              "char": "i",
-              "keys": [
-                "i"
-              ],
-              "index": 61
-            },
-            {
-              "char": "n",
-              "keys": [
-                "n"
-              ],
-              "index": 62
-            },
-            {
-              "char": "_",
-              "keys": [
-                "_"
-              ],
-              "index": 63
-            },
-            {
-              "char": "2",
-              "keys": [
-                "2"
-              ],
-              "index": 64
-            },
-            {
-              "char": "0",
-              "keys": [
-                "0"
-              ],
-              "index": 65
-            },
-            {
-              "char": "2",
-              "keys": [
-                "2"
-              ],
-              "index": 66
-            },
-            {
-              "char": "5",
-              "keys": [
-                "5"
-              ],
-              "index": 67
-            },
-            {
-              "char": "-",
-              "keys": [
-                "-"
-              ],
-              "index": 68
-            },
-            {
-              "char": "0",
-              "keys": [
-                "0"
-              ],
-              "index": 69
-            },
-            {
-              "char": "8",
-              "keys": [
-                "8"
-              ],
-              "index": 70
-            },
-            {
-              "char": "-",
-              "keys": [
-                "-"
-              ],
-              "index": 71
-            },
-            {
-              "char": "0",
-              "keys": [
-                "0"
-              ],
-              "index": 72
-            },
-            {
-              "char": "6",
-              "keys": [
-                "6"
-              ],
-              "index": 73
-            },
-            {
-              "char": "_",
-              "keys": [
-                "_"
-              ],
-              "index": 74
-            },
-            {
-              "char": "1",
-              "keys": [
-                "1"
-              ],
-              "index": 75
-            },
-            {
-              "char": "3",
-              "keys": [
-                "3"
-              ],
-              "index": 76
-            },
-            {
-              "char": "-",
-              "keys": [
-                "-"
-              ],
-              "index": 77
-            },
-            {
-              "char": "2",
-              "keys": [
-                "2"
-              ],
-              "index": 78
-            },
-            {
-              "char": "3",
-              "keys": [
-                "3"
-              ],
-              "index": 79
-            },
-            {
-              "char": "-",
-              "keys": [
-                "-"
-              ],
-              "index": 80
-            },
-            {
-              "char": "3",
-              "keys": [
-                "3"
-              ],
-              "index": 81
-            },
-            {
-              "char": "5",
-              "keys": [
-                "5"
-              ],
-              "index": 82
-            },
-            {
-              "char": ".",
-              "keys": [
-                "."
-              ],
-              "index": 83
-            },
-            {
-              "char": "p",
-              "keys": [
-                "p"
-              ],
-              "index": 84
-            },
-            {
-              "char": "n",
-              "keys": [
-                "n"
-              ],
-              "index": 85
-            },
-            {
-              "char": "g",
-              "keys": [
-                "g"
-              ],
-              "index": 86
-            }
-          ]
-        },
-        {
-          "parent": "accepted_disclaimer_info = {\"id\": \"一个哈希值\", \"version\": \"当前软件版本号\"}",
-          "raw_lines": [
-            "- accepted_disclaimer_info = {\"id\": \"一个哈希值\", \"version\": \"当前软件版本号\"}"
-          ],
-          "exclude_parent": false,
-          "shortcut_code": null,
-          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\剪贴板词库-勿删.md",
-          "is_clipboard": false,
-          "full_content": "- accepted_disclaimer_info = {\"id\": \"一个哈希值\", \"version\": \"当前软件版本号\"}",
-          "parent_lower": "accepted_disclaimer_info = {\"id\": \"一个哈希值\", \"version\": \"当前软件版本号\"}",
-          "char_map": [
-            {
-              "char": "a",
-              "keys": [
-                "a"
-              ],
-              "index": 0
-            },
-            {
-              "char": "c",
-              "keys": [
-                "c"
-              ],
-              "index": 1
-            },
-            {
-              "char": "c",
-              "keys": [
-                "c"
-              ],
-              "index": 2
-            },
-            {
-              "char": "e",
-              "keys": [
-                "e"
-              ],
-              "index": 3
-            },
-            {
-              "char": "p",
-              "keys": [
-                "p"
-              ],
-              "index": 4
-            },
-            {
-              "char": "t",
-              "keys": [
-                "t"
-              ],
-              "index": 5
-            },
-            {
-              "char": "e",
-              "keys": [
-                "e"
-              ],
-              "index": 6
-            },
-            {
-              "char": "d",
-              "keys": [
-                "d"
-              ],
-              "index": 7
-            },
-            {
-              "char": "_",
-              "keys": [
-                "_"
-              ],
-              "index": 8
-            },
-            {
-              "char": "d",
-              "keys": [
-                "d"
-              ],
-              "index": 9
-            },
-            {
-              "char": "i",
-              "keys": [
-                "i"
-              ],
-              "index": 10
-            },
-            {
-              "char": "s",
-              "keys": [
-                "s"
-              ],
-              "index": 11
-            },
-            {
-              "char": "c",
-              "keys": [
-                "c"
-              ],
-              "index": 12
-            },
-            {
-              "char": "l",
-              "keys": [
-                "l"
-              ],
-              "index": 13
-            },
-            {
-              "char": "a",
-              "keys": [
-                "a"
-              ],
-              "index": 14
-            },
-            {
-              "char": "i",
-              "keys": [
-                "i"
-              ],
-              "index": 15
-            },
-            {
-              "char": "m",
-              "keys": [
-                "m"
-              ],
-              "index": 16
-            },
-            {
-              "char": "e",
-              "keys": [
-                "e"
-              ],
-              "index": 17
-            },
-            {
-              "char": "r",
-              "keys": [
-                "r"
-              ],
-              "index": 18
-            },
-            {
-              "char": "_",
-              "keys": [
-                "_"
-              ],
-              "index": 19
-            },
-            {
-              "char": "i",
-              "keys": [
-                "i"
-              ],
-              "index": 20
-            },
-            {
-              "char": "n",
-              "keys": [
-                "n"
-              ],
-              "index": 21
-            },
-            {
-              "char": "f",
-              "keys": [
-                "f"
-              ],
-              "index": 22
-            },
-            {
-              "char": "o",
-              "keys": [
-                "o"
-              ],
-              "index": 23
-            },
-            {
-              "char": " ",
-              "keys": [
-                " "
-              ],
-              "index": 24
-            },
-            {
-              "char": "=",
-              "keys": [
-                "="
-              ],
-              "index": 25
-            },
-            {
-              "char": " ",
-              "keys": [
-                " "
-              ],
-              "index": 26
-            },
-            {
-              "char": "{",
-              "keys": [
-                "{"
-              ],
-              "index": 27
-            },
-            {
-              "char": "\"",
-              "keys": [
-                "\""
-              ],
-              "index": 28
-            },
-            {
-              "char": "i",
-              "keys": [
-                "i"
-              ],
-              "index": 29
-            },
-            {
-              "char": "d",
-              "keys": [
-                "d"
-              ],
-              "index": 30
-            },
-            {
-              "char": "\"",
-              "keys": [
-                "\""
-              ],
-              "index": 31
-            },
-            {
-              "char": ":",
-              "keys": [
-                ":"
-              ],
-              "index": 32
-            },
-            {
-              "char": " ",
-              "keys": [
-                " "
-              ],
-              "index": 33
-            },
-            {
-              "char": "\"",
-              "keys": [
-                "\""
-              ],
-              "index": 34
-            },
-            {
-              "char": "一",
-              "keys": [
-                "y",
-                "一"
-              ],
-              "index": 35
-            },
-            {
-              "char": "个",
-              "keys": [
-                "g",
-                "个"
-              ],
-              "index": 36
-            },
-            {
-              "char": "哈",
-              "keys": [
-                "h",
-                "哈"
-              ],
-              "index": 37
-            },
-            {
-              "char": "希",
-              "keys": [
-                "x",
-                "希"
-              ],
-              "index": 38
-            },
-            {
-              "char": "值",
-              "keys": [
-                "z",
-                "值"
-              ],
-              "index": 39
-            },
-            {
-              "char": "\"",
-              "keys": [
-                "\""
-              ],
-              "index": 40
-            },
-            {
-              "char": ",",
-              "keys": [
-                ","
-              ],
-              "index": 41
-            },
-            {
-              "char": " ",
-              "keys": [
-                " "
-              ],
-              "index": 42
-            },
-            {
-              "char": "\"",
-              "keys": [
-                "\""
-              ],
-              "index": 43
-            },
-            {
-              "char": "v",
-              "keys": [
-                "v"
-              ],
-              "index": 44
-            },
-            {
-              "char": "e",
-              "keys": [
-                "e"
-              ],
-              "index": 45
-            },
-            {
-              "char": "r",
-              "keys": [
-                "r"
-              ],
-              "index": 46
-            },
-            {
-              "char": "s",
-              "keys": [
-                "s"
-              ],
-              "index": 47
-            },
-            {
-              "char": "i",
-              "keys": [
-                "i"
-              ],
-              "index": 48
-            },
-            {
-              "char": "o",
-              "keys": [
-                "o"
-              ],
-              "index": 49
-            },
-            {
-              "char": "n",
-              "keys": [
-                "n"
-              ],
-              "index": 50
-            },
-            {
-              "char": "\"",
-              "keys": [
-                "\""
-              ],
-              "index": 51
-            },
-            {
-              "char": ":",
-              "keys": [
-                ":"
-              ],
-              "index": 52
-            },
-            {
-              "char": " ",
-              "keys": [
-                " "
-              ],
-              "index": 53
-            },
-            {
-              "char": "\"",
-              "keys": [
-                "\""
-              ],
-              "index": 54
-            },
-            {
-              "char": "当",
-              "keys": [
-                "d",
-                "当"
-              ],
-              "index": 55
-            },
-            {
-              "char": "前",
-              "keys": [
-                "q",
-                "前"
-              ],
-              "index": 56
-            },
-            {
-              "char": "软",
-              "keys": [
-                "r",
-                "软"
-              ],
-              "index": 57
-            },
-            {
-              "char": "件",
-              "keys": [
-                "j",
-                "件"
-              ],
-              "index": 58
-            },
-            {
-              "char": "版",
-              "keys": [
-                "b",
-                "版"
-              ],
-              "index": 59
-            },
-            {
-              "char": "本",
-              "keys": [
-                "b",
-                "本"
-              ],
-              "index": 60
-            },
-            {
-              "char": "号",
-              "keys": [
-                "h",
-                "号"
-              ],
-              "index": 61
-            },
-            {
-              "char": "\"",
-              "keys": [
-                "\""
-              ],
-              "index": 62
-            },
-            {
-              "char": "}",
-              "keys": [
-                "}"
-              ],
-              "index": 63
-            }
-          ]
-        },
-        {
-          "parent": "“帮助”",
-          "raw_lines": [
-            "- “帮助”"
-          ],
-          "exclude_parent": false,
-          "shortcut_code": null,
-          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\剪贴板词库-勿删.md",
-          "is_clipboard": false,
-          "full_content": "- “帮助”",
-          "parent_lower": "“帮助”",
-          "char_map": [
-            {
-              "char": "“",
-              "keys": [
-                "“"
-              ],
-              "index": 0
-            },
-            {
-              "char": "帮",
-              "keys": [
-                "b",
-                "帮"
-              ],
-              "index": 1
-            },
-            {
-              "char": "助",
-              "keys": [
-                "z",
-                "助"
-              ],
-              "index": 2
-            },
-            {
-              "char": "”",
-              "keys": [
-                "”"
-              ],
-              "index": 3
-            }
-          ]
-        },
-        {
-          "parent": "file:///C:/Users/lulu/AppData/Local/Programs/PixPin/Temp/PixPin_2025-08-06_14-04-22.png",
-          "raw_lines": [
-            "- file:///C:/Users/lulu/AppData/Local/Programs/PixPin/Temp/PixPin_2025-08-06_14-04-22.png"
-          ],
-          "exclude_parent": false,
-          "shortcut_code": null,
-          "source_path": "D:\\软件编写\\QuickKV\\MD词库-需自动载入的请放入\\剪贴板词库-勿删.md",
-          "is_clipboard": false,
-          "full_content": "- file:///C:/Users/lulu/AppData/Local/Programs/PixPin/Temp/PixPin_2025-08-06_14-04-22.png",
-          "parent_lower": "file:///c:/users/lulu/appdata/local/programs/pixpin/temp/pixpin_2025-08-06_14-04-22.png",
-          "char_map": [
-            {
-              "char": "f",
-              "keys": [
-                "f"
-              ],
-              "index": 0
-            },
-            {
-              "char": "i",
-              "keys": [
-                "i"
-              ],
-              "index": 1
-            },
-            {
-              "char": "l",
-              "keys": [
-                "l"
-              ],
-              "index": 2
-            },
-            {
-              "char": "e",
-              "keys": [
-                "e"
-              ],
-              "index": 3
-            },
-            {
-              "char": ":",
-              "keys": [
-                ":"
-              ],
-              "index": 4
-            },
-            {
-              "char": "/",
-              "keys": [
-                "/"
-              ],
-              "index": 5
-            },
-            {
-              "char": "/",
-              "keys": [
-                "/"
-              ],
-              "index": 6
-            },
-            {
-              "char": "/",
-              "keys": [
-                "/"
-              ],
-              "index": 7
-            },
-            {
-              "char": "C",
-              "keys": [
-                "c"
-              ],
-              "index": 8
-            },
-            {
-              "char": ":",
-              "keys": [
-                ":"
-              ],
-              "index": 9
-            },
-            {
-              "char": "/",
-              "keys": [
-                "/"
-              ],
-              "index": 10
-            },
-            {
-              "char": "U",
-              "keys": [
-                "u"
-              ],
-              "index": 11
-            },
-            {
-              "char": "s",
-              "keys": [
-                "s"
-              ],
-              "index": 12
-            },
-            {
-              "char": "e",
-              "keys": [
-                "e"
-              ],
-              "index": 13
-            },
-            {
-              "char": "r",
-              "keys": [
-                "r"
-              ],
-              "index": 14
-            },
-            {
-              "char": "s",
-              "keys": [
-                "s"
-              ],
-              "index": 15
-            },
-            {
-              "char": "/",
-              "keys": [
-                "/"
-              ],
-              "index": 16
-            },
-            {
-              "char": "l",
-              "keys": [
-                "l"
-              ],
-              "index": 17
-            },
-            {
-              "char": "u",
-              "keys": [
-                "u"
-              ],
-              "index": 18
-            },
-            {
-              "char": "l",
-              "keys": [
-                "l"
-              ],
-              "index": 19
-            },
-            {
-              "char": "u",
-              "keys": [
-                "u"
-              ],
-              "index": 20
-            },
-            {
-              "char": "/",
-              "keys": [
-                "/"
-              ],
-              "index": 21
-            },
-            {
-              "char": "A",
-              "keys": [
-                "a"
-              ],
-              "index": 22
-            },
-            {
-              "char": "p",
-              "keys": [
-                "p"
-              ],
-              "index": 23
-            },
-            {
-              "char": "p",
-              "keys": [
-                "p"
-              ],
-              "index": 24
-            },
-            {
-              "char": "D",
-              "keys": [
-                "d"
-              ],
-              "index": 25
-            },
-            {
-              "char": "a",
-              "keys": [
-                "a"
-              ],
-              "index": 26
-            },
-            {
-              "char": "t",
-              "keys": [
-                "t"
-              ],
-              "index": 27
-            },
-            {
-              "char": "a",
-              "keys": [
-                "a"
-              ],
-              "index": 28
-            },
-            {
-              "char": "/",
-              "keys": [
-                "/"
-              ],
-              "index": 29
-            },
-            {
-              "char": "L",
-              "keys": [
-                "l"
-              ],
-              "index": 30
-            },
-            {
-              "char": "o",
-              "keys": [
-                "o"
-              ],
-              "index": 31
-            },
-            {
-              "char": "c",
-              "keys": [
-                "c"
-              ],
-              "index": 32
-            },
-            {
-              "char": "a",
-              "keys": [
-                "a"
-              ],
-              "index": 33
-            },
-            {
-              "char": "l",
-              "keys": [
-                "l"
-              ],
-              "index": 34
-            },
-            {
-              "char": "/",
-              "keys": [
-                "/"
-              ],
-              "index": 35
-            },
-            {
-              "char": "P",
-              "keys": [
-                "p"
-              ],
-              "index": 36
-            },
-            {
-              "char": "r",
-              "keys": [
-                "r"
-              ],
-              "index": 37
-            },
-            {
-              "char": "o",
-              "keys": [
-                "o"
-              ],
-              "index": 38
-            },
-            {
-              "char": "g",
-              "keys": [
-                "g"
-              ],
-              "index": 39
-            },
-            {
-              "char": "r",
-              "keys": [
-                "r"
-              ],
-              "index": 40
-            },
-            {
-              "char": "a",
-              "keys": [
-                "a"
-              ],
-              "index": 41
-            },
-            {
-              "char": "m",
-              "keys": [
-                "m"
-              ],
-              "index": 42
-            },
-            {
-              "char": "s",
-              "keys": [
-                "s"
-              ],
-              "index": 43
-            },
-            {
-              "char": "/",
-              "keys": [
-                "/"
-              ],
-              "index": 44
-            },
-            {
-              "char": "P",
-              "keys": [
-                "p"
-              ],
-              "index": 45
-            },
-            {
-              "char": "i",
-              "keys": [
-                "i"
-              ],
-              "index": 46
-            },
-            {
-              "char": "x",
-              "keys": [
-                "x"
-              ],
-              "index": 47
-            },
-            {
-              "char": "P",
-              "keys": [
-                "p"
-              ],
-              "index": 48
-            },
-            {
-              "char": "i",
-              "keys": [
-                "i"
-              ],
-              "index": 49
-            },
-            {
-              "char": "n",
-              "keys": [
-                "n"
-              ],
-              "index": 50
-            },
-            {
-              "char": "/",
-              "keys": [
-                "/"
-              ],
-              "index": 51
-            },
-            {
-              "char": "T",
-              "keys": [
-                "t"
-              ],
-              "index": 52
-            },
-            {
-              "char": "e",
-              "keys": [
-                "e"
-              ],
-              "index": 53
-            },
-            {
-              "char": "m",
-              "keys": [
-                "m"
-              ],
-              "index": 54
-            },
-            {
-              "char": "p",
-              "keys": [
-                "p"
-              ],
-              "index": 55
-            },
-            {
-              "char": "/",
-              "keys": [
-                "/"
-              ],
-              "index": 56
-            },
-            {
-              "char": "P",
-              "keys": [
-                "p"
-              ],
-              "index": 57
-            },
-            {
-              "char": "i",
-              "keys": [
-                "i"
-              ],
-              "index": 58
-            },
-            {
-              "char": "x",
-              "keys": [
-                "x"
-              ],
-              "index": 59
-            },
-            {
-              "char": "P",
-              "keys": [
-                "p"
-              ],
-              "index": 60
-            },
-            {
-              "char": "i",
-              "keys": [
-                "i"
-              ],
-              "index": 61
-            },
-            {
-              "char": "n",
-              "keys": [
-                "n"
-              ],
-              "index": 62
-            },
-            {
-              "char": "_",
-              "keys": [
-                "_"
-              ],
-              "index": 63
-            },
-            {
-              "char": "2",
-              "keys": [
-                "2"
-              ],
-              "index": 64
-            },
-            {
-              "char": "0",
-              "keys": [
-                "0"
-              ],
-              "index": 65
-            },
-            {
-              "char": "2",
-              "keys": [
-                "2"
-              ],
-              "index": 66
-            },
-            {
-              "char": "5",
-              "keys": [
-                "5"
-              ],
-              "index": 67
-            },
-            {
-              "char": "-",
-              "keys": [
-                "-"
-              ],
-              "index": 68
-            },
-            {
-              "char": "0",
-              "keys": [
-                "0"
-              ],
-              "index": 69
-            },
-            {
-              "char": "8",
-              "keys": [
-                "8"
-              ],
-              "index": 70
-            },
-            {
-              "char": "-",
-              "keys": [
-                "-"
-              ],
-              "index": 71
-            },
-            {
-              "char": "0",
-              "keys": [
-                "0"
-              ],
-              "index": 72
-            },
-            {
-              "char": "6",
-              "keys": [
-                "6"
-              ],
-              "index": 73
-            },
-            {
-              "char": "_",
-              "keys": [
-                "_"
-              ],
-              "index": 74
-            },
-            {
-              "char": "1",
-              "keys": [
-                "1"
-              ],
-              "index": 75
-            },
-            {
-              "char": "4",
-              "keys": [
-                "4"
-              ],
-              "index": 76
-            },
-            {
-              "char": "-",
-              "keys": [
-                "-"
-              ],
-              "index": 77
-            },
-            {
-              "char": "0",
-              "keys": [
-                "0"
-              ],
-              "index": 78
-            },
-            {
-              "char": "4",
-              "keys": [
-                "4"
-              ],
-              "index": 79
-            },
-            {
-              "char": "-",
-              "keys": [
-                "-"
-              ],
-              "index": 80
-            },
-            {
-              "char": "2",
-              "keys": [
-                "2"
-              ],
-              "index": 81
-            },
-            {
-              "char": "2",
-              "keys": [
-                "2"
-              ],
-              "index": 82
-            },
-            {
-              "char": ".",
-              "keys": [
-                "."
-              ],
-              "index": 83
-            },
-            {
-              "char": "p",
-              "keys": [
-                "p"
-              ],
-              "index": 84
-            },
-            {
-              "char": "n",
-              "keys": [
-                "n"
-              ],
-              "index": 85
-            },
-            {
-              "char": "g",
-              "keys": [
-                "g"
-              ],
-              "index": 86
             }
           ]
         }
