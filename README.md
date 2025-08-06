@@ -20,18 +20,18 @@
 
 ## 简易图文教程
 ![20210606180518](https://github.com/user-attachments/assets/3fc1af9b-9ce7-448e-b68a-695b3bb743d4)
-<img width="1911" height="993" alt="PixPin_2025-07-28_14-01-50" src="https://github.com/user-attachments/assets/cdb09453-9761-4790-87f0-325a2f4bd80b" />
-<img width="1911" height="993" alt="PixPin_2025-07-28_14-12-41" src="https://github.com/user-attachments/assets/33ecb4d8-fe0f-4dc9-90f0-e0ee6702c9ed" />
-<img width="1911" height="991" alt="PixPin_2025-08-05_18-37-04" src="https://github.com/user-attachments/assets/df7e170b-6fc1-40fa-8812-86be66481ec1" />
+<img alt="PixPin_2025-07-28_14-01-50" src="https://github.com/user-attachments/assets/cdb09453-9761-4790-87f0-325a2f4bd80b" />
+<img alt="PixPin_2025-07-28_14-12-41" src="https://github.com/user-attachments/assets/33ecb4d8-fe0f-4dc9-90f0-e0ee6702c9ed" />
+<img alt="PixPin_2025-08-05_18-37-04" src="https://github.com/user-attachments/assets/df7e170b-6fc1-40fa-8812-86be66481ec1" />
 
-<img width="1894" height="986" alt="PixPin_2025-08-02_00-11-00" src="https://github.com/user-attachments/assets/a10595ac-bada-4a4b-93f6-39bef4bf405a" />
-<img width="1911" height="993" alt="PixPin_2025-07-28_14-20-04" src="https://github.com/user-attachments/assets/be0a526a-8dc2-4179-8935-7caf4e70a3b1" />
-<img width="1911" height="993" alt="PixPin_2025-07-28_14-23-06" src="https://github.com/user-attachments/assets/000ccf0e-5585-4880-97d6-243dbd70a293" />
-<img width="1911" height="993" alt="PixPin_2025-07-28_14-36-52" src="https://github.com/user-attachments/assets/2fafcfe6-15ff-40ff-9d92-c5a0b8502e62" />
-<img width="1911" height="993" alt="PixPin_2025-07-28_15-00-50" src="https://github.com/user-attachments/assets/dd679348-6b82-4364-96f1-ed6e9eee84e7" />
-<img width="1911" height="993" alt="PixPin_2025-07-28_15-08-24" src="https://github.com/user-attachments/assets/b48a1555-347c-4bf3-ae89-2852c599ed0e" />
-<img width="1916" height="993" alt="PixPin_2025-07-28_15-31-43" src="https://github.com/user-attachments/assets/061fdf73-98a2-47d1-93f5-c9453cbda5bd" />
-<img width="1911" height="993" alt="PixPin_2025-07-28_15-21-46" src="https://github.com/user-attachments/assets/909f6cfa-6b51-416c-8dde-4bd326b227f8" />
+<img alt="PixPin_2025-08-02_00-11-00" src="https://github.com/user-attachments/assets/a10595ac-bada-4a4b-93f6-39bef4bf405a" />
+<img alt="PixPin_2025-07-28_14-20-04" src="https://github.com/user-attachments/assets/be0a526a-8dc2-4179-8935-7caf4e70a3b1" />
+<img alt="PixPin_2025-07-28_14-23-06" src="https://github.com/user-attachments/assets/000ccf0e-5585-4880-97d6-243dbd70a293" />
+<img alt="PixPin_2025-07-28_14-36-52" src="https://github.com/user-attachments/assets/2fafcfe6-15ff-40ff-9d92-c5a0b8502e62" />
+<img alt="PixPin_2025-07-28_15-00-50" src="https://github.com/user-attachments/assets/dd679348-6b82-4364-96f1-ed6e9eee84e7" />
+<img alt="PixPin_2025-07-28_15-08-24" src="https://github.com/user-attachments/assets/b48a1555-347c-4bf3-ae89-2852c599ed0e" />
+<img alt="PixPin_2025-07-28_15-31-43" src="https://github.com/user-attachments/assets/061fdf73-98a2-47d1-93f5-c9453cbda5bd" />
+<img alt="PixPin_2025-07-28_15-21-46" src="https://github.com/user-attachments/assets/909f6cfa-6b51-416c-8dde-4bd326b227f8" />
 
 ## ⚒️ QuickKV 词库加强辅助 KVTree
 
@@ -104,6 +104,8 @@ KVTree 支持用 Markdown 文件无序列表树（大纲）建立词库，建立
 本软件为免费提供，作者没有义务提供任何形式的商业级技术支持、更新、用户培训或后续服务。作者可能会通过 GitHub Issues 等社区渠道提供帮助，但这完全出于自愿且不作任何承诺，作者保留随时忽略或关闭任何问题的权利。
 
 **再次强调：继续使用本软件，即表示您已确认阅读、理解并同意遵守上述所有条款以及 MIT 许可证的全部内容。**
+
+---
 
 ## 用户手册
 

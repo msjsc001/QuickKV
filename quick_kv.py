@@ -5,6 +5,7 @@ import webbrowser
 import configparser
 import hashlib
 import json
+import subprocess
 import re
 import itertools
 import threading
@@ -35,6 +36,54 @@ except ImportError:
     print("警告: 未找到 pypinyin-dict 库，拼音首字母可能不准确。建议安装: pip install pypinyin-dict")
 
 # --- 全局配置 ---
+def get_device_id():
+    """
+    获取设备的唯一标识符，依次尝试:
+    1. 主板 UUID (wmic)
+    2. 系统盘卷序列号 (wmic)
+    3. MAC地址
+    """
+    identifier = None
+    try:
+        # 1. 尝试主板 UUID
+        uuid_output = subprocess.check_output("wmic csproduct get uuid", shell=True, text=True, stderr=subprocess.DEVNULL)
+        uuid = uuid_output.strip().split('\n')[-1].strip()
+        if uuid and "UUID" not in uuid and len(uuid) > 5:
+            identifier = uuid
+            log("使用主板 UUID 作为设备ID。")
+    except Exception as e:
+        log(f"获取主板 UUID 失败: {e}")
+
+    if not identifier:
+        try:
+            # 2. 尝试系统盘卷序列号
+            vol_serial_output = subprocess.check_output("wmic path win32_logicaldisk where \"DeviceID='%SystemDrive%'\" get VolumeSerialNumber", shell=True, text=True, stderr=subprocess.DEVNULL)
+            vol_serial = vol_serial_output.strip().split('\n')[-1].strip()
+            if vol_serial and "VolumeSerialNumber" not in vol_serial and len(vol_serial) > 2:
+                identifier = vol_serial
+                log("使用系统卷序列号作为设备ID。")
+        except Exception as e:
+            log(f"获取卷序列号失败: {e}")
+
+    if not identifier:
+        try:
+            # 3. 尝试 MAC 地址
+            # 需要导入 uuid 模块，请确保文件顶部有 import uuid
+            mac = ':'.join(__import__('re').findall('..', '%012x' % __import__('uuid').getnode()))
+            if mac and mac != "00:00:00:00:00:00":
+                identifier = mac
+                log("使用 MAC 地址作为设备ID。")
+        except Exception as e:
+            log(f"获取 MAC 地址失败: {e}")
+
+    if not identifier:
+        # 最终备用方案
+        identifier = "generic_fallback_id_all_failed"
+        log("所有设备ID获取方法均失败，使用最终备用ID。")
+
+    return hashlib.sha256(identifier.encode()).hexdigest()
+
+
 def get_base_path():
     """获取基础路径，用于定位外部文件（如config和词库）"""
     if getattr(sys, 'frozen', False):
@@ -57,13 +106,14 @@ CONFIG_FILE = os.path.join(BASE_PATH, "config.ini")
 AUTO_LOAD_DIR = os.path.join(BASE_PATH, "MD词库-需自动载入的请放入")
 CLIPBOARD_HISTORY_FILE = os.path.join(AUTO_LOAD_DIR, "剪贴板词库-勿删.md")
 CACHE_FILE = os.path.join(BASE_PATH, "cache.json") # 新增：缓存文件路径
+HELP_DOCS_DIR = os.path.join(BASE_PATH, "帮助文档")
 
 # --- 内部资源 ---
 ICON_PATH = resource_path("icon.png")
 
 # --- 其他配置 ---
 DEBUG_MODE = True
-VERSION = "1.0.5.38" # 版本号
+VERSION = "1.0.5.39.2" # 版本号
 
 def log(message):
     if DEBUG_MODE:
@@ -239,6 +289,14 @@ class SettingsManager:
             self.clipboard_memory_count = self.config.getint('Clipboard', 'count', fallback=10)
             self.auto_restart_enabled = self.config.getboolean('Restart', 'enabled', fallback=False)
             self.auto_restart_interval = self.config.getint('Restart', 'interval_minutes', fallback=3)
+            # 新的协议接受信息，存储为 JSON 字符串
+            disclaimer_info_str = self.config.get('General', 'accepted_disclaimer_info', fallback='{}')
+            try:
+                self.accepted_disclaimer_info = json.loads(disclaimer_info_str)
+                if not isinstance(self.accepted_disclaimer_info, dict):
+                    self.accepted_disclaimer_info = {'id': '', 'version': ''}
+            except (json.JSONDecodeError, TypeError):
+                self.accepted_disclaimer_info = {'id': '', 'version': ''}
 
             libraries_str = self.config.get('General', 'libraries', fallback='[]')
             try:
@@ -286,6 +344,7 @@ class SettingsManager:
         self.config['Restart']['enabled'] = str(self.auto_restart_enabled)
         self.config['Restart']['interval_minutes'] = str(self.auto_restart_interval)
         self.config['Paste']['mode'] = self.paste_mode
+        self.config['General']['accepted_disclaimer_info'] = json.dumps(self.accepted_disclaimer_info, ensure_ascii=False)
         
         with open(self.file_path, 'w', encoding='utf-8') as configfile:
             self.config.write(configfile)
@@ -1069,6 +1128,123 @@ class HotkeyDialog(QDialog):
         for button in self.button_box.buttons() + [self.restore_button]:
             button.setStyleSheet(btn_style)
 
+def get_disclaimer_html_text():
+    """返回包含重要声明与协议的HTML格式文本"""
+    return """
+    <h2>⚠️ 重要声明与许可协议 (IMPORTANT DISCLAIMER & LICENSE)</h2>
+    <p><strong>在下载、安装或以任何方式使用本软件 (QuickKV) 与代码前，请您务必仔细阅读并充分理解以下所有条款。本软件是基于 MIT 许可证 (MIT License) 发布的免费开源项目。一旦您开始使用本软件的任何部分（包括但不限于运行程序、查阅代码、修改或分发），即表示您已完全阅读、理解并无条件接受本声明及 MIT 许可证的全部内容。如果您不同意其中任何条款，请立即停止使用并彻底删除本软件的所有相关文件。</strong></p>
+    
+    <h3>1. “按原样”提供，不作任何保证 (AS-IS, WITHOUT ANY WARRANTY)</h3>
+    <p>本软件按“原样”(AS IS) 提供，不附带任何形式的明示或暗示的保证，包括但不限于对软件的<strong>商业适用性 (MERCHANTABILITY)</strong>、<strong>特定用途适用性 (FITNESS FOR A PARTICULAR PURPOSE)</strong> 和 <strong>非侵权性 (NON-INFRINGEMENT)</strong> 的保证。作者不保证软件能满足您的所有需求，不保证软件运行不会中断或不出现任何错误，也不保证软件中的任何缺陷 (Bug) 都将被修正。所有条款以软件附带的 <a href="https://github.com/msjsc001/QuickKV/blob/main/LICENSE">MIT 许可证</a> 原文为准。</p>
+    
+    <h3>2. 核心功能与潜在风险告知 (CORE FUNCTIONALITY & POTENTIAL RISKS)</h3>
+    <p>本软件的核心功能必然涉及<strong>全局键盘监听</strong> (用于实现快捷码、快捷键功能) 和<strong>剪贴板内容读写</strong> (用于粘贴及历史记忆功能)。您必须清楚地认识到这些功能存在的潜在风险：</p>
+    <ul>
+        <li><strong>键盘监听风险</strong>: 为了实现快捷码功能，程序会在后台监听您的键盘输入。尽管程序的设计初衷仅为匹配您设定的触发码，但该机制在技术原理上可以访问到您的全局键盘输入。</li>
+        <li><strong>剪贴板隐私风险</strong>: 当“剪贴板记忆”功能开启时，程序会读取并以明文形式记录您复制到系统剪贴板的文本内容。这意味着，<strong>如果您复制了密码、银行卡号、身份证、私密对话等任何敏感信息，这些信息也可能被程序记录下来。</strong></li>
+        <li><strong>安全软件警告</strong>: 由于上述功能的敏感性，部分安全软件、杀毒软件或系统防护工具可能会将本软件标记为“键盘记录器”、“风险软件”或“恶意程序”。这属于正常现象，请您基于对本项目开源代码的信任自行判断并选择是否“信任”或“允许运行”。</li>
+    </ul>
+
+    <h3>3. 风险自负与责任限制 (ASSUMPTION OF RISK & LIMITATION OF LIABILITY)</h3>
+    <p>您明确理解并同意，使用本软件所引发的一切后果和风险，包括但不限于<strong>数据丢失或损坏、利润损失、业务中断、个人信息泄露、与其他软件的冲突、系统不稳定或崩溃等</strong>，完全由您本人承担。在任何法律允许的最大范围内，本软件作者或任何贡献者在任何情况下均不对任何因使用、无法使用或滥用本软件而导致的任何直接、间接、偶然、特殊、惩戒性或后果性的损害负责，即使已被告知可能发生此类损害。</p>
+
+    <h3>4. 用户数据与隐私保护 (USER DATA & PRIVACY)</h3>
+    <p>作者高度重视用户隐私。本软件为<strong>纯本地离线工具</strong>，您使用软件产生的所有数据，包括<strong>词库文件 (<code>.md</code>)、配置文件 (<code>config.ini</code>)、剪贴板历史记录等，均只会存储在您自己的电脑本地硬盘上</strong>。本软件不会以任何形式主动收集、存储或上传您的任何个人信息或使用数据到任何网络服务器。软件运行无需联网。</p>
+
+    <h3>5. 合法合规使用承诺 (LAWFUL & COMPLIANT USE)</h3>
+    <p>您承诺将在遵守您所在国家或地区所有适用法律法规的前提下使用本软件。严禁将本软件用于任何非法目的，包括但不限于窃取商业秘密、侵犯他人隐私、发送垃圾信息等任何违法违规行为。任何因您的非法使用或违规操作而导致的法律责任和后果，均由您自行承担，与本软件作者无关。此外，如果您在组织或公司环境（如工作电脑）中使用本软件，您有责任确保此行为符合该组织的信息安全策略和规定。</p>
+
+    <h3>6. 开源透明与代码审查 (OPEN SOURCE & CODE AUDIT)</h3>
+    <p>本软件是一个开源项目，所有源代码均在 GitHub 公开。我们鼓励并建议有能力的用户在安装使用前，<strong>自行审查代码</strong>，以确保其安全性和功能符合您的预期。作者保证其发布的官方版本不包含任何已知的恶意代码，但无法保证软件绝对没有缺陷。</p>
+
+    <h3>7. 官方渠道与安全下载 (OFFICIAL CHANNEL & SECURE DOWNLOAD)</h3>
+    <p>本项目的唯一官方发布渠道为 GitHub Releases 页面 (<code>https://github.com/msjsc001/QuickKV/releases</code>)。作者不对任何从第三方网站、论坛、社群、个人分享等非官方渠道获取的软件副本的安全性、完整性或一致性作任何保证。为避免潜在的恶意代码注入或版本篡改风险，请务必通过官方渠道下载。</p>
+
+    <h3>8. 无专业支持义务 (NO OBLIGATION FOR SUPPORT)</h3>
+    <p>本软件为免费提供，作者没有义务提供任何形式的商业级技术支持、更新、用户培训或后续服务。作者可能会通过 GitHub Issues 等社区渠道提供帮助，但这完全出于自愿且不作任何承诺，作者保留随时忽略或关闭任何问题的权利。</p>
+    
+    <p><strong>再次强调：继续使用本软件，即表示您已确认阅读、理解并同意遵守上述所有条款以及 MIT 许可证的全部内容。</strong></p>
+    """
+
+# --- 重要声明与协议对话框 ---
+class DisclaimerDialog(QDialog):
+    def __init__(self, parent=None, theme=None, font_size=14):
+        super().__init__(parent)
+        self.setWindowTitle("QuickKV - 重要声明与用户协议")
+        self.setMinimumSize(600, 500)
+        self.setModal(True) # 强制用户交互
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(15, 15, 15, 15)
+        layout.setSpacing(10)
+
+        # 1. 醒目提示
+        intro_label = QLabel("<b>欢迎使用 QuickKV！在开始前，请您务必阅读以下重要信息。本软件涉及键盘和剪贴板操作，了解其工作原理和潜在风险对您至关重要。</b>")
+        intro_label.setWordWrap(True)
+        intro_label.setStyleSheet("font-size: 16px; color: #e5c07b;") # 使用醒目的颜色
+        layout.addWidget(intro_label)
+
+        # 2. 协议内容滚动区域
+        self.text_area = QTextEdit()
+        self.text_area.setReadOnly(True)
+        self.text_area.setHtml(get_disclaimer_html_text())
+        layout.addWidget(self.text_area, 1) # 占据主要空间
+
+        # 3. 确认勾选框
+        self.agree_checkbox = QCheckBox("我已仔细阅读、完全理解并同意上述所有条款及 MIT 许可协议。我愿自行承担使用本软件的一切风险。")
+        self.agree_checkbox.toggled.connect(self.on_checkbox_toggled)
+        layout.addWidget(self.agree_checkbox)
+
+        # 4. 按钮
+        button_layout = QHBoxLayout()
+        self.agree_button = QPushButton("同意并开始使用")
+        self.agree_button.setEnabled(False) # 默认禁用
+        self.agree_button.clicked.connect(self.accept)
+        
+        self.disagree_button = QPushButton("不同意并退出")
+        self.disagree_button.clicked.connect(self.reject)
+
+        button_layout.addStretch()
+        button_layout.addWidget(self.disagree_button)
+        button_layout.addWidget(self.agree_button)
+        layout.addLayout(button_layout)
+
+        if theme:
+            self.apply_theme(theme, font_size)
+
+    def on_checkbox_toggled(self, checked):
+        self.agree_button.setEnabled(checked)
+
+    def apply_theme(self, theme, font_size):
+        self.setStyleSheet(f"QDialog {{ background-color: {theme['bg_color']}; color: {theme['text_color']}; }}")
+        self.text_area.setStyleSheet(f"""
+            QTextEdit {{
+                background-color: {theme['input_bg_color']};
+                color: {theme['text_color']};
+                border: 1px solid {theme['border_color']};
+                border-radius: 4px;
+                padding: 8px;
+                font-size: {font_size-1}px;
+            }}
+        """)
+        self.agree_checkbox.setStyleSheet(f"QCheckBox {{ font-size: {font_size-1}px; }}")
+        
+        btn_style = f"""
+            QPushButton {{
+                background-color: {theme['input_bg_color']};
+                color: {theme['text_color']};
+                border: 1px solid {theme['border_color']};
+                padding: 8px 18px;
+                border-radius: 4px;
+                font-size: {font_size}px;
+            }}
+            QPushButton:hover {{ background-color: {theme['item_hover_bg']}; }}
+            QPushButton:pressed {{ background-color: {theme['item_selected_bg']}; color: {theme['item_selected_text']}; }}
+            QPushButton:disabled {{ background-color: #444; color: #888; }}
+        """
+        self.agree_button.setStyleSheet(btn_style)
+        self.disagree_button.setStyleSheet(btn_style)
+
 
 # --- 搜索弹出窗口UI (滚动条修复) ---
 class SearchPopup(QWidget):
@@ -1630,7 +1806,7 @@ class MainController(QObject):
     hide_popup_signal = Signal()
 
     def __init__(self, app, word_manager, settings_manager):
-        super().__init__(); self.app = app; self.word_manager = word_manager; self.settings = settings_manager; self.menu = None
+        super().__init__(); self.app = app; self.word_manager = word_manager; self.settings = settings_manager; self.menu = None; self.auto_library_menu = None
         self.popup = SearchPopup(self.word_manager, self.settings)
         self.popup.controller = self # 将 controller 实例传递给 popup
         self.show_popup_signal.connect(self.popup.show_and_focus)
@@ -2330,6 +2506,28 @@ class MainController(QObject):
             self.update_auto_restart_timer()
             QMessageBox.information(None, "成功", f"自动重启间隔已设置为 {new_interval} 分钟！")
 
+    def show_disclaimer(self):
+        """显示重要声明与协议对话框"""
+        dialog = DisclaimerDialog(self.popup, THEMES[self.settings.theme], self.settings.font_size)
+        # 对于已经同意过的用户，只显示信息，不提供“同意/不同意”选项
+        dialog.agree_checkbox.setChecked(True)
+        dialog.agree_checkbox.setVisible(False)
+        dialog.agree_button.setText("关闭")
+        dialog.disagree_button.setVisible(False)
+        dialog.exec()
+
+    def open_help_docs(self):
+        """打开帮助文档文件夹"""
+        try:
+            if not os.path.exists(HELP_DOCS_DIR):
+                os.makedirs(HELP_DOCS_DIR)
+                log(f"已创建帮助文档文件夹: {HELP_DOCS_DIR}")
+            webbrowser.open(HELP_DOCS_DIR)
+            log(f"尝试打开帮助文档文件夹: {HELP_DOCS_DIR}")
+        except Exception as e:
+            log(f"打开帮助文档文件夹失败: {e}")
+            QMessageBox.warning(self.popup, "错误", f"无法打开文件夹路径：\n{HELP_DOCS_DIR}\n\n错误: {e}")  
+
     def scan_and_update_auto_libraries(self):
         """扫描自动加载文件夹，同步词库列表并保存状态"""
         log("开始扫描自动加载词库文件夹...")
@@ -2385,7 +2583,26 @@ if __name__ == "__main__":
     settings_manager = SettingsManager(CONFIG_FILE)
     word_manager = WordManager(settings_manager)
     controller = MainController(app, word_manager, settings_manager)
+    
+    # --- 首次启动与版本更新检查 ---
+    current_device_id = get_device_id()
+    accepted_info = settings_manager.accepted_disclaimer_info
 
+    # 检查设备ID或软件版本是否不匹配
+    if accepted_info.get('id') != current_device_id or accepted_info.get('version') != VERSION:
+        disclaimer_dialog = DisclaimerDialog(theme=THEMES.get(settings_manager.theme), font_size=settings_manager.font_size)
+        if disclaimer_dialog.exec() == QDialog.Accepted:
+            # 用户同意后，同时记录当前设备ID和软件版本
+            settings_manager.accepted_disclaimer_info = {
+                'id': current_device_id,
+                'version': VERSION
+            }
+            settings_manager.save()
+            log(f"用户已接受版本 {VERSION} 的协议。")
+        else:
+            log("用户未接受协议，程序退出。")
+            sys.exit(0)
+        
     # --- 确保自动加载文件夹存在 ---
     if not os.path.exists(AUTO_LOAD_DIR):
         try:
@@ -2404,6 +2621,12 @@ if __name__ == "__main__":
     menu.addAction(version_action)
     menu.addSeparator()
     
+    # --- 重要声明与用户协议 ---
+    show_disclaimer_action = QAction("重要声明与用户协议")
+    show_disclaimer_action.triggered.connect(controller.show_disclaimer)
+    menu.addAction(show_disclaimer_action)
+    menu.addSeparator()
+
     # --- 主要功能 ---
     controller.toggle_hotkeys_action = QAction("启用快捷键", checkable=True)
     controller.toggle_hotkeys_action.setChecked(settings_manager.hotkeys_enabled)
@@ -2511,7 +2734,13 @@ if __name__ == "__main__":
     menu.addAction(controller.highlight_matches_action)
 
     font_size_action = QAction("设置字体大小(&F)..."); font_size_action.triggered.connect(controller.set_font_size); menu.addAction(font_size_action)
- 
+
+    # --- 帮助 ---
+    menu.addSeparator()
+    help_action = QAction("帮助")
+    help_action.triggered.connect(controller.open_help_docs)
+    menu.addAction(help_action)
+
     # --- 退出 ---
     menu.addSeparator()
     quit_action = QAction("退出(&Q)"); quit_action.triggered.connect(app.quit); menu.addAction(quit_action)
