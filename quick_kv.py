@@ -113,7 +113,7 @@ ICON_PATH = resource_path("icon.png")
 
 # --- 其他配置 ---
 DEBUG_MODE = True
-VERSION = "1.0.5.39.2" # 版本号
+VERSION = "1.0.5.40" # 版本号
 
 def log(message):
     if DEBUG_MODE:
@@ -735,21 +735,25 @@ class WordManager:
         """
         全新的、基于字符映射表的精确匹配算法。
         取代了旧的 fuzzywuzzy 模糊匹配。
+        【已重构】根据用户需求，实现分情况显示逻辑。
         """
-        # 根据设置决定搜索范围和默认返回内容
-        if self.settings.clipboard_memory_enabled:
-            search_pool = self.clipboard_history + self.word_blocks
-            default_return = self.clipboard_history + self.word_blocks
-        else:
-            search_pool = self.word_blocks
-            default_return = self.word_blocks
-
+        # 1. 当搜索框为空时
         if not query:
-            # 清空高亮并返回默认列表
-            for block in search_pool:
+            # 清理所有可能存在的高亮标记
+            for block in self.word_blocks:
                 if 'highlight_groups' in block: del block['highlight_groups']
-            return default_return
+            for block in self.clipboard_history:
+                if 'highlight_groups' in block: del block['highlight_groups']
 
+            # 如果剪贴板记忆开启，只显示剪贴板历史（按时间倒序）
+            if self.settings.clipboard_memory_enabled:
+                return self.clipboard_history
+            # 如果剪贴板记忆关闭，返回空列表以提高性能
+            else:
+                return []
+
+        # 2. 当有搜索词时（全局搜索模式）
+        search_pool = self.word_blocks
         query_lower = query.lower()
         keywords = [k for k in query_lower.split(' ') if k] if multi_word_search_enabled and ' ' in query_lower.strip() else [query_lower]
         
@@ -1537,6 +1541,9 @@ class SearchPopup(QWidget):
         else:
             for lib in libraries:
                 lib_path = lib['path']
+                # 如果目标路径是剪贴板文件本身，则不显示该选项
+                if lib_path == CLIPBOARD_HISTORY_FILE:
+                    continue
                 lib_name = os.path.basename(lib_path)
                 action = QAction(lib_name, self)
                 action.triggered.connect(lambda _, p=lib_path: self.add_from_search_box_to_specific_library(p))
@@ -1574,6 +1581,9 @@ class SearchPopup(QWidget):
             else:
                 for lib in libraries:
                     lib_path = lib['path']
+                    # 如果目标路径是剪贴板文件本身，则不显示该选项
+                    if lib_path == CLIPBOARD_HISTORY_FILE:
+                        continue
                     lib_name = os.path.basename(lib_path)
                     action = QAction(lib_name, self)
                     action.triggered.connect(lambda _, p=lib_path, i=item: self.controller.move_clipboard_item_to_library(i.text(), p))
