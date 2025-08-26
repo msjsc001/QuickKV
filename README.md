@@ -37,7 +37,7 @@
 
 KVTree 支持用 Markdown 文件无序列表树（大纲）建立词库，建立的词库软件会自动转换生成为 QuickKV 词库
 需要可点击下载使用 → [KVTree](https://github.com/msjsc001/KV-Tree/)
-<img alt="PixPin_2025-08-26_15-06-48" src="https://github.com/user-attachments/assets/5a444929-ee8c-4c63-a36b-4a707d0a47df" />
+<img alt="503D67DE29FDBA7D13832F52DB4007DF" src="https://github.com/user-attachments/assets/78b83c0a-4307-4ed9-9e21-d119b2f80e7d" />
 <img alt="image" src="https://github.com/user-attachments/assets/82fb7bec-96e3-4114-95b5-a813ff73f2e9" />
 
 ---
