@@ -16,13 +16,15 @@ from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, 
                              QGraphicsDropShadowEffect, QPushButton,
                              QInputDialog, QMessageBox, QStyledItemDelegate, QStyle, QFileDialog,
                              QCheckBox, QWidgetAction, QScrollArea, QLabel, QFrame)
-from PySide6.QtCore import (Qt, Signal, Slot, QObject, QFileSystemWatcher,
+from PySide6.QtCore import (Qt, Signal, Slot, QObject,
                           QTimer, QEvent, QRect, QProcess)
 from PySide6.QtGui import QIcon, QAction, QCursor, QPixmap, QPainter, QColor, QPalette, QActionGroup
 import pyperclip
 from pypinyin import pinyin, Style
 from pynput import keyboard
 from fuzzywuzzy import fuzz
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 
 # --- 拼音库修正 ---
 # 导入 pypinyin-dict 的高质量词典数据，以修正 pypinyin 默认词典中的罕见音问题
@@ -113,7 +115,7 @@ ICON_PATH = resource_path("icon.png")
 
 # --- 其他配置 ---
 DEBUG_MODE = True
-VERSION = "1.0.5.40" # 版本号
+VERSION = "1.0.5.41" # 版本号
 
 def log(message):
     if DEBUG_MODE:
@@ -1810,10 +1812,37 @@ class ShortcutListener(QObject):
                 self.thread = None
                 log("快捷码监听服务已停止。")
 
+# --- 文件监控处理器 (Watchdog) ---
+class LibraryChangeHandler(FileSystemEventHandler):
+    """使用 Watchdog 处理文件系统事件的处理器。"""
+    def __init__(self, controller):
+        super().__init__()
+        self.controller = controller
+        log("Watchdog 事件处理器已初始化。")
+
+    def on_any_event(self, event):
+        """
+        捕获所有文件系统事件 (创建, 删除, 修改, 移动)。
+        - 忽略目录事件。
+        - 只关心 .md 文件的变化。
+        - 触发带有防抖功能的重载调度器。
+        """
+        if event.is_directory:
+            return
+
+        # 不论是源路径还是目标路径（用于移动事件），只要是.md文件就触发
+        if event.src_path.endswith('.md') or (hasattr(event, 'dest_path') and event.dest_path.endswith('.md')):
+            log(f"Watchdog 检测到事件: {event.event_type} - {event.src_path}")
+            # 【关键修复】通过发射信号来安全地通知主线程，而不是直接调用方法
+            self.controller.thread_safe_reload_signal.emit()
+
+
 # --- 主控制器 ---
 class MainController(QObject):
     show_popup_signal = Signal()
     hide_popup_signal = Signal()
+    # 新增：用于从 watchdog 线程安全地触发重载的信号
+    thread_safe_reload_signal = Signal()
 
     def __init__(self, app, word_manager, settings_manager):
         super().__init__(); self.app = app; self.word_manager = word_manager; self.settings = settings_manager; self.menu = None; self.auto_library_menu = None
@@ -1834,22 +1863,17 @@ class MainController(QObject):
         if self.settings.shortcut_code_enabled:
             self.shortcut_listener.start()
 
-        self.file_watcher = QFileSystemWatcher(self)
-        self.update_file_watcher()
-        self.file_watcher.fileChanged.connect(self.schedule_reload)
+        # --- 新的 Watchdog 文件监控系统 ---
+        self.full_reload_timer = QTimer(self)
+        self.full_reload_timer.setSingleShot(True)
+        self.full_reload_timer.setInterval(500) # 500ms 防抖
+        self.full_reload_timer.timeout.connect(self.perform_full_reload)
 
-        self.auto_dir_watcher = QFileSystemWatcher(self)
-        if os.path.isdir(AUTO_LOAD_DIR):
-            self.auto_dir_watcher.addPath(AUTO_LOAD_DIR)
-        self.auto_dir_watcher.directoryChanged.connect(self.schedule_auto_lib_scan)
+        # 【关键修复】连接线程安全信号到实际的调度槽
+        self.thread_safe_reload_signal.connect(self.schedule_full_reload)
 
-        self.reload_timer = QTimer(self); self.reload_timer.setSingleShot(True); self.reload_timer.setInterval(300); self.reload_timer.timeout.connect(self.reload_word_file)
-        
-        # 新增：用于延迟扫描自动加载目录的定时器
-        self.auto_scan_timer = QTimer(self)
-        self.auto_scan_timer.setSingleShot(True)
-        self.auto_scan_timer.setInterval(500) # 500ms 延迟
-        self.auto_scan_timer.timeout.connect(self.scan_and_update_auto_libraries)
+        self.observer = None
+        self.start_file_observer()
 
         # 新增：初始化自动重启定时器
         self.auto_restart_timer = QTimer(self)
@@ -1902,25 +1926,79 @@ class MainController(QObject):
         else:
             log("热键触发：打开窗口。"); self.show_popup_signal.emit()
 
-    def update_file_watcher(self):
-        """更新文件监控器以包含所有词库文件"""
-        all_libs = self.settings.libraries + self.settings.auto_libraries
-        paths = [lib['path'] for lib in all_libs]
-        if self.file_watcher.files() != paths:
-            self.file_watcher.removePaths(self.file_watcher.files())
-            self.file_watcher.addPaths(paths)
-            log(f"文件监控器已更新，正在监控: {paths}")
+    def start_file_observer(self):
+        """启动 Watchdog 文件监控线程"""
+        if self.observer and self.observer.is_alive():
+            log("Watchdog 监控已在运行。")
+            return
+
+        self.observer = Observer()
+        event_handler = LibraryChangeHandler(self)
+
+        # 监控所有手动添加的词库所在的目录，以及自动加载目录
+        watched_dirs = set()
+        # 1. 添加自动加载目录
+        if os.path.isdir(AUTO_LOAD_DIR):
+            watched_dirs.add(AUTO_LOAD_DIR)
+
+        # 2. 添加所有手动词库的父目录
+        for lib in self.settings.libraries:
+            dir_path = os.path.dirname(lib['path'])
+            # 检查目录是否存在且未被添加过
+            if os.path.isdir(dir_path):
+                watched_dirs.add(dir_path)
+
+        if not watched_dirs:
+            log("没有找到有效的词库目录来监控。")
+            return
+
+        for path in watched_dirs:
+            try:
+                self.observer.schedule(event_handler, path, recursive=False) # 非递归，只监控指定目录
+                log(f"Watchdog 正在监控目录: {path}")
+            except Exception as e:
+                log(f"CRITICAL: Watchdog 监控目录 {path} 失败: {e}")
+
+        self.observer.start()
+        log("Watchdog 监控线程已启动。")
+
+    def stop_file_observer(self):
+        """停止 Watchdog 文件监控线程"""
+        if self.observer and self.observer.is_alive():
+            self.observer.stop()
+            self.observer.join(timeout=1.5)
+            log("Watchdog 监控线程已停止。")
+        self.observer = None
 
     @Slot()
-    def schedule_reload(self):
-        log("检测到文件变化，安排重载...");
-        self.reload_timer.start()
+    def schedule_full_reload(self):
+        """（防抖）安排一个完整的词库扫描和重载"""
+        log("检测到词库相关变化，安排全量重载...")
+        self.full_reload_timer.start()
+
     @Slot()
-    def reload_word_file(self):
-        log("执行所有词库重载。"); self.word_manager.reload_all()
+    def perform_full_reload(self):
+        """
+        执行完整的词库重新加载流程。
+        1. 重新扫描自动加载目录以发现新/删除的文件。
+        2. 重新加载所有词库数据（利用缓存）。
+        3. 更新快捷码。
+        4. 如果UI可见，刷新列表。
+        """
+        log("--- 开始执行全量重载 ---")
+        # 重新扫描自动加载目录，如果发生变化，则重启监视器
+        if self.scan_and_update_auto_libraries():
+             self.stop_file_observer()
+             self.start_file_observer()
+
+        self.word_manager.reload_all() # 核心：加载所有词库
         if self.shortcut_listener and self.settings.shortcut_code_enabled:
-            self.shortcut_listener.update_shortcuts() # 更新快捷码地图
-        if self.popup.isVisible(): self.popup.update_list(self.popup.search_box.text())
+            self.shortcut_listener.update_shortcuts()
+        if self.popup.isVisible():
+            self.popup.update_list(self.popup.search_box.text())
+        # 重新构建菜单（特别是自动加载菜单）以反映变化
+        self.rebuild_auto_library_menu()
+        log("--- 全量重载完成 ---")
     @Slot(str)
     def on_suggestion_selected(self, text):
         log(f"已选择词条块: '{text}'")
@@ -2026,7 +2104,7 @@ class MainController(QObject):
         if source:
             content = f"- {text}"
             if source.add_entry(content):
-                self.reload_word_file()
+                self.schedule_full_reload()
                 self.popup.search_box.clear()
             else:
                 QMessageBox.warning(self.popup, "错误", f"向 {os.path.basename(target_path)} 添加词条失败！")
@@ -2058,10 +2136,8 @@ class MainController(QObject):
         if dialog.exec():
             new_content = dialog.get_text()
             if source.update_entry(original_content, new_content):
-                if is_clipboard:
-                    self.word_manager.load_clipboard_history()
-                else:
-                    self.reload_word_file()
+                # 统一调用全量重载，它会处理缓存、快捷码和UI刷新
+                self.schedule_full_reload()
                 
                 if self.popup.isVisible():
                     self.popup.update_list(self.popup.search_box.text())
@@ -2101,10 +2177,8 @@ class MainController(QObject):
         
         if dialog.exec() == QDialog.Accepted:
             if source.delete_entry(content):
-                if is_clipboard:
-                    self.word_manager.load_clipboard_history()
-                else:
-                    self.reload_word_file()
+                # 统一调用全量重载
+                self.schedule_full_reload()
                 
                 if self.popup.isVisible():
                     self.popup.update_list(self.popup.search_box.text())
@@ -2120,7 +2194,7 @@ class MainController(QObject):
         source = self.word_manager.get_source_by_path(target_path)
         if source and source.add_entry(f"- {text_to_add}"):
             log(f"已将 '{text_to_add}' 添加到 {os.path.basename(target_path)}")
-            self.reload_word_file() # 重新加载词库以更新缓存
+            self.schedule_full_reload() # 安排重载来更新所有状态
 
             # 3. 从剪贴板历史中删除
             if self.word_manager.clipboard_source.delete_entry(item_content):
@@ -2146,14 +2220,14 @@ class MainController(QObject):
             
             self.settings.libraries.append({"path": file_path, "enabled": True})
             self.settings.save()
-            self.reload_word_file()
+            self.perform_full_reload() # 立即执行重载，因为这是用户直接操作
             self.rebuild_library_menu()
 
     @Slot(str)
     def remove_library(self, path):
         self.settings.libraries = [lib for lib in self.settings.libraries if lib.get('path') != path]
         self.settings.save()
-        self.reload_word_file()
+        self.perform_full_reload() # 立即执行重载
         self.rebuild_library_menu()
 
     @Slot(str)
@@ -2163,7 +2237,7 @@ class MainController(QObject):
                 lib['enabled'] = not lib.get('enabled', True)
                 break
         self.settings.save()
-        self.word_manager.reload_all() # 改为调用 reload_all 以更新缓存
+        self.perform_full_reload() # 立即执行重载
         self.rebuild_library_menu()
 
     @Slot(str)
@@ -2173,7 +2247,7 @@ class MainController(QObject):
                 lib['enabled'] = not lib.get('enabled', True)
                 break
         self.settings.save()
-        self.word_manager.reload_all() # 改为调用 reload_all 以更新缓存
+        self.perform_full_reload() # 立即执行重载
         self.rebuild_auto_library_menu()
 
     def open_auto_load_dir(self):
@@ -2285,6 +2359,7 @@ class MainController(QObject):
         self.hotkey_manager.stop()
         if self.shortcut_listener:
             self.shortcut_listener.stop() # 退出时停止快捷码监听
+        self.stop_file_observer() # 确保停止 watchdog
         log("所有监听器已停止，程序准备退出。")
 
     @Slot()
@@ -2539,45 +2614,46 @@ class MainController(QObject):
             QMessageBox.warning(self.popup, "错误", f"无法打开文件夹路径：\n{HELP_DOCS_DIR}\n\n错误: {e}")  
 
     def scan_and_update_auto_libraries(self):
-        """扫描自动加载文件夹，同步词库列表并保存状态"""
+        """
+        扫描自动加载文件夹，同步词库列表并保存状态。
+        返回一个布尔值，指示列表是否发生了变化。
+        """
         log("开始扫描自动加载词库文件夹...")
         if not os.path.isdir(AUTO_LOAD_DIR):
-            log(f"自动加载目录不存在: {AUTO_LOAD_DIR}")
-            self.rebuild_auto_library_menu() # 确保即使目录被删除，菜单也能刷新
-            return
+            if self.settings.auto_libraries:
+                log(f"自动加载目录不存在: {AUTO_LOAD_DIR}，清空配置。")
+                self.settings.auto_libraries = []
+                self.settings.save()
+                return True # 发生了变化
+            return False
 
         try:
             found_files = {os.path.join(AUTO_LOAD_DIR, f) for f in os.listdir(AUTO_LOAD_DIR) if f.endswith('.md')}
         except Exception as e:
             log(f"扫描自动加载目录时出错: {e}")
-            return
+            return False
 
         existing_paths = {lib['path'] for lib in self.settings.auto_libraries}
         
         new_files = found_files - existing_paths
         removed_files = existing_paths - found_files
         
-        changed = False
+        if not new_files and not removed_files:
+            return False # 无变化
+
+        # 如果有变化，则进行处理
         if new_files:
             for path in new_files:
                 self.settings.auto_libraries.append({"path": path, "enabled": True})
                 log(f"发现并添加新自动词库: {os.path.basename(path)}")
-            changed = True
 
         if removed_files:
             self.settings.auto_libraries = [lib for lib in self.settings.auto_libraries if lib['path'] not in removed_files]
             for path in removed_files:
                 log(f"移除不存在的自动词库: {os.path.basename(path)}")
-            changed = True
-
-        if changed:
-            self.settings.save()
-            self.reload_word_file() # 重新加载所有词库
-            self.rebuild_auto_library_menu()
-        else:
-            # 如果没有变化，但菜单是空的（可能在启动时），也强制刷新一次
-            if not self.auto_library_menu.actions():
-                self.rebuild_auto_library_menu()
+        
+        self.settings.save()
+        return True # 确认发生了变化
 
 
 # --- main入口 ---
