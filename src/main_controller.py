@@ -92,6 +92,12 @@ class MainController(QObject):
         self.hotkey_manager.hotkey_triggered.connect(self.on_hotkey_triggered)
         if self.settings.hotkeys_enabled:
             self.hotkey_manager.start()
+            
+        # 初始化连续字符串盲打触发器
+        self.hotkey_manager.update_string_trigger(
+            self.settings.string_trigger_enabled, 
+            self.settings.string_trigger_str
+        )
 
         # 新增：初始化快捷码监听器
         self.shortcut_listener = ShortcutListener(self.word_manager)
@@ -706,21 +712,47 @@ class MainController(QObject):
 
     @Slot()
     def set_hotkey(self):
-        """弹出对话框以设置新的快捷键"""
+        """弹出对话框以设置新的快捷键或触发字符串"""
         dialog = HotkeyDialog(
             parent=self.popup,
             current_hotkey=self.settings.hotkey,
+            current_hotkey_enabled=self.settings.hotkeys_enabled,
+            current_string_trigger_enabled=self.settings.string_trigger_enabled,
+            current_string_trigger_str=self.settings.string_trigger_str,
             theme=THEMES[self.settings.theme],
             font_size=self.settings.font_size
         )
         if dialog.exec():
-            new_hotkey = dialog.get_hotkey()
-            if new_hotkey and new_hotkey != self.settings.hotkey:
-                self.settings.hotkey = new_hotkey
+            hot_en, hot_str, str_en, str_val = dialog.get_settings()
+            
+            changed = False
+            if hot_en != self.settings.hotkeys_enabled:
+                self.settings.hotkeys_enabled = hot_en
+                changed = True
+            if hot_str != self.settings.hotkey:
+                self.settings.hotkey = hot_str
+                changed = True
+            if str_en != self.settings.string_trigger_enabled:
+                self.settings.string_trigger_enabled = str_en
+                changed = True
+            if str_val != self.settings.string_trigger_str:
+                self.settings.string_trigger_str = str_val
+                changed = True
+                
+            if changed:
                 self.settings.save()
-                self.hotkey_manager.reregister(new_hotkey)
-                log(f"快捷键已更新为: {new_hotkey}")
-                QMessageBox.information(None, "成功", f"快捷键已更新为 {new_hotkey}！\n请注意，某些组合键可能被系统或其他程序占用。")
+                
+                # 更新组合键
+                if hot_en:
+                    self.hotkey_manager.reregister(hot_str)
+                else:
+                    self.hotkey_manager.unregister_all()
+                
+                # 更新连续字符串触发器
+                self.hotkey_manager.update_string_trigger(str_en, str_val)
+                
+                log(f"触发配置已更新 | 组合键: {hot_en} '{hot_str}' | 连续字符串: {str_en} '{str_val}'")
+                QMessageBox.information(None, "成功", "触发方式设置已更新！")
 
     def apply_menu_theme(self, menu=None):
         target_menu = menu if menu else self.menu

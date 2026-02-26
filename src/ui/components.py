@@ -247,48 +247,111 @@ class HotkeyLineEdit(QLineEdit):
     def get_hotkey(self):
         return self.hotkey
 class HotkeyDialog(QDialog):
-    def __init__(self, parent=None, current_hotkey="", theme=None, font_size=14):
+    def __init__(self, parent=None, current_hotkey="", current_hotkey_enabled=True, 
+                 current_string_trigger_enabled=False, current_string_trigger_str="//", 
+                 theme=None, font_size=14):
         super().__init__(parent)
-        self.setWindowTitle("设置快捷键")
-        self.setMinimumWidth(350)
+        self.setWindowTitle("设置触发方式")
+        self.setMinimumWidth(400)
         
         layout = QVBoxLayout(self)
-        
-        info_label = QLabel("请点击下方输入框，然后按下您想设置的快捷键组合。")
-        layout.addWidget(info_label)
+
+        # --- 组 1：传统组合热键 ---
+        self.hotkey_check = QCheckBox("启用键盘组合快捷键 (全局生效)")
+        self.hotkey_check.setChecked(current_hotkey_enabled)
+        layout.addWidget(self.hotkey_check)
         
         self.hotkey_input = HotkeyLineEdit(self)
         self.hotkey_input.setText(current_hotkey)
         self.hotkey_input.hotkey = current_hotkey
+        
+        # 联动状态
+        self.hotkey_input.setEnabled(current_hotkey_enabled)
+        self.hotkey_check.toggled.connect(self.hotkey_input.setEnabled)
+        
         layout.addWidget(self.hotkey_input)
         
+        # 分隔线
+        line = QFrame()
+        line.setFrameShape(QFrame.HLine)
+        line.setFrameShadow(QFrame.Sunken)
+        layout.addWidget(line)
+
+        # --- 组 2：连续字符触发 ---
+        self.str_trigger_check = QCheckBox("启用连续字符串盲打触发 (类似 //)")
+        self.str_trigger_check.setChecked(current_string_trigger_enabled)
+        layout.addWidget(self.str_trigger_check)
+        
+        self.str_trigger_input = QLineEdit(self)
+        self.str_trigger_input.setPlaceholderText("请输入英文字符序列（至少2位）")
+        self.str_trigger_input.setText(current_string_trigger_str)
+        self.str_trigger_input.setMaxLength(10)
+        
+        # 联动状态
+        self.str_trigger_input.setEnabled(current_string_trigger_enabled)
+        self.str_trigger_check.toggled.connect(self.str_trigger_input.setEnabled)
+        
+        layout.addWidget(self.str_trigger_input)
+        
+        # 提示标签
+        self.str_info_label = QLabel("提示：此模式会在后台监听击键，当连续命中时，会自动删掉您打出的字符并立刻呼出搜索框。\n安全起见，长度必须 >= 2，推荐设为 '//'。")
+        self.str_info_label.setWordWrap(True)
+        layout.addWidget(self.str_info_label)
+
+        # --- 底部按钮区 ---
         button_layout = QHBoxLayout()
-        self.restore_button = QPushButton("恢复默认(ctrl+space)")
+        self.restore_button = QPushButton("恢复默认配置")
         self.restore_button.clicked.connect(self.restore_default)
         button_layout.addWidget(self.restore_button)
         button_layout.addStretch()
         
         self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
-        self.button_box.accepted.connect(self.accept)
+        self.button_box.accepted.connect(self.validate_and_accept)
         self.button_box.rejected.connect(self.reject)
         button_layout.addWidget(self.button_box)
         
         layout.addLayout(button_layout)
         
         if theme:
-            self.apply_theme(theme, font_size, info_label)
+            self.apply_theme(theme, font_size, self.str_info_label)
 
     def restore_default(self):
+        self.hotkey_check.setChecked(True)
         self.hotkey_input.setText("ctrl+space")
         self.hotkey_input.hotkey = "ctrl+space"
+        self.str_trigger_check.setChecked(False)
+        self.str_trigger_input.setText("//")
 
-    def get_hotkey(self):
-        return self.hotkey_input.get_hotkey()
+    def validate_and_accept(self):
+        str_val = self.str_trigger_input.text().strip()
+        if self.str_trigger_check.isChecked() and len(str_val) < 2:
+            QMessageBox.warning(self, "设置错误", "【连续字符串触发】的字符序列长度必须大于等于 2！\n推荐使用 '//'。")
+            self.str_trigger_input.setFocus()
+            return
+        self.accept()
+
+    def get_settings(self):
+        return (
+            self.hotkey_check.isChecked(),
+            self.hotkey_input.get_hotkey(),
+            self.str_trigger_check.isChecked(),
+            self.str_trigger_input.text().strip()
+        )
 
     def apply_theme(self, theme, font_size, info_label):
         self.setStyleSheet(f"QDialog {{ background-color: {theme['bg_color']}; color: {theme['text_color']}; }}")
         info_label.setStyleSheet(f"QLabel {{ color: {theme['text_color']}; font-size: {font_size-1}px; }}")
-        self.hotkey_input.setStyleSheet(f"""
+        
+        checkbox_style = f"""
+            QCheckBox {{
+                color: {theme['text_color']};
+                font-size: {font_size}px;
+            }}
+        """
+        self.hotkey_check.setStyleSheet(checkbox_style)
+        self.str_trigger_check.setStyleSheet(checkbox_style)
+
+        line_edit_style = f"""
             QLineEdit {{
                 background-color: {theme['input_bg_color']};
                 color: {theme['text_color']};
@@ -297,7 +360,9 @@ class HotkeyDialog(QDialog):
                 padding: 8px;
                 font-size: {font_size}px;
             }}
-        """)
+        """
+        self.hotkey_input.setStyleSheet(line_edit_style)
+        self.str_trigger_input.setStyleSheet(line_edit_style)
         btn_style = f"""
             QPushButton {{
                 background-color: {theme['input_bg_color']};

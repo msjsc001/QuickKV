@@ -99,7 +99,7 @@ CACHE_FILE = os.path.join(USER_DATA_DIR, "cache.json")
 ICON_PATH = resource_path("icon.png")
 
 DEBUG_MODE = True
-VERSION = "1.2.3" # Updated version
+VERSION = "1.3.0" # Updated version
 
 def log(message):
     if DEBUG_MODE:

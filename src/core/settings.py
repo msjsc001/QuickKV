@@ -71,6 +71,11 @@ class SettingsManager:
             self.hotkeys_enabled = self.config.getboolean('General', 'hotkeys_enabled', fallback=True)
             self.shortcut_code_enabled = self.config.getboolean('General', 'shortcut_code_enabled', fallback=False)
             self.hotkey = self.config.get('General', 'hotkey', fallback='ctrl+space')
+            
+            # --- 新增：连续字符串触发器 ---
+            self.string_trigger_enabled = self.config.getboolean('General', 'string_trigger_enabled', fallback=False)
+            self.string_trigger_str = self.config.get('General', 'string_trigger_str', fallback='//')
+            
             self.paste_mode = self.config.get('Paste', 'mode', fallback='ctrl_v')
             self.width = self.config.getint('Window', 'width', fallback=450)
             self.height = self.config.getint('Window', 'height', fallback=300)
@@ -144,6 +149,10 @@ class SettingsManager:
         self.config['Restart']['interval_minutes'] = str(self.auto_restart_interval)
         self.config['Paste']['mode'] = self.paste_mode
         self.config['General']['accepted_disclaimer_info'] = json.dumps(self.accepted_disclaimer_info, ensure_ascii=False)
+        
+        # --- 新增：连续字符串触发器 ---
+        self.config['General']['string_trigger_enabled'] = str(self.string_trigger_enabled)
+        self.config['General']['string_trigger_str'] = self.string_trigger_str
         
         with open(self.file_path, 'w', encoding='utf-8') as configfile:
             self.config.write(configfile)
