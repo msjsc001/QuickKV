@@ -1,4 +1,4 @@
-# ⌨️ QuickKV 轻量级中文自动补全拓展软件
+# ⌨️ QuickKV （Q-KV）轻量级中文自动补全拓展软件
 <img width="1916" height="993" alt="PixPin_2025-07-28_13-36-22" src="https://github.com/user-attachments/assets/7f852744-81a3-4f0f-a050-7a5bb702c76c" />
 
 <p align="center">
