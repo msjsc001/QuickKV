@@ -61,7 +61,13 @@ class StyledItemDelegate(QStyledItemDelegate):
 
         # 考虑到绘制时的 padding 
         padding_h = 8
-        available_width = option.rect.width() - padding_h * 2
+        
+        # 修复：获取 listwidget 的安全纯视口宽度，防止横行滚动条导致的内部画布无限扩张
+        # 备用容错：如果 option.widget 未传入， fallback 回 option.rect.width()
+        if option.widget:
+             available_width = option.widget.viewport().width() - padding_h * 2
+        else:
+             available_width = option.rect.width() - padding_h * 2
         
         # 为来源标签预留一点右侧空间防止被挡住（如果单行且显示标签）
         if self.settings.show_source_enabled and not self.settings.word_wrap_enabled:
@@ -89,7 +95,7 @@ class StyledItemDelegate(QStyledItemDelegate):
         base_color = theme['item_selected_text'] if is_selected else theme['text_color']
 
         html_parts = []
-        html_parts.append(f'<div style="color: {base_color};">')
+        html_parts.append(f'<div style="color: {base_color}; white-space: pre-wrap;">')
 
         char_offset = 0
         for i, line in enumerate(lines):
@@ -185,7 +191,12 @@ class StyledItemDelegate(QStyledItemDelegate):
                 painter.setRenderHint(QPainter.Antialiasing)
                 
                 badge_font = option.font
-                badge_font.setPointSizeF(badge_font.pointSizeF() * 0.8) # 字体缩小一点
+                # 处理字体大小计算，防止有些字体默认未设置PointSize返回-1导致的警告
+                if badge_font.pointSizeF() > 0:
+                    badge_font.setPointSizeF(badge_font.pointSizeF() * 0.8)
+                elif badge_font.pixelSize() > 0:
+                    badge_font.setPixelSize(int(badge_font.pixelSize() * 0.8))
+                    
                 painter.setFont(badge_font)
                 fm = painter.fontMetrics()
                 
@@ -197,8 +208,14 @@ class StyledItemDelegate(QStyledItemDelegate):
                 badge_width = text_width + b_pad_h * 2
                 badge_height = text_height + b_pad_v * 2
                 
-                # 固定在区域右下角，上面留出1px边距避免压线
-                badge_x = rect.right() - badge_width - 8
+                # 修复：确保徽章固定在可视区内 (viewport) 的右侧，而不是整个无限延展的 rect 右侧
+                if option.widget:
+                    visible_right = option.widget.viewport().width()
+                else:
+                    visible_right = rect.right()
+                
+                # 固定在区域右下角，留出边距
+                badge_x = rect.left() + visible_right - badge_width - 8
                 badge_y = rect.bottom() - badge_height - 3
                 badge_rect = QRectF(badge_x, badge_y, badge_width, badge_height)
                 
@@ -221,6 +238,9 @@ class StyledItemDelegate(QStyledItemDelegate):
     def sizeHint(self, option, index):
         full_text = index.data(Qt.DisplayRole)
         block_data = index.data(Qt.UserRole)
+        
+        # 为了精确计算高度，我们必须在 sizeHint 中就注入正确的可用宽度
+        # 覆写 option 的 rect.width 为 viewport 的宽度，或者直接在 _create_text_document 内部判断
         
         doc = self._create_text_document(full_text, option, block_data)
         

@@ -356,6 +356,12 @@ class SearchPopup(QWidget):
     
     @Slot(str)
     def update_list(self, text):
+        # 根据设置动态调整横向滚动条状态
+        if self.settings.word_wrap_enabled:
+            self.list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        else:
+            self.list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+
         self.list_widget.clear()
         matched_blocks = self.word_manager.find_matches(
             text, self.settings.multi_word_search, self.settings.pinyin_initial_search
@@ -449,20 +455,20 @@ class SearchPopup(QWidget):
             menu.addMenu(add_to_library_menu)
 
             edit_action = QAction("编辑", self)
-            edit_action.triggered.connect(lambda: self.edit_item(item))
+            edit_action.triggered.connect(lambda _, i=item: self.edit_item(i))
             menu.addAction(edit_action)
 
             delete_action = QAction("删除", self)
-            delete_action.triggered.connect(lambda: self.delete_item(item))
+            delete_action.triggered.connect(lambda _, i=item: self.delete_item(i))
             menu.addAction(delete_action)
         else:
             # 普通词库的右键菜单
             edit_action = QAction("编辑", self)
-            edit_action.triggered.connect(lambda: self.edit_item(item))
+            edit_action.triggered.connect(lambda _, i=item: self.edit_item(i))
             menu.addAction(edit_action)
 
             delete_action = QAction("删除", self)
-            delete_action.triggered.connect(lambda: self.delete_item(item))
+            delete_action.triggered.connect(lambda _, i=item: self.delete_item(i))
             menu.addAction(delete_action)
         
         # 应用主题
