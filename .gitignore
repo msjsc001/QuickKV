@@ -206,3 +206,10 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 剪贴板词库.md
+
+# QuickKV Local Data
+src/用户数据/
+src/MD词库-需自动载入的请放入/
+src/剪贴板词库-勿删.md
+src/剪贴板词库.md
+*.bak

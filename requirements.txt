@@ -1,0 +1,8 @@
+PySide6
+pyperclip
+pypinyin
+pypinyin-dict
+pynput
+fuzzywuzzy
+python-Levenshtein
+watchdog
