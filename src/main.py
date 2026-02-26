@@ -50,9 +50,8 @@ from PySide6.QtNetwork import QLocalServer, QLocalSocket
 # --- main入口 ---
 if __name__ == "__main__":
     # --- 启用高DPI支持 ---
+    # PySide6 默认启用缩放，仅保留取整策略即可
     QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
-    QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
-    QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
     
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)

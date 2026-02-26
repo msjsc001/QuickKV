@@ -44,35 +44,67 @@ from core.config import *
 # --- 编辑对话框 ---
 from PySide6.QtWidgets import QDialog, QTextEdit, QDialogButtonBox
 
+class MarkdownTextEdit(QTextEdit):
+    """自定义文本框，优化 Markdown 编写体验"""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        # 强制开启自动换行
+        self.setLineWrapMode(QTextEdit.WidgetWidth)
+        self.setAcceptRichText(False)
+        
+        # 覆写 Tab 宽度为 4 个空格物理宽度，避免由于默认 80px Tab 导致的无序列表极度退缩
+        font_metrics = self.fontMetrics()
+        space_width = font_metrics.horizontalAdvance(' ')
+        self.setTabStopDistance(space_width * 4)
+
+    def keyPressEvent(self, event):
+        # 将 Tab 键替换为 4 个空格，方便 Markdown 列表缩进
+        if event.key() == Qt.Key_Tab:
+            self.insertPlainText("    ")
+            return
+        super().keyPressEvent(event)
+
 class EditDialog(QDialog):
     def __init__(self, parent=None, current_text="", theme=None, font_size=14):
         super().__init__(parent)
         self.setWindowTitle("编辑词条")
         self.setLayout(QVBoxLayout())
+        self.layout().setContentsMargins(12, 12, 12, 12)
         
-        self.text_edit = QTextEdit(self)
+        self.text_edit = MarkdownTextEdit(self)
         self.text_edit.setPlainText(current_text)
         self.layout().addWidget(self.text_edit)
         
         self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
+        
+        # 将按钮栏稍微往下压一点
+        self.layout().addSpacing(5)
         self.layout().addWidget(self.button_box)
         
-        self.resize(400, 300)
+        # 扩大默认尺寸给 Markdown 提供呼吸空间
+        self.resize(600, 450)
         if theme:
             self.apply_theme(theme, font_size)
 
     def apply_theme(self, theme, font_size):
         self.setStyleSheet(f"background-color: {theme['bg_color']}; color: {theme['text_color']};")
+        
+        # 针对代码/Markdown强制使用等宽字体族群，并增加行边距
+        font_family = 'Consolas, "Courier New", monospace, "Microsoft YaHei"'
+        
         self.text_edit.setStyleSheet(f"""
             QTextEdit {{
                 background-color: {theme['input_bg_color']};
                 color: {theme['text_color']};
                 border: 1px solid {theme['border_color']};
-                border-radius: 4px;
-                padding: 8px;
+                border-radius: 6px;
+                padding: 10px;
+                font-family: {font_family};
                 font-size: {font_size}px;
+                selection-background-color: {theme['item_selected_bg']};
+                selection-color: {theme['item_selected_text']};
             }}
         """)
         # 简单按钮样式
@@ -81,8 +113,9 @@ class EditDialog(QDialog):
                 background-color: {theme['input_bg_color']};
                 color: {theme['text_color']};
                 border: 1px solid {theme['border_color']};
-                padding: 5px 15px;
+                padding: 6px 16px;
                 border-radius: 4px;
+                font-family: "Microsoft YaHei";
             }}
             QPushButton:hover {{
                 background-color: {theme['item_hover_bg']};

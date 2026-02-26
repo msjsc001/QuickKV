@@ -170,25 +170,35 @@ class WordManager:
         self.cache = self._load_cache()
         
         all_libs = self.settings.libraries + self.settings.auto_libraries
-        enabled_paths = {lib['path'] for lib in all_libs if lib.get('enabled', True)}
         
+        # 修复因 Windows 盘符大小写不一致 (D:\ vs d:\) 导致的重复加载问题
+        enabled_paths_map = {}
+        for lib in all_libs:
+            if lib.get('enabled', True):
+                norm_path = os.path.normcase(os.path.abspath(lib['path']))
+                # 以规范化路径去重，保留最初始的路径形式去读取和报错
+                enabled_paths_map[norm_path] = lib['path']
+        
+        unique_enabled_paths = set(enabled_paths_map.values())
+        norm_to_original = enabled_paths_map
+
         new_word_blocks = []
         cache_updated = False
 
-        for path in enabled_paths:
-            current_hash = self._get_file_hash(path)
-            cached_file = self.cache.get(path)
+        for norm_path, original_path in norm_to_original.items():
+            current_hash = self._get_file_hash(original_path)
+            cached_file = self.cache.get(norm_path)
 
             if cached_file and cached_file.get('hash') == current_hash:
-                log(f"缓存命中: {os.path.basename(path)}")
+                log(f"缓存命中: {os.path.basename(original_path)}")
                 new_word_blocks.extend(cached_file['data'])
             else:
-                log(f"缓存未命中或已过期: {os.path.basename(path)}")
-                source = WordSource(path) # WordSource.load() is called here
+                log(f"缓存未命中或已过期: {os.path.basename(original_path)}")
+                source = WordSource(original_path) # WordSource.load() is called here
                 
                 preprocessed_data = [self._preprocess_block(block) for block in source.word_blocks]
                 
-                self.cache[path] = {
+                self.cache[norm_path] = {
                     "hash": current_hash,
                     "data": preprocessed_data
                 }
@@ -196,7 +206,7 @@ class WordManager:
                 cache_updated = True
 
         # 移除缓存中不再启用的词库
-        paths_to_remove = set(self.cache.keys()) - enabled_paths
+        paths_to_remove = set(self.cache.keys()) - set(norm_to_original.keys())
         if paths_to_remove:
             for path in paths_to_remove:
                 del self.cache[path]
@@ -208,7 +218,7 @@ class WordManager:
         if cache_updated:
             self._save_cache()
 
-        log(f"已聚合 {len(self.word_blocks)} 个词条从 {len(enabled_paths)} 个启用的词库。")
+        log(f"已聚合 {len(self.word_blocks)} 个词条从 {len(unique_enabled_paths)} 个启用的词库。")
         
         # 加载剪贴板历史（它不使用主缓存）
         self.load_clipboard_history()
@@ -427,8 +437,9 @@ class WordManager:
         通过路径获取 WordSource 对象。
         如果内存中不存在，则会创建一个新的临时实例。
         """
+        norm_search_path = os.path.normcase(os.path.abspath(path))
         for source in self.sources:
-            if source.file_path == path:
+            if os.path.normcase(os.path.abspath(source.file_path)) == norm_search_path:
                 return source
         
         # 如果在 self.sources 中找不到，说明可能是个刚添加或变动的词库

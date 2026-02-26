@@ -44,10 +44,26 @@ class StyledItemDelegate(QStyledItemDelegate):
         super().__init__()
         self.themes = themes
         self.settings = settings
+        # 【性能优化】富文本渲染缓存，避免滚动时疯狂重新计算布局
+        # Cache Key: (text_hash, width, is_selected, theme_name)
+        self._doc_cache = {}
 
-    def _create_text_document(self, text, option, block_data):
+    def _create_text_document(self, text, option, block_data, is_selected=False):
         from PySide6.QtGui import QTextDocument, QTextOption, QTextCursor, QTextCharFormat, QFont
         
+        # 计算可用宽度作为缓存维度之一
+        available_width = option.rect.width()
+        text_hash = hash(text)
+        
+        # 获取高亮组并字符串化作为缓存键的一部分，应对搜索词改变但文本不变时的高亮更新
+        highlight_groups = block_data.get('highlight_groups', {}) if self.settings.highlight_matches else {}
+        highlight_key = str(highlight_groups)
+        
+        cache_key = (text_hash, available_width, bool(is_selected), self.settings.theme, highlight_key)
+        
+        if cache_key in self._doc_cache:
+            return self._doc_cache[cache_key]
+
         doc = QTextDocument()
         doc.setDefaultFont(option.font)
         
@@ -141,6 +157,8 @@ class StyledItemDelegate(QStyledItemDelegate):
         # 调整文档的边距，对应原先的 padding_v = 5
         doc.setDocumentMargin(0) 
         
+        # 存入缓存
+        self._doc_cache[cache_key] = doc
         return doc
 
 
@@ -151,8 +169,10 @@ class StyledItemDelegate(QStyledItemDelegate):
         full_text = index.data(Qt.DisplayRole)
         block_data = index.data(Qt.UserRole)
         
+        is_selected = bool(option.state & QStyle.State_Selected)
+
         # 绘制背景
-        if option.state & QStyle.State_Selected:
+        if is_selected:
             painter.fillRect(rect, QColor(theme['item_selected_bg']))
         elif option.state & QStyle.State_MouseOver:
             painter.fillRect(rect, QColor(theme['item_hover_bg']))
@@ -160,7 +180,7 @@ class StyledItemDelegate(QStyledItemDelegate):
             painter.fillRect(rect, QColor(theme['bg_color']))
 
         # 创建 QTextDocument 以支持换行和HTML高亮
-        doc = self._create_text_document(full_text, option, block_data)
+        doc = self._create_text_document(full_text, option, block_data, is_selected=is_selected)
         
         padding_v = 5
         padding_h = 8
@@ -239,10 +259,12 @@ class StyledItemDelegate(QStyledItemDelegate):
         full_text = index.data(Qt.DisplayRole)
         block_data = index.data(Qt.UserRole)
         
+        is_selected = bool(option.state & QStyle.State_Selected)
+
         # 为了精确计算高度，我们必须在 sizeHint 中就注入正确的可用宽度
         # 覆写 option 的 rect.width 为 viewport 的宽度，或者直接在 _create_text_document 内部判断
         
-        doc = self._create_text_document(full_text, option, block_data)
+        doc = self._create_text_document(full_text, option, block_data, is_selected=is_selected)
         
         padding_v = 5
         # 返回文档计算出的实际高度加上上下边距

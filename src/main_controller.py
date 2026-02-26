@@ -42,7 +42,7 @@ import builtins
 # Dependency Injection
 from core.config import *
 from ui.search_popup import SearchPopup
-from ui.components import HotkeyDialog, DisclaimerDialog, ScrollableMessageBox, get_disclaimer_html_text
+from ui.components import HotkeyDialog, DisclaimerDialog, ScrollableMessageBox, get_disclaimer_html_text, EditDialog
 from services.hotkey_manager import NativeHotkeyManager
 from services.shortcut_listener import ShortcutListener
 from PySide6.QtNetwork import QLocalServer, QLocalSocket

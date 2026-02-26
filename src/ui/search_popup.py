@@ -109,7 +109,15 @@ class SearchPopup(QWidget):
         self.apply_theme()
         self.resize(self.settings.width, self.settings.height)
         self.setMinimumSize(250, 150) # 设置一个合理的最小尺寸
-        self.search_box.textChanged.connect(self.update_list)
+        
+        # 【性能优化】搜索框防抖 (Debounce)
+        # 避免极速打字时每敲一个字母触发一次几十万级别的全库搜寻尖刺
+        self.search_debounce_timer = QTimer(self)
+        self.search_debounce_timer.setSingleShot(True)
+        self.search_debounce_timer.setInterval(200) # 停顿200毫秒才开始搜寻
+        self.search_debounce_timer.timeout.connect(self._trigger_update_list)
+        self.search_box.textChanged.connect(self.search_debounce_timer.start)
+        
         self.list_widget.itemClicked.connect(self.on_item_selected)
         self.list_widget.itemActivated.connect(self.on_item_selected)
         # 【终极修复】连接信号，在选中项改变时强制刷新整个列表，杜绝一切渲染残留
@@ -354,6 +362,11 @@ class SearchPopup(QWidget):
         self.update_list("")
         self.show() # 只显示，不激活，不设置焦点
     
+    @Slot()
+    def _trigger_update_list(self):
+        """防抖定时器触发的实际搜索"""
+        self.update_list(self.search_box.text())
+
     @Slot(str)
     def update_list(self, text):
         # 根据设置动态调整横向滚动条状态
@@ -450,25 +463,25 @@ class SearchPopup(QWidget):
                         continue
                     lib_name = os.path.basename(lib_path)
                     action = QAction(lib_name, self)
-                    action.triggered.connect(lambda _, p=lib_path, i=item: self.controller.move_clipboard_item_to_library(i.text(), p))
+                    action.triggered.connect(lambda checked=False, p=lib_path, i=item: self.controller.move_clipboard_item_to_library(i.text(), p))
                     add_to_library_menu.addAction(action)
             menu.addMenu(add_to_library_menu)
 
             edit_action = QAction("编辑", self)
-            edit_action.triggered.connect(lambda _, i=item: self.edit_item(i))
+            edit_action.triggered.connect(lambda checked=False, i=item: self.edit_item(i))
             menu.addAction(edit_action)
 
             delete_action = QAction("删除", self)
-            delete_action.triggered.connect(lambda _, i=item: self.delete_item(i))
+            delete_action.triggered.connect(lambda checked=False, i=item: self.delete_item(i))
             menu.addAction(delete_action)
         else:
             # 普通词库的右键菜单
             edit_action = QAction("编辑", self)
-            edit_action.triggered.connect(lambda _, i=item: self.edit_item(i))
+            edit_action.triggered.connect(lambda checked=False, i=item: self.edit_item(i))
             menu.addAction(edit_action)
 
             delete_action = QAction("删除", self)
-            delete_action.triggered.connect(lambda _, i=item: self.delete_item(i))
+            delete_action.triggered.connect(lambda checked=False, i=item: self.delete_item(i))
             menu.addAction(delete_action)
         
         # 应用主题
