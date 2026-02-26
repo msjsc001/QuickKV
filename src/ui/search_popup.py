@@ -155,20 +155,20 @@ class SearchPopup(QWidget):
         if event.button() == Qt.LeftButton:
             pos = event.position().toPoint()
             global_pos = event.globalPosition().toPoint()
-            log(f"mousePressEvent: pos={pos}, global_pos={global_pos}")
+            # log(f"mousePressEvent: pos={pos}, global_pos={global_pos}")
             self._update_resize_cursor(pos) # 在按下时就判断是否在边缘
 
             if any(self.resize_edge.values()):
                 self.resizing = True
                 self.resize_start_pos = global_pos
                 self.resize_start_geom = self.geometry()
-                log(f"开始缩放: resize_edge={self.resize_edge}")
-            # 仅当鼠标在标题栏区域（例如高度小于35）且未点击关闭按钮时，才开始拖动
-            elif pos.y() < 35:
+                # log(f"开始缩放: resize_edge={self.resize_edge}")
+            # 仅当鼠标在标题栏区域（例如高度小于35）且未点击关闭按钮时，才开始拖动，并且此时不应该处于缩放状态
+            elif pos.y() < 35 and not self.resizing:
                 actual_widget = QApplication.widgetAt(global_pos)
                 if actual_widget != self.close_button:
                     self.drag_position = global_pos - self.frameGeometry().topLeft()
-                    log(f"开始拖动: drag_position={self.drag_position}")
+                    # log(f"开始拖动: drag_position={self.drag_position}")
             event.accept()
         super().mousePressEvent(event)
 
