@@ -121,19 +121,27 @@ class SearchPopup(QWidget):
         self.list_widget.setContextMenuPolicy(Qt.CustomContextMenu)
         self.list_widget.customContextMenuRequested.connect(self.show_list_widget_context_menu)
 
+        # 【关键修复】为所有子控件安装事件过滤器
+        # 无边框窗口中，QLineEdit/QListWidget等交互控件会抢占鼠标事件，
+        # 导致窗口边缘的缩放逻辑无法被触发。通过事件过滤器拦截边缘区域的鼠标事件来解决。
+        for w in [self.container, self.search_box, self.list_widget,
+                  self.list_widget.viewport(), self.title_label, self.close_button]:
+            w.installEventFilter(self)
+
     @Slot()
     def force_list_update(self):
         """强制列表视口刷新"""
         self.list_widget.viewport().update()
 
-    def _update_resize_cursor(self, pos):
+    def _check_edge(self, window_pos):
+        """检查窗口坐标是否处于边缘区域，更新 resize_edge 字典并返回对应的光标形状（或 None）。"""
         m = self.resize_margin
         rect = self.rect()
-        
-        on_top = abs(pos.y()) < m
-        on_bottom = abs(pos.y() - rect.height()) < m
-        on_left = abs(pos.x()) < m
-        on_right = abs(pos.x() - rect.width()) < m
+
+        on_top = abs(window_pos.y()) < m
+        on_bottom = abs(window_pos.y() - rect.height()) < m
+        on_left = abs(window_pos.x()) < m
+        on_right = abs(window_pos.x() - rect.width()) < m
 
         self.resize_edge["top"] = on_top
         self.resize_edge["bottom"] = on_bottom
@@ -141,13 +149,89 @@ class SearchPopup(QWidget):
         self.resize_edge["right"] = on_right
 
         if (on_top and on_left) or (on_bottom and on_right):
-            self.setCursor(Qt.SizeFDiagCursor)
+            return Qt.SizeFDiagCursor
         elif (on_top and on_right) or (on_bottom and on_left):
-            self.setCursor(Qt.SizeBDiagCursor)
+            return Qt.SizeBDiagCursor
         elif on_top or on_bottom:
-            self.setCursor(Qt.SizeVerCursor)
+            return Qt.SizeVerCursor
         elif on_left or on_right:
-            self.setCursor(Qt.SizeHorCursor)
+            return Qt.SizeHorCursor
+        return None
+
+    def _apply_resize_geometry(self, global_pos):
+        """根据当前缩放边缘和鼠标全局位置，计算并设置新的窗口几何尺寸。"""
+        delta = global_pos - self.resize_start_pos
+        new_geom = QRect(self.resize_start_geom)
+
+        if self.resize_edge["top"]: new_geom.setTop(self.resize_start_geom.top() + delta.y())
+        if self.resize_edge["bottom"]: new_geom.setBottom(self.resize_start_geom.bottom() + delta.y())
+        if self.resize_edge["left"]: new_geom.setLeft(self.resize_start_geom.left() + delta.x())
+        if self.resize_edge["right"]: new_geom.setRight(self.resize_start_geom.right() + delta.x())
+
+        # 确保尺寸不会小于最小值
+        if new_geom.width() < self.minimumWidth():
+            if self.resize_edge["left"]: new_geom.setLeft(self.resize_start_geom.right() - self.minimumWidth())
+            else: new_geom.setWidth(self.minimumWidth())
+        if new_geom.height() < self.minimumHeight():
+            if self.resize_edge["top"]: new_geom.setTop(self.resize_start_geom.bottom() - self.minimumHeight())
+            else: new_geom.setHeight(self.minimumHeight())
+
+        self.setGeometry(new_geom)
+
+    def eventFilter(self, watched, event):
+        """
+        事件过滤器：拦截子控件上的鼠标事件，使无边框窗口的全方位边缘缩放正常工作。
+        核心问题：QLineEdit、QListWidget 等交互控件会抢先消费鼠标事件，导致 SearchPopup
+        自身的 mousePressEvent/mouseMoveEvent 在窗口边缘区域无法被触发。
+        本过滤器在子控件之前拦截事件，当鼠标处于窗口边缘 resize_margin 范围内时，
+        优先执行缩放逻辑。
+        """
+        if event.type() == QEvent.MouseMove:
+            # 将子控件坐标映射到窗口级坐标
+            window_pos = self.mapFromGlobal(watched.mapToGlobal(event.position().toPoint()))
+
+            if self.resizing:
+                # 缩放进行中 - 更新窗口几何尺寸
+                self._apply_resize_geometry(event.globalPosition().toPoint())
+                return True  # 消费事件，不让子控件处理
+
+            # 检测鼠标是否在窗口边缘
+            cursor_shape = self._check_edge(window_pos)
+            if cursor_shape is not None:
+                # 在边缘区域 → 覆盖子控件（如 QLineEdit 的 I-beam）的光标
+                watched.setCursor(cursor_shape)
+            else:
+                # 不在边缘 → 恢复子控件的默认光标
+                watched.unsetCursor()
+
+        elif event.type() == QEvent.MouseButtonPress and event.button() == Qt.LeftButton:
+            window_pos = self.mapFromGlobal(watched.mapToGlobal(event.position().toPoint()))
+            cursor_shape = self._check_edge(window_pos)
+            if cursor_shape is not None:
+                # 在边缘按下鼠标 → 启动缩放，完全拦截事件
+                self.resizing = True
+                self.resize_start_pos = event.globalPosition().toPoint()
+                self.resize_start_geom = self.geometry()
+                return True  # 消费事件，阻止子控件处理（如文本框获焦）
+
+        elif event.type() == QEvent.MouseButtonRelease:
+            if self.resizing:
+                # 缩放结束 → 重置所有状态
+                self.resizing = False
+                self.resize_start_pos = None
+                self.resize_start_geom = None
+                for k in self.resize_edge: self.resize_edge[k] = False
+                self.unsetCursor()
+                watched.unsetCursor()
+                return True
+
+        return super().eventFilter(watched, event)
+
+    def _update_resize_cursor(self, pos):
+        """供 SearchPopup 自身的 mouseMoveEvent 使用（当事件直接到达父窗口时）"""
+        cursor_shape = self._check_edge(pos)
+        if cursor_shape is not None:
+            self.setCursor(cursor_shape)
         else:
             self.unsetCursor()
 
@@ -178,26 +262,7 @@ class SearchPopup(QWidget):
         # log(f"mouseMoveEvent: pos={pos}, global_pos={global_pos}, resizing={self.resizing}, drag_position={self.drag_position}")
 
         if self.resizing:
-            delta = global_pos - self.resize_start_pos
-            geom = self.resize_start_geom
-            new_geom = QRect(geom)
-
-            if self.resize_edge["top"]: new_geom.setTop(geom.top() + delta.y())
-            if self.resize_edge["bottom"]: new_geom.setBottom(geom.bottom() + delta.y())
-            if self.resize_edge["left"]: new_geom.setLeft(geom.left() + delta.x())
-            if self.resize_edge["right"]: new_geom.setRight(geom.right() + delta.x())
-            
-            # 确保尺寸不会小于最小值
-            if new_geom.width() < self.minimumWidth():
-                if self.resize_edge["left"]: new_geom.setLeft(geom.right() - self.minimumWidth())
-                else: new_geom.setWidth(self.minimumWidth())
-
-            if new_geom.height() < self.minimumHeight():
-                if self.resize_edge["top"]: new_geom.setTop(geom.bottom() - self.minimumHeight())
-                else: new_geom.setHeight(self.minimumHeight())
-
-            self.setGeometry(new_geom)
-            # log(f"缩放中: new_geom={new_geom}")
+            self._apply_resize_geometry(global_pos)
 
         elif event.buttons() & Qt.LeftButton and self.drag_position is not None:
             self.move(global_pos - self.drag_position)
