@@ -675,6 +675,28 @@ class MainController(QObject):
             self.popup.update_list(self.popup.search_box.text())
 
     @Slot()
+    def toggle_word_wrap(self):
+        """切换自动换行的启用状态"""
+        self.settings.word_wrap_enabled = not self.settings.word_wrap_enabled
+        self.settings.save()
+        log(f"自动换行: {'开启' if self.settings.word_wrap_enabled else '关闭'}")
+        if hasattr(self, 'word_wrap_action'):
+            self.word_wrap_action.setChecked(self.settings.word_wrap_enabled)
+        if self.popup.isVisible():
+            self.popup.update_list(self.popup.search_box.text())
+
+    @Slot()
+    def toggle_show_source(self):
+        """切换归属显示的启用状态"""
+        self.settings.show_source_enabled = not self.settings.show_source_enabled
+        self.settings.save()
+        log(f"词条归属显示: {'开启' if self.settings.show_source_enabled else '关闭'}")
+        if hasattr(self, 'show_source_action'):
+            self.show_source_action.setChecked(self.settings.show_source_enabled)
+        if self.popup.isVisible():
+            self.popup.update_list(self.popup.search_box.text())
+
+    @Slot()
     def toggle_pinyin_initial_search(self):
         self.settings.pinyin_initial_search = not self.settings.pinyin_initial_search
         self.settings.save()

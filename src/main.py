@@ -230,6 +230,17 @@ if __name__ == "__main__":
     controller.highlight_matches_action.triggered.connect(controller.toggle_highlight_matches)
     menu.addAction(controller.highlight_matches_action)
 
+    controller.word_wrap_action = QAction("词条-自动换行", checkable=True)
+    controller.word_wrap_action.setChecked(settings_manager.word_wrap_enabled)
+    controller.word_wrap_action.triggered.connect(controller.toggle_word_wrap)
+    menu.addAction(controller.word_wrap_action)
+
+    controller.show_source_action = QAction("词条-归属显示", checkable=True)
+    controller.show_source_action.setChecked(settings_manager.show_source_enabled)
+    controller.show_source_action.triggered.connect(controller.toggle_show_source)
+    menu.addAction(controller.show_source_action)
+    menu.addSeparator()
+
     font_size_action = QAction("设置字体大小(&F)..."); font_size_action.triggered.connect(controller.set_font_size); menu.addAction(font_size_action)
 
     # --- 帮助 ---

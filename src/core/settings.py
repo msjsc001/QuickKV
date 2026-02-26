@@ -79,6 +79,8 @@ class SettingsManager:
             self.multi_word_search = self.config.getboolean('Search', 'multi_word_search', fallback=True)
             self.pinyin_initial_search = self.config.getboolean('Search', 'pinyin_initial_search', fallback=True)
             self.highlight_matches = self.config.getboolean('Search', 'highlight_matches', fallback=True) # 新增
+            self.word_wrap_enabled = self.config.getboolean('UI', 'word_wrap_enabled', fallback=False)
+            self.show_source_enabled = self.config.getboolean('UI', 'show_source_enabled', fallback=False)
             self.clipboard_memory_enabled = self.config.getboolean('Clipboard', 'enabled', fallback=False)
             self.clipboard_memory_count = self.config.getint('Clipboard', 'count', fallback=10)
             self.auto_restart_enabled = self.config.getboolean('Restart', 'enabled', fallback=False)
@@ -131,6 +133,9 @@ class SettingsManager:
         self.config['Search']['multi_word_search'] = str(self.multi_word_search)
         self.config['Search']['pinyin_initial_search'] = str(self.pinyin_initial_search)
         self.config['Search']['highlight_matches'] = str(self.highlight_matches) # 新增
+        if not self.config.has_section('UI'): self.config.add_section('UI')
+        self.config['UI']['word_wrap_enabled'] = str(self.word_wrap_enabled)
+        self.config['UI']['show_source_enabled'] = str(self.show_source_enabled)
         self.config['General']['libraries'] = json.dumps(self.libraries, ensure_ascii=False)
         self.config['General']['auto_libraries'] = json.dumps(self.auto_libraries, ensure_ascii=False)
         self.config['Clipboard']['enabled'] = str(self.clipboard_memory_enabled)
