@@ -18,6 +18,17 @@
 
 ---
 
+## 📢 最新更新与变更历史
+
+项目的详细**更新日志与变更历史**请移至单独的 [文档 (CHANGELOG.md)](CHANGELOG.md) 进行查阅。
+
+**近期里程碑更新 (v1.3.0)**：
+- 🚀 **杀手级更新：无痕全局连续字符串盲打触发 (Continuous String Trigger)**
+  - 引入极轻量的防冲突后台全局键盘输入缓冲区。在任何输入框中（甚至游戏中）通过连续快速盲打特定英文字符串（默认为 `//`）来瞬间无痕呼出 QuickKV 搜索框。
+  - **自动回退补偿 (Auto-Erase Compensation)** 功能保障了魔术般的体验：当触发瞬间，QuickKV 会在 0.1 秒内自动往屏幕发送退格键吃掉您刚打出的触发符号。
+
+---
+
 ## 简易图文教程
 ![20210606180518](https://github.com/user-attachments/assets/3fc1af9b-9ce7-448e-b68a-695b3bb743d4)
 <img alt="PixPin_2025-07-28_14-01-50" src="https://github.com/user-attachments/assets/cdb09453-9761-4790-87f0-325a2f4bd80b" />
@@ -261,8 +272,6 @@ pip install PySide6 pyperclip pypinyin
 
 **再次强调：继续使用本软件，即表示您已确认阅读、理解并同意遵守上述所有条款以及 MIT 许可证的全部内容。**
 
----
-## 更多
-项目的详细**更新日志与变更历史**已移至单独的 [文档 (CHANGELOG.md)](CHANGELOG.md) 进行查阅。
+
 
 
