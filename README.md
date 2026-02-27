@@ -22,11 +22,6 @@
 
 项目的详细**更新日志与变更历史**请移至单独的 [文档 (CHANGELOG.md)](CHANGELOG.md) 进行查阅。
 
-**近期里程碑更新 (v1.3.0)**：
-- 🚀 **杀手级更新：无痕全局连续字符串盲打触发 (Continuous String Trigger)**
-  - 引入极轻量的防冲突后台全局键盘输入缓冲区。在任何输入框中（甚至游戏中）通过连续快速盲打特定英文字符串（默认为 `//`）来瞬间无痕呼出 QuickKV 搜索框。
-  - **自动回退补偿 (Auto-Erase Compensation)** 功能保障了魔术般的体验：当触发瞬间，QuickKV 会在 0.1 秒内自动往屏幕发送退格键吃掉您刚打出的触发符号。
-
 ---
 
 ## 简易图文教程
@@ -43,13 +38,6 @@
 <img alt="PixPin_2025-07-28_15-08-24" src="https://github.com/user-attachments/assets/b48a1555-347c-4bf3-ae89-2852c599ed0e" />
 <img alt="PixPin_2025-07-28_15-31-43" src="https://github.com/user-attachments/assets/061fdf73-98a2-47d1-93f5-c9453cbda5bd" />
 <img alt="PixPin_2025-07-28_15-21-46" src="https://github.com/user-attachments/assets/909f6cfa-6b51-416c-8dde-4bd326b227f8" />
-
-## ⚒️ QuickKV 词库加强辅助 KVTree
-
-KVTree 支持用 Markdown 文件无序列表树（大纲）建立词库，建立的词库软件会自动转换生成为 QuickKV 词库
-需要可点击下载使用 → [KVTree](https://github.com/msjsc001/KV-Tree/)
-<img alt="503D67DE29FDBA7D13832F52DB4007DF" src="https://github.com/user-attachments/assets/78b83c0a-4307-4ed9-9e21-d119b2f80e7d" />
-<img alt="image" src="https://github.com/user-attachments/assets/82fb7bec-96e3-4114-95b5-a813ff73f2e9" />
 
 ---
 
@@ -168,7 +156,17 @@ pip install PySide6 pyperclip pypinyin
     *   **剪贴板记忆**: 开启或关闭剪贴板历史功能。
     *   **UI设置**: 切换主题、调整字体大小。
     *   **退出**: 关闭程序。
+  
+## ⚒️ QuickKV 词库加强辅助 KVTree
 
+KVTree 支持用 Markdown 文件无序列表树（大纲）建立词库，建立的词库软件会自动转换生成为 QuickKV 词库
+需要可点击下载使用 → [KVTree](https://github.com/msjsc001/KV-Tree/)
+
+V1.2.0版界面
+<img width="2120" height="1586" alt="image" src="https://github.com/user-attachments/assets/4e8406e2-150c-4018-b877-331808b28e5a" />
+V0.5-0.9版图解演示
+<img alt="503D67DE29FDBA7D13832F52DB4007DF" src="https://github.com/user-attachments/assets/78b83c0a-4307-4ed9-9e21-d119b2f80e7d" />
+<img alt="image" src="https://github.com/user-attachments/assets/82fb7bec-96e3-4114-95b5-a813ff73f2e9" />
 ---
 
 ## 开发者指南
