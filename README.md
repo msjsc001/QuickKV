@@ -171,7 +171,22 @@ V0.5-0.9版图解演示
 
 ## 开发者指南
 
-### 1. 项目架构 (v1.2 MVC 分解版本)
+欢迎开发者参与 QuickKV 的改进和二次开发。以下是本项目的技术架构与开发指引：
+
+### 1. 技术栈 (Tech Stack)
+
+*   **核心语言**: Python 3.8+ (保证了轻量级、跨平台潜力和丰富的扩展库)
+*   **GUI 框架**: PySide6 (Qt for Python 6) - 用于构建无边框悬浮窗、托盘菜单和渲染优化的富文本引擎。
+*   **全局系统交互**:
+    *   `ctypes.windll.user32` - 极低底层的 Windows API 调用，用于绝对无冲突的全局热键 (RegisterHotKey) 注册。
+    *   `pynput` - 用于实现全局键盘钩子，在后台毫秒级监听连续字符串触发密码，以及实现底层按键拦截、回退补偿 (Auto-Erase)。
+    *   `pyperclip` - 高稳定性的跨应用程序剪贴板读写库。
+*   **文本检索与分词**:
+    *   `pypinyin` - 提供高效精准的中文字符转首字母逻辑，实现无缝的首字母模糊搜索。
+*   **文件系统监控**:
+    *   `watchdog` / `QFileSystemWatcher` - 用于目录及词库文件的热重载监控，实现“即改即用”。
+
+### 2. 项目架构 (v1.2+ MVC 分解版本)
 
 为了实现高解耦度与提升未来的维护性和 AI 辅助开发效率，QuickKV v1.2 将原本单文件的逻辑进行了彻底的物理隔离，拆分为以下核心模块：
 
@@ -180,42 +195,33 @@ V0.5-0.9版图解演示
 *   **`services/` (系统服务层)**: 集成了所有后台监听进程，负责与操作系统的外部交互。包括 Windows 原生快捷键调用 `hotkey_manager.py` 和基于 pynput 捕获快捷码的 `shortcut_listener.py`。
 *   **`main_controller.py`**: 作为项目的主要调度员，不包含具体底层逻辑，只负责拼接各个组件并连接信号。
 
-### 2. 核心技术点
+### 3. 开发核心技术点
 
-*   **原生快捷键与线程安全**: 使用 `ctypes` 调用 Windows 原生 API (`RegisterHotKey`) 在一个独立的 `threading` 线程中监听全局热键。当热键被触发时，通过 PySide6 的**信号/槽机制**安全地通知主GUI线程执行相应操作，做到了响应迅速且线程安全。
-*   **文件监控与防抖**: 使用 `QFileSystemWatcher` 监控文件变化，并结合 `QTimer` 实现“防抖”，避免文件在短时间内被多次保存时触发重复的重载操作。
-*   **无边框窗口交互**: 通过重写 `mousePress/Move/ReleaseEvent` 事件实现窗口拖拽，并通过判断鼠标位置和 `_update_resize_cursor` 方法动态改变光标，实现各方向的窗口缩放。
+*   **连续字符串防冲突无痕盲打 (String Trigger)**: 使用双端队列 (`collections.deque`) 截获系统级击键，不干扰正常输入流。匹配瞬间发送退格键消除触发符，兼顾了爽快感与无侵入式体验。
+*   **原生快捷键与线程安全**: 使用 `ctypes` 在一个独立的 `threading` 线程中监听热键。触发时，通过 PySide6 的**信号/槽机制**安全地通知主 GUI 线程执行 UI 操作，做到了响应迅速且告别系统崩溃。
+*   **超长列表极速渲染缓存**: 针对 `QTextDocument` 耗时的 HTML 生成流程，在 `delegates.py` 中挂载了 LRU 内存字典。将文本、窗口状态、甚至动态高亮特征码结合作为 Key，在滚轮狂飙时实现 100% “贴图级”零卡顿。
+*   **高鲁棒性防抖机制 (Debounce)**: 搜索框与文件系统监控（使用 `QTimer` 或 `watchdog`）分别植入了 200ms 和 500ms 的阻尼防抖，防止急触或密集保存打穿 IO 与 CPU。
 
-### 3. 项目结构
+### 4. 项目结构
 
 ```
 .
 ├── src/                    # 项目源代码总目录
 │   ├── main.py             # 极简入口启动脚本
 │   ├── main_controller.py  # 核心总控与信号调度中枢
-│   ├── core/               # 核心层
-│   │   ├── config.py       # 常量及全局路径定义
-│   │   ├── settings.py     # config.ini读写与配置状态
-│   │   ├── word_source.py  # 单词库文件解析器
-│   │   └── word_manager.py # 全量词库管理、搜索与缓存策略
-│   ├── services/           # 后台系统交互服务
-│   │   ├── hotkey_manager.py     # 系统原生全局热键服务 (比如 Ctrl+Space)
-│   │   └── shortcut_listener.py  # 键盘快捷码输入监听服务
-│   ├── ui/                 # 图形界面层
-│   │   ├── components.py   # 可复用组件、各类对话框
-│   │   ├── delegates.py    # 词条列表定制渲染器 (包括基于规则的高亮逻辑)
-│   │   └── search_popup.py # 无边框搜索主窗口逻辑与交互
-│   └── utils/              # 通用工具函数模块
-│       └── paths.py        # 相对/绝对路径定位处理
-├── README.md               # 项目介绍说明文档 (当前文档)
-├── CHANGELOG.md            # 项目版本变更历史与更新日志
-└── quick_kv.py.bak         # v1.1版本的冗余单文件备份 (可删除)
+│   ├── core/               # 核心层 (配置、数据解析、状态)
+│   ├── services/           # 后台系统交互服务 (热键、后台钩子)
+│   ├── ui/                 # 图形界面层 (组件、无边框渲染、重绘)
+│   └── utils/              # 通用工具模块 (路径转换)
+├── README.md               # 项目说明文档
+├── CHANGELOG.md            # 项目版本变更历史
+└── requirements.txt        # 项目环境依赖清单
 ```
-> **注**：运行或打包程序所需的诸如 `icon.png`, `config.ini`, `.md`词库, `.json`缓存等配置文件，均会在 `src/` 目录下由程序动态生成并在该级作用域内读取。
+> **注**：运行或打包程序所需的诸如 `icon.png`, `config.ini`, `.md`词库, `.json`缓存等配置文件，均会在 `src/` 目录下由程序动态生成并在该级作用域内读取。打包时无需将其混入主分支。
 
-### 4. 构建可执行文件 (Windows)
+### 5. 构建可执行文件 (Windows)
 
-本项目使用 PyInstaller 进行打包。
+本项目使用 PyInstaller 进行独立分发打包封装设计。建议在隔离的 Python 虚拟环境中执行，以保持输出包体精简。
 
 1.  **安装 PyInstaller**:
     ```bash
@@ -227,13 +233,12 @@ V0.5-0.9版图解演示
     ```bash
     pyinstaller --noconsole --icon="src/icon.png" --add-data "src/icon.png;." --name "QuickKV" src/main.py
     ```
-    *   `--noconsole`: 运行时不显示命令行窗口。
-    *   `--icon`: 为 `.exe` 文件和系统托盘指定图标。
-    *   `--add-data`: 将图标资源一并打包。`词库.md` 和 `config.ini` 等用户配置会在首次运行时自动在外侧隔离生成，无需打包。
-    *   `--name`: 设置生成的 EXE 应用程序名称为 `QuickKV`。
+    *   `--noconsole`: 发布时必须隐藏底黑窗口 (Release 要求)。
+    *   `--add-data`: 打包系统托盘与弹层图标。
+    *   用户级产生的文件（日志、数据、词库）在运行时分离在外部生成。
 
 3.  **获取结果**:
-    打包成功后，您可以在项目根目录下的 `dist/QuickKV` 目录（如果未生成单文件）中找到生成的 `QuickKV.exe` 可执行文件。您也可以加上 `--onefile` 参数使其打包为单文件版本。
+    构建成功后，绿色免安装的 `QuickKV.exe` 应用程序将生成在 `dist/QuickKV/` 目录中。为了更加便携，也可加入 `--onefile` 参数输出单体分发版。
 
 ---
 
