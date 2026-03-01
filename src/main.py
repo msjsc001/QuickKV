@@ -213,6 +213,16 @@ if __name__ == "__main__":
     set_count_action = QAction("记忆次数...")
     set_count_action.triggered.connect(controller.set_clipboard_memory_count)
     clipboard_menu.addAction(set_count_action)
+
+    controller.clipboard_auto_clear_action = QAction("启用定时清除", checkable=True)
+    controller.clipboard_auto_clear_action.setChecked(settings_manager.clipboard_auto_clear_enabled)
+    controller.clipboard_auto_clear_action.triggered.connect(controller.toggle_clipboard_auto_clear)
+    clipboard_menu.addAction(controller.clipboard_auto_clear_action)
+
+    set_auto_clear_time_action = QAction("设置清除时间...")
+    set_auto_clear_time_action.triggered.connect(controller.set_clipboard_auto_clear_minutes)
+    clipboard_menu.addAction(set_auto_clear_time_action)
+
     clipboard_menu.addSeparator()
     clear_history_action = QAction("清空")
     clear_history_action.triggered.connect(controller.clear_clipboard_history_menu)

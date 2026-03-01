@@ -10,6 +10,7 @@ import re
 import itertools
 import threading
 import ctypes
+import time
 from ctypes import wintypes
 from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLineEdit,
                              QListWidget, QListWidgetItem, QSystemTrayIcon, QMenu, QSizeGrip,
@@ -122,6 +123,15 @@ class MainController(QObject):
         self.auto_restart_timer.timeout.connect(self.perform_restart)
         self.update_auto_restart_timer()
 
+        # 初始化剪贴板定时清除
+        self.clipboard_timestamps = {}
+        for block in self.word_manager.clipboard_history:
+            self.clipboard_timestamps[block['parent']] = time.time()
+        
+        self.clipboard_clear_timer = QTimer(self)
+        self.clipboard_clear_timer.timeout.connect(self.check_clipboard_auto_clear)
+        self.clipboard_clear_timer.start(60000) # 每分钟检查一次
+
         self.ignore_next_clipboard_change = False # 用于防止记录自己的输出
         self.app.clipboard().dataChanged.connect(self.on_clipboard_changed)
 
@@ -156,9 +166,10 @@ class MainController(QObject):
         
         was_added = self.word_manager.add_to_clipboard_history(normalized_text)
         
-        # 如果添加成功且窗口可见，则刷新列表
-        if was_added and self.popup.isVisible():
-            self.popup.update_list(self.popup.search_box.text())
+        if was_added:
+            self.clipboard_timestamps[normalized_text] = time.time()
+            if self.popup.isVisible():
+                self.popup.update_list(self.popup.search_box.text())
 
     def on_hotkey_triggered(self):
         # 这个信号现在是从 NativeHotkeyManager 线程发出的
@@ -829,6 +840,63 @@ class MainController(QObject):
                     self.popup.update_list("")
             else:
                 QMessageBox.warning(None, "错误", "清空剪贴板历史失败！")
+
+    @Slot()
+    def toggle_clipboard_auto_clear(self):
+        self.settings.clipboard_auto_clear_enabled = not self.settings.clipboard_auto_clear_enabled
+        self.settings.save()
+        if hasattr(self, 'clipboard_auto_clear_action'):
+            self.clipboard_auto_clear_action.setChecked(self.settings.clipboard_auto_clear_enabled)
+        
+        if self.settings.clipboard_auto_clear_enabled:
+            current_time = time.time()
+            # 开启时如果有些已经存在，为了避免瞬间连同误删，重置为当前时间
+            for block in self.word_manager.clipboard_history:
+                if block['parent'] not in self.clipboard_timestamps:
+                    self.clipboard_timestamps[block['parent']] = current_time
+            self.check_clipboard_auto_clear()
+        
+        log(f"剪贴板定时清除功能: {'开启' if self.settings.clipboard_auto_clear_enabled else '关闭'}")
+
+    @Slot()
+    def set_clipboard_auto_clear_minutes(self):
+        current_minutes = self.settings.clipboard_auto_clear_minutes
+        new_minutes, ok = QInputDialog.getInt(None, "设置清除时间",
+                                              "请输入经过多少分钟后清除:",
+                                              current_minutes, 1, 1440, 1)
+        if ok and new_minutes != current_minutes:
+            self.settings.clipboard_auto_clear_minutes = new_minutes
+            self.settings.save()
+            log(f"剪贴板清除时间已更新为: {new_minutes} 分钟")
+            self.check_clipboard_auto_clear()
+            QMessageBox.information(None, "成功", f"剪贴板清除时间已设置为 {new_minutes} 分钟！")
+
+    @Slot()
+    def check_clipboard_auto_clear(self):
+        if not self.settings.clipboard_auto_clear_enabled:
+            return
+        
+        current_time = time.time()
+        threshold = self.settings.clipboard_auto_clear_minutes * 60
+        items_to_delete = []
+        
+        for text, timestamp in list(self.clipboard_timestamps.items()):
+            if current_time - timestamp > threshold:
+                items_to_delete.append(text)
+                
+        if items_to_delete:
+            deleted_any = False
+            for text in items_to_delete:
+                if self.word_manager.clipboard_source and self.word_manager.clipboard_source.delete_entry(f"- {text}"):
+                    deleted_any = True
+                if text in self.clipboard_timestamps:
+                    del self.clipboard_timestamps[text]
+            
+            if deleted_any:
+                log(f"已自动清除过期的剪贴板内容: {len(items_to_delete)} 条")
+                self.word_manager.load_clipboard_history() # 重新加载以更新内部状态
+                if self.popup.isVisible():
+                    self.popup.update_list(self.popup.search_box.text())
 
     # --- 新增：自动重启相关方法 ---
     @Slot()

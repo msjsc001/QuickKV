@@ -88,6 +88,8 @@ class SettingsManager:
             self.show_source_enabled = self.config.getboolean('UI', 'show_source_enabled', fallback=False)
             self.clipboard_memory_enabled = self.config.getboolean('Clipboard', 'enabled', fallback=False)
             self.clipboard_memory_count = self.config.getint('Clipboard', 'count', fallback=10)
+            self.clipboard_auto_clear_enabled = self.config.getboolean('Clipboard', 'auto_clear_enabled', fallback=False)
+            self.clipboard_auto_clear_minutes = self.config.getint('Clipboard', 'auto_clear_minutes', fallback=10)
             self.auto_restart_enabled = self.config.getboolean('Restart', 'enabled', fallback=False)
             self.auto_restart_interval = self.config.getint('Restart', 'interval_minutes', fallback=3)
             # 新的协议接受信息，存储为 JSON 字符串
@@ -145,6 +147,8 @@ class SettingsManager:
         self.config['General']['auto_libraries'] = json.dumps(self.auto_libraries, ensure_ascii=False)
         self.config['Clipboard']['enabled'] = str(self.clipboard_memory_enabled)
         self.config['Clipboard']['count'] = str(self.clipboard_memory_count)
+        self.config['Clipboard']['auto_clear_enabled'] = str(self.clipboard_auto_clear_enabled)
+        self.config['Clipboard']['auto_clear_minutes'] = str(self.clipboard_auto_clear_minutes)
         self.config['Restart']['enabled'] = str(self.auto_restart_enabled)
         self.config['Restart']['interval_minutes'] = str(self.auto_restart_interval)
         self.config['Paste']['mode'] = self.paste_mode
