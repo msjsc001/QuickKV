@@ -100,7 +100,7 @@ RANKING_STATE_FILE = os.path.join(USER_DATA_DIR, "ranking_state.json")
 ICON_PATH = resource_path("icon.png")
 
 DEBUG_MODE = True
-VERSION = "1.3.3" # 收藏排序增强与中文模板变量
+VERSION = "1.3.4" # 元命令语法兼容性优化与文档更新
 
 def log(message):
     if DEBUG_MODE:

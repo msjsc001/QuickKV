@@ -40,6 +40,9 @@ except ImportError:
 
 from core.config import *
 
+SHORTCUT_COMMAND_RE = re.compile(r'^k\s*[:：](?![:：])\s*(.+)$', re.IGNORECASE)
+ALIAS_COMMAND_RE = re.compile(r'^bm\s*[:：](?![:：])\s*(.+)$', re.IGNORECASE)
+
 # --- 词库数据源 ---
 class WordSource:
     def __init__(self, file_path):
@@ -77,13 +80,20 @@ class WordSource:
 
                     # 遍历找到的所有元命令并进行处理
                     for command in meta_commands:
-                        if command == '不出现':
+                        normalized_command = command.strip()
+                        if normalized_command == '不出现':
                             should_exclude = True
-                        elif command.startswith('k:'):
-                            # 提取 'k:' 后面的内容作为快捷码
-                            shortcut_code = command[2:].strip()
-                        elif command.startswith('BM::'):
-                            alias_text = command[4:].strip()
+                            continue
+
+                        shortcut_match = SHORTCUT_COMMAND_RE.match(normalized_command)
+                        if shortcut_match:
+                            # 提取 k/K + :/： 后面的内容作为快捷码
+                            shortcut_code = shortcut_match.group(1).strip()
+                            continue
+
+                        alias_match = ALIAS_COMMAND_RE.match(normalized_command)
+                        if alias_match:
+                            alias_text = alias_match.group(1).strip()
                             if alias_text:
                                 aliases.extend(re.split(r'[、，]', alias_text))
                     # --- 新逻辑结束 ---
