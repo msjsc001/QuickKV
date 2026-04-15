@@ -47,6 +47,45 @@ class SettingsManager:
         self.file_path = file_path
         self.load()
 
+    def _normalize_library_items(self, libraries, allow_folders=False):
+        normalized_items = []
+        seen = set()
+
+        for lib in libraries:
+            if not isinstance(lib, dict):
+                continue
+
+            raw_path = lib.get('path')
+            if not raw_path:
+                continue
+
+            kind = str(lib.get('kind', 'file')).lower()
+            if kind != 'folder' or not allow_folders:
+                kind = 'file'
+
+            abs_path = os.path.abspath(raw_path)
+            norm_path = normalize_library_path(abs_path)
+
+            if kind == 'folder':
+                if not os.path.isdir(abs_path):
+                    continue
+            else:
+                if not is_eligible_library_file(abs_path):
+                    continue
+
+            identity = (kind, norm_path)
+            if identity in seen:
+                continue
+
+            seen.add(identity)
+            normalized_items.append({
+                'path': abs_path,
+                'enabled': bool(lib.get('enabled', True)),
+                'kind': kind,
+            })
+
+        return normalized_items
+
     def load(self):
         """
         加载配置文件。
@@ -124,10 +163,11 @@ class SettingsManager:
 
         # 迁移和验证逻辑保持不变
         if not self.libraries and os.path.exists(WORD_FILE):
-            self.libraries.append({"path": os.path.abspath(WORD_FILE), "enabled": True})
+            self.libraries.append({"path": os.path.abspath(WORD_FILE), "enabled": True, "kind": "file"})
             log("已将旧的单一词库配置迁移到新的多词库系统。")
 
-        self.libraries = [lib for lib in self.libraries if isinstance(lib, dict) and os.path.exists(lib.get('path'))]
+        self.libraries = self._normalize_library_items(self.libraries, allow_folders=True)
+        self.auto_libraries = self._normalize_library_items(self.auto_libraries, allow_folders=False)
 
     def save(self):
         self.config['General']['hotkeys_enabled'] = str(self.hotkeys_enabled)

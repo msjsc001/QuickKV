@@ -31,6 +31,7 @@ MANIFEST
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
+!QuickKV.spec
 
 # Installer logs
 pip-log.txt
@@ -208,6 +209,7 @@ __marimo__/
 剪贴板词库.md
 
 # QuickKV Local Data
+/计划.MD
 src/用户数据/
 src/MD词库-需自动载入的请放入/
 src/剪贴板词库-勿删.md

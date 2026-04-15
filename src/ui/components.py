@@ -39,6 +39,7 @@ except ImportError:
 
 
 from core.config import *
+from services.hotkey_manager import parse_hotkey_string
 
 
 # --- 编辑对话框 ---
@@ -231,18 +232,35 @@ class HotkeyLineEdit(QLineEdit):
         if event.modifiers() & Qt.ControlModifier: modifiers.append("ctrl")
         if event.modifiers() & Qt.AltModifier: modifiers.append("alt")
         if event.modifiers() & Qt.ShiftModifier: modifiers.append("shift")
+        if event.modifiers() & Qt.MetaModifier: modifiers.append("win")
 
-        # 映射常用功能键
         key_map = {
-            Qt.Key_Space: "space", Qt.Key_Return: "enter", Qt.Key_Enter: "enter",
-            Qt.Key_Escape: "esc", Qt.Key_Tab: "tab", Qt.Key_Backspace: "backspace"
+            Qt.Key_Space: "space",
+            Qt.Key_Return: "enter",
+            Qt.Key_Enter: "enter",
+            Qt.Key_Escape: "esc",
+            **{getattr(Qt, f"Key_F{i}"): f"f{i}" for i in range(1, 13)}
         }
-        key_text = key_map.get(key, QKeySequence(key).toString().lower())
-        
-        if key_text:
-            modifiers.append(key_text)
-            self.hotkey = "+".join(modifiers)
-            self.setText(self.hotkey)
+        key_text = key_map.get(key)
+
+        if not key_text:
+            text = event.text()
+            if len(text) == 1 and text.isprintable() and not text.isspace() and text != "+":
+                key_text = text.lower() if text.isalpha() else text
+
+        if not key_text:
+            event.accept()
+            return
+
+        candidate_hotkey = "+".join(modifiers + [key_text])
+        parsed = parse_hotkey_string(candidate_hotkey)
+        if not parsed["valid"]:
+            event.accept()
+            return
+
+        self.hotkey = parsed["normalized"]
+        self.setText(self.hotkey)
+        event.accept()
 
     def get_hotkey(self):
         return self.hotkey
@@ -323,6 +341,20 @@ class HotkeyDialog(QDialog):
         self.str_trigger_input.setText("//")
 
     def validate_and_accept(self):
+        hotkey_value = self.hotkey_input.get_hotkey().strip()
+        if hotkey_value:
+            parsed_hotkey = parse_hotkey_string(hotkey_value)
+            if not parsed_hotkey["valid"]:
+                QMessageBox.warning(self, "设置错误", parsed_hotkey["error"])
+                self.hotkey_input.setFocus()
+                return
+            self.hotkey_input.hotkey = parsed_hotkey["normalized"]
+            self.hotkey_input.setText(parsed_hotkey["normalized"])
+        elif self.hotkey_check.isChecked():
+            QMessageBox.warning(self, "设置错误", "启用键盘组合快捷键时，必须输入一个有效的快捷键。")
+            self.hotkey_input.setFocus()
+            return
+
         str_val = self.str_trigger_input.text().strip()
         if self.str_trigger_check.isChecked() and len(str_val) < 2:
             QMessageBox.warning(self, "设置错误", "【连续字符串触发】的字符序列长度必须大于等于 2！\n推荐使用 '//'。")

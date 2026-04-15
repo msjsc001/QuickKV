@@ -48,6 +48,7 @@ class WordManager:
         self.sources = []
         self.word_blocks = []
         self.cache = {} # 新增：用于存储缓存数据
+        self.active_file_paths = set()
         # 新增：剪贴板历史专用
         self.clipboard_source = None
         self.clipboard_history = []
@@ -91,6 +92,21 @@ class WordManager:
                 'index': index
             })
         return char_map
+
+    def _normalize_aliases(self, aliases):
+        """清洗别名列表，保留原顺序并按小写去重。"""
+        normalized_aliases = []
+        seen = set()
+        for alias in aliases or []:
+            clean_alias = alias.strip()
+            if not clean_alias:
+                continue
+            alias_key = clean_alias.lower()
+            if alias_key in seen:
+                continue
+            seen.add(alias_key)
+            normalized_aliases.append(clean_alias)
+        return normalized_aliases
 
     def _get_file_hash(self, file_path):
         """计算文件的MD5哈希值"""
@@ -159,28 +175,122 @@ class WordManager:
         block['parent_lower'] = parent_text.lower()
         # 新的核心数据结构：字符映射表
         block['char_map'] = self._build_char_map(parent_text)
+        aliases = self._normalize_aliases(block.get('aliases', []))
+        block['aliases'] = aliases
+        block['alias_search_entries'] = [
+            {
+                'text': alias,
+                'char_map': self._build_char_map(alias)
+            }
+            for alias in aliases
+        ]
         # 移除旧的、不再使用的键
         if 'hybrid_initials' in block:
             del block['hybrid_initials']
         return block
 
+    def _match_keyword_in_char_map(self, keyword, char_map, pinyin_search_enabled=False, used_indices=None):
+        """在指定字符映射表中寻找单个关键词的最佳命中。"""
+        if not keyword or not char_map:
+            return None
+
+        used_indices = used_indices or set()
+        best_match = None
+
+        for start_idx in range(len(char_map)):
+            match_indices = []
+            match_types = []
+            kw_ptr = 0
+            map_ptr = start_idx
+
+            while kw_ptr < len(keyword) and map_ptr < len(char_map):
+                if map_ptr in used_indices:
+                    map_ptr += 1
+                    continue
+
+                char_info = char_map[map_ptr]
+                original_match = False
+                if keyword[kw_ptr:].startswith(char_info['char'].lower()):
+                    match_indices.append(map_ptr)
+                    match_types.append('original')
+                    kw_ptr += len(char_info['char'])
+                    map_ptr += 1
+                    original_match = True
+                elif pinyin_search_enabled:
+                    pinyin_matched = False
+                    for pinyin_key in char_info['keys']:
+                        if keyword[kw_ptr:].startswith(pinyin_key):
+                            match_indices.append(map_ptr)
+                            match_types.append('pinyin')
+                            kw_ptr += len(pinyin_key)
+                            map_ptr += 1
+                            pinyin_matched = True
+                            break
+                    if not pinyin_matched and not original_match:
+                        break
+                else:
+                    break
+
+            if kw_ptr != len(keyword):
+                continue
+
+            current_match_indices = set(match_indices)
+            if used_indices and not used_indices.isdisjoint(current_match_indices):
+                continue
+
+            score = sum(2 if match_type == 'original' else 1 for match_type in match_types)
+            if current_match_indices and len(current_match_indices) == (max(current_match_indices) - min(current_match_indices) + 1):
+                score *= 1.5
+            if 0 in current_match_indices:
+                score *= 1.2
+
+            match = {
+                'score': score,
+                'indices': current_match_indices,
+            }
+            if best_match is None or score > best_match['score']:
+                best_match = match
+
+        return best_match
+
+    def _clear_highlight_groups(self):
+        for block in self.word_blocks:
+            if 'highlight_groups' in block:
+                del block['highlight_groups']
+        for block in self.clipboard_history:
+            if 'highlight_groups' in block:
+                del block['highlight_groups']
+
+    def _expand_library_entries(self, libraries):
+        """将文件/文件夹两类词库条目展开为真实可加载的 md 文件。"""
+        expanded_paths = {}
+        for lib in libraries:
+            if not lib.get('enabled', True):
+                continue
+
+            lib_kind = lib.get('kind', 'file')
+            if lib_kind == 'folder':
+                candidate_paths = list_eligible_md_files(lib.get('path'))
+            else:
+                lib_path = lib.get('path')
+                candidate_paths = [os.path.abspath(lib_path)] if is_eligible_library_file(lib_path) else []
+
+            for candidate_path in candidate_paths:
+                norm_path = normalize_library_path(candidate_path)
+                expanded_paths[norm_path] = os.path.abspath(candidate_path)
+
+        return expanded_paths
+
     def reload_all(self):
         """通过缓存机制重新加载所有词库"""
         log("--- 开始重载所有词库 ---")
         self.cache = self._load_cache()
-        
-        all_libs = self.settings.libraries + self.settings.auto_libraries
-        
-        # 修复因 Windows 盘符大小写不一致 (D:\ vs d:\) 导致的重复加载问题
-        enabled_paths_map = {}
-        for lib in all_libs:
-            if lib.get('enabled', True):
-                norm_path = os.path.normcase(os.path.abspath(lib['path']))
-                # 以规范化路径去重，保留最初始的路径形式去读取和报错
-                enabled_paths_map[norm_path] = lib['path']
-        
-        unique_enabled_paths = set(enabled_paths_map.values())
-        norm_to_original = enabled_paths_map
+
+        norm_to_original = self._expand_library_entries(self.settings.libraries)
+        norm_to_original.update(self._expand_library_entries(self.settings.auto_libraries))
+        unique_enabled_paths = set(norm_to_original.values())
+        self.active_file_paths = set(norm_to_original.keys())
+        self.sources = []
 
         new_word_blocks = []
         cache_updated = False
@@ -191,7 +301,7 @@ class WordManager:
 
             if cached_file and cached_file.get('hash') == current_hash:
                 log(f"缓存命中: {os.path.basename(original_path)}")
-                new_word_blocks.extend(cached_file['data'])
+                new_word_blocks.extend([self._preprocess_block(block) for block in cached_file['data']])
             else:
                 log(f"缓存未命中或已过期: {os.path.basename(original_path)}")
                 source = WordSource(original_path) # WordSource.load() is called here
@@ -228,7 +338,7 @@ class WordManager:
         if not os.path.exists(CLIPBOARD_HISTORY_FILE):
             try:
                 with open(CLIPBOARD_HISTORY_FILE, 'w', encoding='utf-8') as f:
-                    f.write("- (这里是剪贴板历史记录)\n")
+                    f.write("")
                 log(f"已创建剪贴板历史文件: {CLIPBOARD_HISTORY_FILE}")
             except Exception as e:
                 log(f"创建剪贴板历史文件失败: {e}")
@@ -251,9 +361,10 @@ class WordManager:
 
         # 在添加前，重新加载一次，确保拿到最新的历史记录
         self.clipboard_source.load()
-        
+
+        full_content_to_add = f"- {text}"
         # 避免重复添加
-        if any(block['parent'] == text for block in self.clipboard_source.word_blocks):
+        if any(block['full_content'] == full_content_to_add for block in self.clipboard_source.word_blocks):
             log(f"剪贴板历史中已存在: '{text}'")
             return False
 
@@ -264,8 +375,7 @@ class WordManager:
             log(f"剪贴板历史已满，移除最旧条目: {oldest_item['parent']}")
 
         # 添加新条目
-        content_to_add = f"- {text}"
-        if self.clipboard_source.add_entry(content_to_add):
+        if self.clipboard_source.add_entry(full_content_to_add):
             log(f"已添加新剪贴板历史: '{text}'")
             # 重新加载以更新内部状态
             self.reload_all()
@@ -276,9 +386,9 @@ class WordManager:
         """清空剪贴板历史"""
         if not self.clipboard_source: return
         try:
-            # 删除文件内容，保留一个标题行
+            # 删除文件内容，保持历史真正为空
             with open(self.clipboard_source.file_path, 'w', encoding='utf-8') as f:
-                f.write("- (剪贴板历史已清空)\n")
+                f.write("")
             self.load_clipboard_history() # 重新加载
             log("剪贴板历史已清空。")
             return True
@@ -301,11 +411,7 @@ class WordManager:
         """
         # 1. 当搜索框为空时
         if not query:
-            # 清理所有可能存在的高亮标记
-            for block in self.word_blocks:
-                if 'highlight_groups' in block: del block['highlight_groups']
-            for block in self.clipboard_history:
-                if 'highlight_groups' in block: del block['highlight_groups']
+            self._clear_highlight_groups()
 
             # 如果剪贴板记忆开启，只显示剪贴板历史（按时间倒序）
             if self.settings.clipboard_memory_enabled:
@@ -323,105 +429,72 @@ class WordManager:
 
         for block in search_pool:
             char_map = block.get('char_map', [])
-            if not char_map: continue
+            alias_entries = block.get('alias_search_entries', [])
+            if not char_map and not alias_entries:
+                continue
 
-            all_match_groups = {}
+            highlight_groups = {}
             total_score = 0
             all_keywords_found = True
-            used_indices_for_block = set() # 新增：跟踪此块中已使用的索引
+            used_indices_for_block = set()
 
             for kw_idx, kw in enumerate(keywords):
-                best_match_for_kw = None
-                # 遍历所有可能的起始点
-                for start_idx in range(len(char_map)):
-                    match_indices = []
-                    match_types = []
-                    kw_ptr = 0
-                    map_ptr = start_idx
-                    
-                    # 尝试从 start_idx 开始匹配
-                    while kw_ptr < len(kw) and map_ptr < len(char_map):
-                        # 跳过已经被使用的索引
-                        if map_ptr in used_indices_for_block:
-                            map_ptr += 1
-                            continue
+                best_target = None
 
-                        char_info = char_map[map_ptr]
-                        
-                        # 1. 优先原文匹配
-                        original_match = False
-                        if kw[kw_ptr:].startswith(char_info['char'].lower()):
-                            match_len = len(char_info['char'])
-                            match_indices.extend(range(map_ptr, map_ptr + 1)) # 原文匹配总是单字符
-                            match_types.append('original')
-                            kw_ptr += match_len
-                            map_ptr += 1
-                            original_match = True
-                        
-                        # 2. 拼音匹配
-                        elif pinyin_search_enabled:
-                            pinyin_matched = False
-                            for pinyin_key in char_info['keys']:
-                                if kw[kw_ptr:].startswith(pinyin_key):
-                                    match_indices.append(map_ptr)
-                                    match_types.append('pinyin')
-                                    kw_ptr += len(pinyin_key)
-                                    map_ptr += 1
-                                    pinyin_matched = True
-                                    break
-                            if not pinyin_matched and not original_match:
-                                break # 当前字符无法匹配，中断
-                        else:
-                            break
- 
-                    # 如果整个关键词都匹配成功
-                    if kw_ptr == len(kw):
-                        current_match_indices = set(match_indices)
-                        # 检查找到的匹配是否与已使用的索引重叠
-                        if used_indices_for_block.isdisjoint(current_match_indices):
-                            score = 0
-                            # 计算得分
-                            for mt in match_types:
-                                score += 2 if mt == 'original' else 1 # 原文匹配得分更高
-                            
-                            # 连续性奖励
-                            if len(current_match_indices) > 0 and len(current_match_indices) == (max(current_match_indices) - min(current_match_indices) + 1):
-                                score *= 1.5
-                            
-                            if best_match_for_kw is None or score > best_match_for_kw['score']:
-                                best_match_for_kw = {
-                                    'score': score,
-                                    'indices': current_match_indices
-                                }
-                
-                if best_match_for_kw:
-                    # 将找到的最佳匹配的索引添加到已使用集合中
-                    used_indices_for_block.update(best_match_for_kw['indices'])
-                    all_match_groups[kw_idx] = best_match_for_kw['indices']
-                    total_score += best_match_for_kw['score']
-                else:
+                parent_match = self._match_keyword_in_char_map(
+                    kw,
+                    char_map,
+                    pinyin_search_enabled=pinyin_search_enabled,
+                    used_indices=used_indices_for_block
+                )
+                if parent_match:
+                    best_target = {
+                        'target': 'parent',
+                        'score': parent_match['score'],
+                        'indices': parent_match['indices']
+                    }
+
+                for alias_entry in alias_entries:
+                    alias_match = self._match_keyword_in_char_map(
+                        kw,
+                        alias_entry.get('char_map', []),
+                        pinyin_search_enabled=pinyin_search_enabled
+                    )
+                    if not alias_match:
+                        continue
+
+                    alias_score = alias_match['score'] * 0.75
+                    if best_target is None or alias_score > best_target['score']:
+                        best_target = {
+                            'target': 'alias',
+                            'score': alias_score,
+                            'indices': set()
+                        }
+
+                if not best_target:
                     all_keywords_found = False
                     break
-            
+
+                total_score += best_target['score']
+                if best_target['target'] == 'parent':
+                    used_indices_for_block.update(best_target['indices'])
+                    highlight_groups[kw_idx] = best_target['indices']
+
             if all_keywords_found:
                 # 距离惩罚
-                if len(all_match_groups) > 1:
-                    all_indices = set().union(*all_match_groups.values())
+                if len(highlight_groups) > 1:
+                    all_indices = set().union(*highlight_groups.values())
                     span = max(all_indices) - min(all_indices)
                     total_score /= (1 + span * 0.1)
-
-                # 开头匹配奖励
-                if 0 in all_match_groups.get(0, set()):
-                    total_score *= 1.2
 
                 # --- 精确高亮 ---
                 parent_text = block['parent']
                 full_content = block['full_content']
                 parent_start_in_full = full_content.find(parent_text)
-                if parent_start_in_full != -1:
+                if parent_start_in_full != -1 and highlight_groups:
                     block['highlight_groups'] = {
                         g_idx: {idx + parent_start_in_full for idx in g_indices}
-                        for g_idx, g_indices in all_match_groups.items()
+                        for g_idx, g_indices in highlight_groups.items()
                     }
                 else:
                     block['highlight_groups'] = {}
@@ -445,8 +518,8 @@ class WordManager:
         # 如果在 self.sources 中找不到，说明可能是个刚添加或变动的词库
         # 创建一个临时的 WordSource 对象来处理这种情况
         log(f"在内存中未找到 source，为路径 {path} 创建临时 WordSource 实例。")
-        all_libs = self.settings.libraries + self.settings.auto_libraries
-        if any(lib['path'] == path for lib in all_libs):
+        clipboard_norm_path = normalize_library_path(CLIPBOARD_HISTORY_FILE)
+        if norm_search_path in self.active_file_paths or norm_search_path == clipboard_norm_path:
             new_source = WordSource(path)
             self.sources.append(new_source) # 添加到列表中以备后用
             return new_source

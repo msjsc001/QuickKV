@@ -73,6 +73,7 @@ class WordSource:
 
                     should_exclude = False
                     shortcut_code = None
+                    aliases = []
 
                     # 遍历找到的所有元命令并进行处理
                     for command in meta_commands:
@@ -81,6 +82,10 @@ class WordSource:
                         elif command.startswith('k:'):
                             # 提取 'k:' 后面的内容作为快捷码
                             shortcut_code = command[2:].strip()
+                        elif command.startswith('BM::'):
+                            alias_text = command[4:].strip()
+                            if alias_text:
+                                aliases.extend(re.split(r'[、，]', alias_text))
                     # --- 新逻辑结束 ---
 
                     current_block = {
@@ -88,6 +93,7 @@ class WordSource:
                         'raw_lines': [line.rstrip()],
                         'exclude_parent': should_exclude,
                         'shortcut_code': shortcut_code, # 新增：快捷码
+                        'aliases': aliases,
                         'source_path': self.file_path, # 标记来源
                         'is_clipboard': False # 默认非剪贴板
                     }

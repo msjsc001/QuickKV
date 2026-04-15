@@ -407,23 +407,17 @@ class SearchPopup(QWidget):
         
         # 创建“添加到词库”子菜单
         add_to_library_menu = QMenu("添加到词库", self)
-        
-        # 获取所有已加载的词库（手动+自动）
-        libraries = self.settings.libraries + self.settings.auto_libraries
-        if not libraries:
+
+        writable_targets = self.controller.get_writable_library_targets() if self.controller else []
+        if not writable_targets:
             # 如果没有词库，则禁用此菜单项
             no_library_action = QAction("无可用词库", self)
             no_library_action.setEnabled(False)
             add_to_library_menu.addAction(no_library_action)
         else:
-            for lib in libraries:
-                lib_path = lib['path']
-                # 如果目标路径是剪贴板文件本身，则不显示该选项
-                if lib_path == CLIPBOARD_HISTORY_FILE:
-                    continue
-                lib_name = os.path.basename(lib_path)
-                action = QAction(lib_name, self)
-                action.triggered.connect(lambda _, p=lib_path: self.add_from_search_box_to_specific_library(p))
+            for target in writable_targets:
+                action = QAction(target['label'], self)
+                action.triggered.connect(lambda _, p=target['path']: self.add_from_search_box_to_specific_library(p))
                 add_to_library_menu.addAction(action)
         
         menu.addMenu(add_to_library_menu)
@@ -450,20 +444,15 @@ class SearchPopup(QWidget):
         if selected_block.get('is_clipboard', False):
             # 剪贴板历史的右键菜单
             add_to_library_menu = QMenu("添加到词库", self)
-            libraries = self.settings.libraries + self.settings.auto_libraries
-            if not libraries:
+            writable_targets = self.controller.get_writable_library_targets() if self.controller else []
+            if not writable_targets:
                 no_library_action = QAction("无可用词库", self)
                 no_library_action.setEnabled(False)
                 add_to_library_menu.addAction(no_library_action)
             else:
-                for lib in libraries:
-                    lib_path = lib['path']
-                    # 如果目标路径是剪贴板文件本身，则不显示该选项
-                    if lib_path == CLIPBOARD_HISTORY_FILE:
-                        continue
-                    lib_name = os.path.basename(lib_path)
-                    action = QAction(lib_name, self)
-                    action.triggered.connect(lambda checked=False, p=lib_path, i=item: self.controller.move_clipboard_item_to_library(i.text(), p))
+                for target in writable_targets:
+                    action = QAction(target['label'], self)
+                    action.triggered.connect(lambda checked=False, p=target['path'], i=item: self.controller.move_clipboard_item_to_library(i.text(), p))
                     add_to_library_menu.addAction(action)
             menu.addMenu(add_to_library_menu)
 

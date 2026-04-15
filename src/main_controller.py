@@ -91,6 +91,7 @@ class MainController(QObject):
         
         self.hotkey_manager = NativeHotkeyManager(self.settings.hotkey)
         self.hotkey_manager.hotkey_triggered.connect(self.on_hotkey_triggered)
+        self.hotkey_manager.hotkey_registration_failed.connect(self.on_hotkey_registration_failed)
         if self.settings.hotkeys_enabled:
             self.hotkey_manager.start()
             
@@ -125,8 +126,7 @@ class MainController(QObject):
 
         # 初始化剪贴板定时清除
         self.clipboard_timestamps = {}
-        for block in self.word_manager.clipboard_history:
-            self.clipboard_timestamps[block['parent']] = time.time()
+        self.sync_clipboard_timestamps()
         
         self.clipboard_clear_timer = QTimer(self)
         self.clipboard_clear_timer.timeout.connect(self.check_clipboard_auto_clear)
@@ -167,9 +167,31 @@ class MainController(QObject):
         was_added = self.word_manager.add_to_clipboard_history(normalized_text)
         
         if was_added:
-            self.clipboard_timestamps[normalized_text] = time.time()
+            self.sync_clipboard_timestamps(current_time=time.time())
             if self.popup.isVisible():
                 self.popup.update_list(self.popup.search_box.text())
+
+    def sync_clipboard_timestamps(self, current_time=None):
+        """将时间戳与当前剪贴板历史的完整块内容对齐。"""
+        if current_time is None:
+            current_time = time.time()
+
+        existing_timestamps = getattr(self, 'clipboard_timestamps', {})
+        synced_timestamps = {}
+        for block in self.word_manager.clipboard_history:
+            key = block['full_content']
+            synced_timestamps[key] = existing_timestamps.get(key, current_time)
+
+        self.clipboard_timestamps = synced_timestamps
+
+    def _start_detached_process(self, program, arguments):
+        """兼容 PySide6 不同返回值形态的 detached 启动封装。"""
+        result = QProcess.startDetached(program, arguments)
+        if isinstance(result, tuple):
+            success, pid = result
+        else:
+            success, pid = bool(result), None
+        return bool(success), pid
 
     def on_hotkey_triggered(self):
         # 这个信号现在是从 NativeHotkeyManager 线程发出的
@@ -178,6 +200,18 @@ class MainController(QObject):
             log("热键触发：关闭窗口。"); self.hide_popup_signal.emit()
         else:
             log("热键触发：打开窗口。"); self.show_popup_signal.emit()
+
+    @Slot(str)
+    def on_hotkey_registration_failed(self, message):
+        """统一处理系统级热键注册失败，避免 UI 与配置状态脱节。"""
+        self.hotkey_manager.stop_hotkey()
+        if self.settings.hotkeys_enabled:
+            self.settings.hotkeys_enabled = False
+            self.settings.save()
+        if hasattr(self, 'toggle_hotkeys_action'):
+            self.toggle_hotkeys_action.setChecked(False)
+        log(f"CRITICAL: {message}")
+        QMessageBox.warning(self.popup, "热键注册失败", message)
 
     def start_file_observer(self):
         """启动 Watchdog 文件监控线程"""
@@ -196,7 +230,10 @@ class MainController(QObject):
 
         # 2. 添加所有手动词库的父目录
         for lib in self.settings.libraries:
-            dir_path = os.path.dirname(lib['path'])
+            if lib.get('kind', 'file') == 'folder':
+                dir_path = lib.get('path')
+            else:
+                dir_path = os.path.dirname(lib['path'])
             # 检查目录是否存在且未被添加过
             if os.path.isdir(dir_path):
                 watched_dirs.add(dir_path)
@@ -245,6 +282,7 @@ class MainController(QObject):
              self.start_file_observer()
 
         self.word_manager.reload_all() # 核心：加载所有词库
+        self.sync_clipboard_timestamps()
         if self.shortcut_listener and self.settings.shortcut_code_enabled:
             self.shortcut_listener.update_shortcuts()
         if self.popup.isVisible():
@@ -295,60 +333,59 @@ class MainController(QObject):
     def perform_paste(self):
         """
         根据用户设置，通过 PowerShell 执行不同的粘贴操作。
-        【已加固】增加了对 QProcess.startDetached 的异常捕获。
+        【已加固】显式检查 detached 进程派发结果，避免静默失败。
         """
         mode = self.settings.paste_mode
         log(f"准备执行粘贴，模式: {mode}")
 
-        ps_command = ""
+        ps_script = ""
         if mode == 'ctrl_v':
-            ps_command = (
-                "powershell.exe -WindowStyle Hidden -Command "
-                "\"Start-Sleep -Milliseconds 100; " # 稍微缩短延迟
+            ps_script = (
+                "Start-Sleep -Milliseconds 100; "
                 "Add-Type -AssemblyName System.Windows.Forms; "
-                "[System.Windows.Forms.SendKeys]::SendWait('^v')\""
+                "[System.Windows.Forms.SendKeys]::SendWait('^v')"
             )
         elif mode == 'ctrl_shift_v':
-            ps_command = (
-                "powershell.exe -WindowStyle Hidden -Command "
-                "\"Start-Sleep -Milliseconds 100; "
+            ps_script = (
+                "Start-Sleep -Milliseconds 100; "
                 "Add-Type -AssemblyName System.Windows.Forms; "
-                "[System.Windows.Forms.SendKeys]::SendWait('+^v')\""
+                "[System.Windows.Forms.SendKeys]::SendWait('+^v')"
             )
         elif mode == 'typing':
-            ps_command = (
-                "powershell.exe -WindowStyle Hidden -Command "
-                "\"Start-Sleep -Milliseconds 100; "
+            ps_script = (
+                "Start-Sleep -Milliseconds 100; "
                 "Add-Type -AssemblyName System.Windows.Forms; "
-                "$clipboardText = Get-Clipboard -Raw; " # 使用 -Raw 提高兼容性
+                "$clipboardText = Get-Clipboard -Raw; "
                 "$escapedText = $clipboardText -replace '([\\+\\^\\%\\~\\(\\)\\[\\]\\{\\}])', '{$1}'; "
-                "[System.Windows.Forms.SendKeys]::SendWait($escapedText)\""
+                "[System.Windows.Forms.SendKeys]::SendWait($escapedText)"
             )
 
-        if ps_command:
+        if ps_script:
             try:
-                # QProcess.startDetached 返回一个布尔值，指示是否成功启动
-                success = QProcess.startDetached(ps_command)
+                success, pid = self._start_detached_process(
+                    "powershell.exe",
+                    ["-NoProfile", "-WindowStyle", "Hidden", "-Command", ps_script]
+                )
                 if success:
-                    log(f"PowerShell 粘贴命令 ({mode}) 已成功派发。")
+                    log(f"PowerShell 粘贴命令 ({mode}) 已成功派发。PID={pid}")
                 else:
                     log(f"CRITICAL: PowerShell 粘贴命令 ({mode}) 派发失败，startDetached 返回 False。")
             except Exception as e:
-                # 捕获启动过程中的潜在异常
                 log(f"CRITICAL: 启动 PowerShell 粘贴进程时发生严重错误: {e}")
     @Slot(str, str)
     def add_entry(self, text, target_path=None):
         # 如果没有指定目标词库，则弹出选择框
         if target_path is None:
-            if len(self.settings.libraries) > 1:
-                lib_names = [os.path.basename(lib['path']) for lib in self.settings.libraries]
-                lib_name, ok = QInputDialog.getItem(self.popup, "选择词库", "请选择要添加到的词库:", lib_names, 0, False)
-                if ok and lib_name:
-                    target_path = next((lib['path'] for lib in self.settings.libraries if os.path.basename(lib['path']) == lib_name), None)
+            writable_targets = self.get_writable_library_targets()
+            if len(writable_targets) > 1:
+                target_labels = [target['label'] for target in writable_targets]
+                selected_label, ok = QInputDialog.getItem(self.popup, "选择词库", "请选择要添加到的词库:", target_labels, 0, False)
+                if ok and selected_label:
+                    target_path = next((target['path'] for target in writable_targets if target['label'] == selected_label), None)
                 else:
                     return # 用户取消
-            elif len(self.settings.libraries) == 1:
-                target_path = self.settings.libraries[0]['path']
+            elif len(writable_targets) == 1:
+                target_path = writable_targets[0]['path']
             else:
                 QMessageBox.warning(self.popup, "错误", "没有可用的词库。请先添加一个。")
                 return
@@ -454,6 +491,7 @@ class MainController(QObject):
                 log(f"已从剪贴板历史中删除 '{item_content}'")
                 # 4. 刷新
                 self.word_manager.load_clipboard_history()
+                self.sync_clipboard_timestamps(current_time=time.time())
                 if self.popup.isVisible():
                     self.popup.update_list(self.popup.search_box.text())
             else:
@@ -462,34 +500,110 @@ class MainController(QObject):
         else:
             QMessageBox.warning(self.popup, "错误", f"无法将条目添加到 {os.path.basename(target_path)}")
 
+    def restart_file_observer(self):
+        """在手动词库结构变化后重建目录监控。"""
+        self.stop_file_observer()
+        self.start_file_observer()
+
+    def _manual_library_exists(self, path, kind):
+        norm_path = normalize_library_path(path)
+        for lib in self.settings.libraries:
+            lib_kind = lib.get('kind', 'file')
+            lib_path = lib.get('path')
+            if lib_kind == kind and lib_path and normalize_library_path(lib_path) == norm_path:
+                return True
+        return False
+
+    def get_writable_library_targets(self):
+        """返回所有真实可写入的 md 文件目标。"""
+        targets = []
+        seen_paths = set()
+        configured_libraries = self.settings.libraries + self.settings.auto_libraries
+
+        for lib in configured_libraries:
+            lib_path = lib.get('path')
+            lib_kind = lib.get('kind', 'file')
+            if lib_kind == 'folder':
+                candidate_paths = list_eligible_md_files(lib_path)
+            else:
+                candidate_paths = [os.path.abspath(lib_path)] if is_eligible_library_file(lib_path) else []
+
+            for candidate_path in candidate_paths:
+                norm_path = normalize_library_path(candidate_path)
+                if norm_path in seen_paths:
+                    continue
+                seen_paths.add(norm_path)
+                parent_dir = os.path.dirname(candidate_path)
+                targets.append({
+                    'label': f"{os.path.basename(candidate_path)} [{parent_dir}]",
+                    'path': candidate_path,
+                })
+
+        return sorted(targets, key=lambda item: item['label'].lower())
+
     @Slot()
     def add_library(self):
         file_path, _ = QFileDialog.getOpenFileName(self.popup, "选择一个词库文件", "", "Markdown 文件 (*.md)")
         if file_path:
-            # 检查是否已存在
-            if any(lib['path'] == file_path for lib in self.settings.libraries):
+            file_path = os.path.abspath(file_path)
+            if not is_eligible_library_file(file_path):
+                QMessageBox.warning(self.popup, "错误", "所选文件不是可用的 md 词库文件。")
+                return
+
+            if self._manual_library_exists(file_path, 'file'):
                 QMessageBox.information(self.popup, "提示", "该词库已在列表中。")
                 return
             
-            self.settings.libraries.append({"path": file_path, "enabled": True})
+            self.settings.libraries.append({"path": file_path, "enabled": True, "kind": "file"})
             self.settings.save()
+            self.restart_file_observer()
             self.perform_full_reload() # 立即执行重载，因为这是用户直接操作
             self.rebuild_library_menu()
 
+    @Slot()
+    def add_library_folder(self):
+        folder_path = QFileDialog.getExistingDirectory(self.popup, "选择一个词库文件夹")
+        if folder_path:
+            folder_path = os.path.abspath(folder_path)
+            if self._manual_library_exists(folder_path, 'folder'):
+                QMessageBox.information(self.popup, "提示", "该词库文件夹已在列表中。")
+                return
+
+            self.settings.libraries.append({"path": folder_path, "enabled": True, "kind": "folder"})
+            self.settings.save()
+            self.restart_file_observer()
+            self.perform_full_reload()
+            self.rebuild_library_menu()
+
+            if not list_eligible_md_files(folder_path):
+                QMessageBox.information(
+                    self.popup,
+                    "提示",
+                    "该文件夹当前没有可加载的 .md 文件，已保留在配置中；后续新增 .md 文件会自动生效。"
+                )
+
     @Slot(str)
     def remove_library(self, path):
-        self.settings.libraries = [lib for lib in self.settings.libraries if lib.get('path') != path]
+        norm_path = normalize_library_path(path)
+        self.settings.libraries = [
+            lib for lib in self.settings.libraries
+            if not lib.get('path') or normalize_library_path(lib.get('path')) != norm_path
+        ]
         self.settings.save()
+        self.restart_file_observer()
         self.perform_full_reload() # 立即执行重载
         self.rebuild_library_menu()
 
     @Slot(str)
     def toggle_library_enabled(self, path):
+        norm_path = normalize_library_path(path)
         for lib in self.settings.libraries:
-            if lib.get('path') == path:
+            lib_path = lib.get('path')
+            if lib_path and normalize_library_path(lib_path) == norm_path:
                 lib['enabled'] = not lib.get('enabled', True)
                 break
         self.settings.save()
+        self.restart_file_observer()
         self.perform_full_reload() # 立即执行重载
         self.rebuild_library_menu()
 
@@ -542,14 +656,20 @@ class MainController(QObject):
     def rebuild_library_menu(self):
         self.library_menu.clear()
         
-        add_action = QAction("添加md词库", self.library_menu)
-        add_action.triggered.connect(self.add_library)
-        self.library_menu.addAction(add_action)
+        add_folder_action = QAction("添加MD词库文件夹", self.library_menu)
+        add_folder_action.triggered.connect(self.add_library_folder)
+        self.library_menu.addAction(add_folder_action)
+
+        add_file_action = QAction("添加MD文件", self.library_menu)
+        add_file_action.triggered.connect(self.add_library)
+        self.library_menu.addAction(add_file_action)
         self.library_menu.addSeparator()
 
         for lib in self.settings.libraries:
             lib_path = lib.get('path')
-            lib_name = os.path.basename(lib_path)
+            lib_kind = lib.get('kind', 'file')
+            raw_name = os.path.basename(lib_path) or lib_path
+            lib_name = f"[文件夹] {raw_name}" if lib_kind == 'folder' else raw_name
             
             # 主操作行
             widget = QWidget()
@@ -562,8 +682,8 @@ class MainController(QObject):
             
             open_button = QPushButton("📂") # 打开文件夹图标
             open_button.setFixedSize(20, 20)
-            open_button.setToolTip("打开词库文件")
-            open_button.clicked.connect(lambda _, p=lib_path: self.open_library_file(p))
+            open_button.setToolTip("打开词库文件夹" if lib_kind == 'folder' else "打开词库文件所在文件夹")
+            open_button.clicked.connect(lambda _, p=lib_path, k=lib_kind: self.open_library_location(p, k))
 
             remove_button = QPushButton("❌") # 删除图标
             remove_button.setFixedSize(20, 20)
@@ -582,15 +702,14 @@ class MainController(QObject):
         # 这个逻辑不再需要，因为 auto_library_menu 现在是顶级菜单
 
     @Slot(str)
-    def open_library_file(self, path):
-        """在文件浏览器中打开指定的词库文件"""
+    def open_library_location(self, path, kind='file'):
+        """在文件浏览器中打开指定词库的对应位置。"""
         try:
-            # 使用 webbrowser 打开文件所在的目录，并选中该文件
-            # 这在不同操作系统上行为可能略有不同，但通常是有效的
-            webbrowser.open(os.path.dirname(path))
-            log(f"尝试打开词库文件: {path}")
+            target = path if kind == 'folder' else os.path.dirname(path)
+            webbrowser.open(target)
+            log(f"尝试打开词库位置: {target}")
         except Exception as e:
-            log(f"打开词库文件失败: {e}")
+            log(f"打开词库位置失败: {e}")
             QMessageBox.warning(self.popup, "错误", f"无法打开文件路径：\n{path}\n\n错误: {e}")
 
     @Slot(str, str)
@@ -625,14 +744,24 @@ class MainController(QObject):
 
     @Slot()
     def toggle_hotkeys_enabled(self):
-        self.settings.hotkeys_enabled = not self.settings.hotkeys_enabled
-        self.settings.save()
-        if self.settings.hotkeys_enabled:
-            self.hotkey_manager.start()
-            log("快捷键已启用。")
+        enable_hotkeys = not self.settings.hotkeys_enabled
+        if enable_hotkeys:
+            success, normalized_hotkey, error_message = self.hotkey_manager.reregister(self.settings.hotkey)
+            if not success:
+                if hasattr(self, 'toggle_hotkeys_action'):
+                    self.toggle_hotkeys_action.setChecked(False)
+                QMessageBox.warning(self.popup, "热键注册失败", error_message)
+                return
+
+            self.settings.hotkeys_enabled = True
+            self.settings.hotkey = normalized_hotkey
+            log(f"快捷键已启用: {normalized_hotkey}")
         else:
-            self.hotkey_manager.stop()
+            self.hotkey_manager.unregister_all()
+            self.settings.hotkeys_enabled = False
             log("快捷键已禁用。")
+
+        self.settings.save()
         
         if hasattr(self, 'toggle_hotkeys_action'):
             self.toggle_hotkeys_action.setChecked(self.settings.hotkeys_enabled)
@@ -735,35 +864,58 @@ class MainController(QObject):
         )
         if dialog.exec():
             hot_en, hot_str, str_en, str_val = dialog.get_settings()
-            
-            changed = False
-            if hot_en != self.settings.hotkeys_enabled:
-                self.settings.hotkeys_enabled = hot_en
-                changed = True
-            if hot_str != self.settings.hotkey:
-                self.settings.hotkey = hot_str
-                changed = True
-            if str_en != self.settings.string_trigger_enabled:
-                self.settings.string_trigger_enabled = str_en
-                changed = True
-            if str_val != self.settings.string_trigger_str:
-                self.settings.string_trigger_str = str_val
-                changed = True
-                
-            if changed:
-                self.settings.save()
-                
-                # 更新组合键
-                if hot_en:
-                    self.hotkey_manager.reregister(hot_str)
-                else:
-                    self.hotkey_manager.unregister_all()
-                
-                # 更新连续字符串触发器
-                self.hotkey_manager.update_string_trigger(str_en, str_val)
-                
-                log(f"触发配置已更新 | 组合键: {hot_en} '{hot_str}' | 连续字符串: {str_en} '{str_val}'")
-                QMessageBox.information(None, "成功", "触发方式设置已更新！")
+            old_hotkeys_enabled = self.settings.hotkeys_enabled
+            old_hotkey = self.settings.hotkey
+            old_string_enabled = self.settings.string_trigger_enabled
+            old_string_value = self.settings.string_trigger_str
+
+            normalized_hotkey = self.settings.hotkey
+            if hot_str.strip():
+                parsed_hotkey = self.hotkey_manager.validate_hotkey(hot_str)
+                if not parsed_hotkey["valid"]:
+                    QMessageBox.warning(self.popup, "设置错误", parsed_hotkey["error"])
+                    return
+                normalized_hotkey = parsed_hotkey["normalized"]
+            elif not hot_en:
+                normalized_hotkey = old_hotkey
+
+            changed = (
+                hot_en != old_hotkeys_enabled
+                or normalized_hotkey != old_hotkey
+                or str_en != old_string_enabled
+                or str_val != old_string_value
+            )
+
+            if not changed:
+                return
+
+            if hot_en:
+                success, normalized_hotkey, error_message = self.hotkey_manager.reregister(normalized_hotkey)
+                if not success:
+                    if old_hotkeys_enabled:
+                        restore_success, restored_hotkey, restore_error = self.hotkey_manager.reregister(old_hotkey)
+                        if restore_success:
+                            log(f"新热键注册失败，已恢复旧热键: {restored_hotkey}")
+                        else:
+                            log(f"CRITICAL: 新热键注册失败且恢复旧热键失败: {restore_error}")
+                    else:
+                        self.hotkey_manager.unregister_all()
+
+                    QMessageBox.warning(self.popup, "热键注册失败", error_message)
+                    return
+            else:
+                self.hotkey_manager.unregister_all()
+
+            self.hotkey_manager.update_string_trigger(str_en, str_val)
+
+            self.settings.hotkeys_enabled = hot_en
+            self.settings.hotkey = normalized_hotkey
+            self.settings.string_trigger_enabled = str_en
+            self.settings.string_trigger_str = str_val
+
+            self.settings.save()
+            log(f"触发配置已更新 | 组合键: {hot_en} '{normalized_hotkey}' | 连续字符串: {str_en} '{str_val}'")
+            QMessageBox.information(None, "成功", "触发方式设置已更新！")
 
     def apply_menu_theme(self, menu=None):
         target_menu = menu if menu else self.menu
@@ -835,6 +987,8 @@ class MainController(QObject):
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
             if self.word_manager.clear_clipboard_history():
+                self.clipboard_timestamps = {}
+                self.sync_clipboard_timestamps()
                 QMessageBox.information(None, "成功", "剪贴板历史已清空！")
                 if self.popup.isVisible():
                     self.popup.update_list("")
@@ -850,10 +1004,7 @@ class MainController(QObject):
         
         if self.settings.clipboard_auto_clear_enabled:
             current_time = time.time()
-            # 开启时如果有些已经存在，为了避免瞬间连同误删，重置为当前时间
-            for block in self.word_manager.clipboard_history:
-                if block['parent'] not in self.clipboard_timestamps:
-                    self.clipboard_timestamps[block['parent']] = current_time
+            self.sync_clipboard_timestamps(current_time=current_time)
             self.check_clipboard_auto_clear()
         
         log(f"剪贴板定时清除功能: {'开启' if self.settings.clipboard_auto_clear_enabled else '关闭'}")
@@ -886,15 +1037,16 @@ class MainController(QObject):
                 
         if items_to_delete:
             deleted_any = False
-            for text in items_to_delete:
-                if self.word_manager.clipboard_source and self.word_manager.clipboard_source.delete_entry(f"- {text}"):
+            for full_content in items_to_delete:
+                if self.word_manager.clipboard_source and self.word_manager.clipboard_source.delete_entry(full_content):
                     deleted_any = True
-                if text in self.clipboard_timestamps:
-                    del self.clipboard_timestamps[text]
+                if full_content in self.clipboard_timestamps:
+                    del self.clipboard_timestamps[full_content]
             
             if deleted_any:
                 log(f"已自动清除过期的剪贴板内容: {len(items_to_delete)} 条")
                 self.word_manager.load_clipboard_history() # 重新加载以更新内部状态
+                self.sync_clipboard_timestamps(current_time=current_time)
                 if self.popup.isVisible():
                     self.popup.update_list(self.popup.search_box.text())
 
@@ -903,25 +1055,58 @@ class MainController(QObject):
     def perform_restart(self):
         """执行重启操作"""
         log("执行重启...")
-        # 退出前保存所有设置
         self.settings.save()
-        # 隐藏窗口并注销热键，为重启做准备
         self.popup.hide()
-        # self.unregister_hotkeys() # 已移除
-        # 延迟执行重启，以确保事件循环处理了清理工作
+        self.hotkey_manager.stop()
+        if self.shortcut_listener:
+            self.shortcut_listener.stop()
+        self.stop_file_observer()
         QTimer.singleShot(100, self._restart_process)
+
+    def _restore_services_after_failed_restart(self):
+        """重启派发失败后恢复本实例的运行态。"""
+        hotkey_restore_failed = ""
+        if self.settings.hotkeys_enabled:
+            success, normalized_hotkey, error_message = self.hotkey_manager.reregister(self.settings.hotkey)
+            if success:
+                self.settings.hotkey = normalized_hotkey
+            else:
+                self.settings.hotkeys_enabled = False
+                self.settings.save()
+                if hasattr(self, 'toggle_hotkeys_action'):
+                    self.toggle_hotkeys_action.setChecked(False)
+                hotkey_restore_failed = error_message
+
+        self.hotkey_manager.update_string_trigger(
+            self.settings.string_trigger_enabled,
+            self.settings.string_trigger_str
+        )
+
+        if self.shortcut_listener and self.settings.shortcut_code_enabled:
+            self.shortcut_listener.start()
+        self.start_file_observer()
+
+        if hotkey_restore_failed:
+            QMessageBox.warning(
+                self.popup,
+                "热键恢复失败",
+                f"重启派发失败后，当前实例的热键恢复也失败了：\n{hotkey_restore_failed}"
+            )
 
     def _restart_process(self):
         """实际的重启进程调用"""
         try:
             log(f"准备重启: sys.executable={sys.executable}, sys.argv={sys.argv}")
-            # 使用 QProcess.startDetached() 来启动一个新进程
-            # 这是在Qt应用中进行重启的更可靠方法
-            QProcess.startDetached(sys.executable, sys.argv)
-            # 当前进程正常退出
+            restart_args = sys.argv[1:] if getattr(sys, 'frozen', False) else sys.argv
+            success, pid = self._start_detached_process(sys.executable, restart_args)
+            if not success:
+                raise RuntimeError("QProcess.startDetached 返回 False。")
+
+            log(f"重启新进程已成功启动。PID={pid}")
             self.app.quit()
         except Exception as e:
             log(f"重启失败: {e}")
+            self._restore_services_after_failed_restart()
             QMessageBox.critical(None, "错误", f"应用程序重启失败: {e}")
 
     def update_auto_restart_timer(self):
@@ -991,7 +1176,11 @@ class MainController(QObject):
             return False
 
         try:
-            found_files = {os.path.join(AUTO_LOAD_DIR, f) for f in os.listdir(AUTO_LOAD_DIR) if f.endswith('.md')}
+            found_files = {
+                os.path.join(AUTO_LOAD_DIR, f)
+                for f in os.listdir(AUTO_LOAD_DIR)
+                if f.endswith('.md') and is_eligible_library_file(os.path.join(AUTO_LOAD_DIR, f))
+            }
         except Exception as e:
             log(f"扫描自动加载目录时出错: {e}")
             return False
@@ -1007,7 +1196,7 @@ class MainController(QObject):
         # 如果有变化，则进行处理
         if new_files:
             for path in new_files:
-                self.settings.auto_libraries.append({"path": path, "enabled": True})
+                self.settings.auto_libraries.append({"path": path, "enabled": True, "kind": "file"})
                 log(f"发现并添加新自动词库: {os.path.basename(path)}")
 
         if removed_files:

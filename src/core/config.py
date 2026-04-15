@@ -99,11 +99,52 @@ CACHE_FILE = os.path.join(USER_DATA_DIR, "cache.json")
 ICON_PATH = resource_path("icon.png")
 
 DEBUG_MODE = True
-VERSION = "1.3.1" # 剪贴板定时清除功能
+VERSION = "1.3.2" # 别名、文件夹词库、剪贴板与热键链闭环修复
 
 def log(message):
     if DEBUG_MODE:
         print(f"[LOG] {message}")
+
+def normalize_library_path(path):
+    """统一词库路径格式，避免大小写和相对路径导致的重复判断失真。"""
+    return os.path.normcase(os.path.abspath(path))
+
+def get_internal_library_paths():
+    """返回所有不应混入普通词库池的内部专用文件路径。"""
+    return {
+        normalize_library_path(CLIPBOARD_HISTORY_FILE),
+    }
+
+def is_internal_library_file(path):
+    if not path:
+        return False
+    return normalize_library_path(path) in get_internal_library_paths()
+
+def is_eligible_library_file(path):
+    """判断一个文件是否可以作为普通词库文件参与加载。"""
+    return (
+        bool(path)
+        and os.path.isfile(path)
+        and path.lower().endswith(".md")
+        and not is_internal_library_file(path)
+    )
+
+def list_eligible_md_files(folder_path):
+    """列出目录首层可参与普通词库加载的 md 文件。"""
+    if not folder_path or not os.path.isdir(folder_path):
+        return []
+
+    files = []
+    try:
+        for name in os.listdir(folder_path):
+            full_path = os.path.join(folder_path, name)
+            if is_eligible_library_file(full_path):
+                files.append(os.path.abspath(full_path))
+    except Exception as e:
+        log(f"扫描目录 {folder_path} 时列出 md 文件失败: {e}")
+        return []
+
+    return sorted(files, key=lambda path: os.path.basename(path).lower())
 
 # --- 主题颜色定义 ---
 THEMES = {
