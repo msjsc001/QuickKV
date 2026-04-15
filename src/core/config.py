@@ -95,11 +95,12 @@ WORD_FILE = os.path.join(AUTO_LOAD_DIR, "词库.md")
 CONFIG_FILE = os.path.join(USER_DATA_DIR, "config.ini")
 CLIPBOARD_HISTORY_FILE = os.path.join(AUTO_LOAD_DIR, "剪贴板词库-勿删.md")
 CACHE_FILE = os.path.join(USER_DATA_DIR, "cache.json")
+RANKING_STATE_FILE = os.path.join(USER_DATA_DIR, "ranking_state.json")
 
 ICON_PATH = resource_path("icon.png")
 
 DEBUG_MODE = True
-VERSION = "1.3.2" # 别名、文件夹词库、剪贴板与热键链闭环修复
+VERSION = "1.3.3" # 收藏排序增强与中文模板变量
 
 def log(message):
     if DEBUG_MODE:

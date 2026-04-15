@@ -6,3 +6,4 @@ pynput
 fuzzywuzzy
 python-Levenshtein
 watchdog
+python-liquid

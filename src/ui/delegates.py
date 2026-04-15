@@ -198,6 +198,8 @@ class StyledItemDelegate(QStyledItemDelegate):
             if source_path:
                 basename = os.path.basename(source_path)
                 name_without_ext = os.path.splitext(basename)[0]
+                if block_data.get('is_favorite'):
+                    name_without_ext = f"⭐ {name_without_ext}"
                 
                 # 确定徽章颜色
                 if self.settings.theme == 'dark':

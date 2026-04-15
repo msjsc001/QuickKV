@@ -39,7 +39,9 @@ except ImportError:
 
 
 from core.config import *
+from core.ranking_state import RankingStateManager
 from core.settings import SettingsManager
+from core.template_renderer import TemplateRenderer
 from core.word_manager import WordManager
 from main_controller import MainController
 from ui.components import DisclaimerDialog
@@ -78,8 +80,10 @@ if __name__ == "__main__":
             log(f"创建默认词库文件失败: {e}")
 
     settings_manager = SettingsManager(CONFIG_FILE)
-    word_manager = WordManager(settings_manager)
-    controller = MainController(app, word_manager, settings_manager)
+    ranking_state_manager = RankingStateManager(RANKING_STATE_FILE)
+    template_renderer = TemplateRenderer()
+    word_manager = WordManager(settings_manager, ranking_state_manager)
+    controller = MainController(app, word_manager, settings_manager, ranking_state_manager, template_renderer)
     
     # --- 首次启动与版本更新检查 ---
     current_device_id = get_device_id()

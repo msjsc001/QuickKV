@@ -43,7 +43,7 @@ from services.hotkey_manager import parse_hotkey_string
 
 
 # --- 编辑对话框 ---
-from PySide6.QtWidgets import QDialog, QTextEdit, QDialogButtonBox
+from PySide6.QtWidgets import QDialog, QTextEdit, QDialogButtonBox, QFormLayout
 
 class MarkdownTextEdit(QTextEdit):
     """自定义文本框，优化 Markdown 编写体验"""
@@ -131,6 +131,97 @@ class EditDialog(QDialog):
 
     def get_text(self):
         return self.text_edit.toPlainText()
+
+
+class TemplateInputDialog(QDialog):
+    """用于一次性填写模板中的多个输入变量。"""
+
+    def __init__(self, parent=None, fields=None, theme=None, font_size=14):
+        super().__init__(parent)
+        self.fields = fields or []
+        self.inputs = {}
+        self.setWindowTitle("填写模板变量")
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(10)
+
+        description = QLabel("请填写本次输出所需的字段：", self)
+        layout.addWidget(description)
+
+        form_layout = QFormLayout()
+        form_layout.setContentsMargins(0, 0, 0, 0)
+        form_layout.setSpacing(8)
+
+        for field in self.fields:
+            line_edit = QLineEdit(self)
+            line_edit.setText(field.default)
+            line_edit.setPlaceholderText(field.label)
+            self.inputs[field.key] = line_edit
+            form_layout.addRow(f"{field.label}：", line_edit)
+
+        layout.addLayout(form_layout)
+
+        self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+        layout.addWidget(self.button_box)
+
+        self.resize(480, max(180, 130 + len(self.fields) * 42))
+        if theme:
+            self.apply_theme(theme, font_size, description)
+
+        if self.fields:
+            first_key = self.fields[0].key
+            self.inputs[first_key].setFocus()
+            self.inputs[first_key].selectAll()
+
+    def apply_theme(self, theme, font_size, description_label):
+        self.setStyleSheet(f"QDialog {{ background-color: {theme['bg_color']}; color: {theme['text_color']}; }}")
+        description_label.setStyleSheet(
+            f"QLabel {{ color: {theme['text_color']}; font-size: {font_size}px; background-color: transparent; }}"
+        )
+
+        for line_edit in self.inputs.values():
+            line_edit.setStyleSheet(f"""
+                QLineEdit {{
+                    background-color: {theme['input_bg_color']};
+                    color: {theme['text_color']};
+                    border: 1px solid {theme['border_color']};
+                    border-radius: 6px;
+                    padding: 6px 8px;
+                    font-size: {font_size}px;
+                    selection-background-color: {theme['item_selected_bg']};
+                    selection-color: {theme['item_selected_text']};
+                }}
+            """)
+
+        btn_style = f"""
+            QPushButton {{
+                background-color: {theme['input_bg_color']};
+                color: {theme['text_color']};
+                border: 1px solid {theme['border_color']};
+                padding: 6px 16px;
+                border-radius: 4px;
+                min-width: 80px;
+            }}
+            QPushButton:hover {{
+                background-color: {theme['item_hover_bg']};
+            }}
+            QPushButton:pressed {{
+                background-color: {theme['item_selected_bg']};
+                color: {theme['item_selected_text']};
+            }}
+        """
+        for button in self.button_box.buttons():
+            button.setStyleSheet(btn_style)
+
+    def get_values(self):
+        return {
+            key: line_edit.text()
+            for key, line_edit in self.inputs.items()
+        }
+
 class ScrollableMessageBox(QDialog):
     def __init__(self, parent=None, title="", text="", theme=None, font_size=14):
         super().__init__(parent)

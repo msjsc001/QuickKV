@@ -465,6 +465,12 @@ class SearchPopup(QWidget):
             menu.addAction(delete_action)
         else:
             # 普通词库的右键菜单
+            favorite_action = QAction("取消收藏" if selected_block.get('is_favorite') else "收藏", self)
+            favorite_action.triggered.connect(lambda checked=False, b=selected_block: self.controller.toggle_block_favorite(b))
+            menu.addAction(favorite_action)
+
+            menu.addSeparator()
+
             edit_action = QAction("编辑", self)
             edit_action.triggered.connect(lambda checked=False, i=item: self.edit_item(i))
             menu.addAction(edit_action)

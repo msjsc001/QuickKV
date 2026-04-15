@@ -10,6 +10,7 @@ import re
 import itertools
 import threading
 import ctypes
+from datetime import datetime
 from ctypes import wintypes
 from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLineEdit,
                              QListWidget, QListWidgetItem, QSystemTrayIcon, QMenu, QSizeGrip,
@@ -43,8 +44,9 @@ from core.word_source import WordSource
 
 # --- 词库管理器 ---
 class WordManager:
-    def __init__(self, settings):
+    def __init__(self, settings, ranking_state=None):
         self.settings = settings
+        self.ranking_state = ranking_state
         self.sources = []
         self.word_blocks = []
         self.cache = {} # 新增：用于存储缓存数据
@@ -187,7 +189,36 @@ class WordManager:
         # 移除旧的、不再使用的键
         if 'hybrid_initials' in block:
             del block['hybrid_initials']
+        self._apply_ranking_metadata(block)
         return block
+
+    def _apply_ranking_metadata(self, block):
+        """为普通词条补齐收藏与最近使用元数据。"""
+        default_usage_meta = {'count': 0, 'last_used_at': ''}
+        if block.get('is_clipboard'):
+            block['entry_id'] = None
+            block['is_favorite'] = False
+            block['usage_meta'] = default_usage_meta
+            return
+
+        if not self.ranking_state:
+            block['entry_id'] = None
+            block['is_favorite'] = False
+            block['usage_meta'] = default_usage_meta
+            return
+
+        entry_id = self.ranking_state.make_entry_id(
+            block.get('source_path', ''),
+            block.get('full_content', ''),
+        )
+        block['entry_id'] = entry_id
+        block['is_favorite'] = self.ranking_state.is_favorite(entry_id)
+        block['usage_meta'] = self.ranking_state.get_usage_meta(entry_id)
+
+    def refresh_ranking_metadata(self):
+        """刷新内存中词条的收藏与最近使用元数据。"""
+        for block in self.word_blocks:
+            self._apply_ranking_metadata(block)
 
     def _match_keyword_in_char_map(self, keyword, char_map, pinyin_search_enabled=False, used_indices=None):
         """在指定字符映射表中寻找单个关键词的最佳命中。"""
@@ -261,6 +292,52 @@ class WordManager:
             if 'highlight_groups' in block:
                 del block['highlight_groups']
 
+    def _usage_sort_value(self, usage_meta):
+        last_used_at = (usage_meta or {}).get('last_used_at', '')
+        if not last_used_at:
+            return 0.0
+        try:
+            return datetime.fromisoformat(last_used_at).timestamp()
+        except (TypeError, ValueError):
+            return 0.0
+
+    def _is_same_ranking_band(self, higher_score, lower_score):
+        threshold = max(0.8, higher_score * 0.08)
+        return (higher_score - lower_score) <= threshold
+
+    def _sort_ranking_group(self, group):
+        return sorted(
+            group,
+            key=lambda item: (
+                0 if item['block'].get('is_favorite') else 1,
+                -self._usage_sort_value(item['block'].get('usage_meta', {})),
+                -int(item['block'].get('usage_meta', {}).get('count', 0) or 0),
+                -item['base_score'],
+                item['original_order'],
+            )
+        )
+
+    def _apply_ranking_adjustments(self, scored_blocks):
+        """在基础相关度排序之后，对相近候选做收藏/最近使用微调。"""
+        if not scored_blocks:
+            return []
+
+        base_sorted = sorted(scored_blocks, key=lambda item: item['base_score'], reverse=True)
+        final_items = []
+        current_group = [base_sorted[0]]
+        previous_item = base_sorted[0]
+
+        for item in base_sorted[1:]:
+            if self._is_same_ranking_band(previous_item['base_score'], item['base_score']):
+                current_group.append(item)
+            else:
+                final_items.extend(self._sort_ranking_group(current_group))
+                current_group = [item]
+            previous_item = item
+
+        final_items.extend(self._sort_ranking_group(current_group))
+        return final_items
+
     def _expand_library_entries(self, libraries):
         """将文件/文件夹两类词库条目展开为真实可加载的 md 文件。"""
         expanded_paths = {}
@@ -324,6 +401,14 @@ class WordManager:
 
         self.word_blocks = new_word_blocks
         self.word_blocks.sort(key=lambda block: self._get_pinyin_sort_key(block['parent']))
+
+        if self.ranking_state:
+            active_entry_ids = {
+                block.get('entry_id')
+                for block in self.word_blocks
+                if block.get('entry_id')
+            }
+            self.ranking_state.cleanup_orphans(active_entry_ids)
         
         if cache_updated:
             self._save_cache()
@@ -499,10 +584,14 @@ class WordManager:
                 else:
                     block['highlight_groups'] = {}
                 
-                scored_blocks.append((block, total_score))
+                scored_blocks.append({
+                    'block': block,
+                    'base_score': total_score,
+                    'original_order': len(scored_blocks),
+                })
 
-        scored_blocks.sort(key=lambda x: x[1], reverse=True)
-        return [block for block, score in scored_blocks]
+        ranked_blocks = self._apply_ranking_adjustments(scored_blocks)
+        return [item['block'] for item in ranked_blocks]
 
 
     def get_source_by_path(self, path):

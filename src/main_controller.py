@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, 
                              QListWidget, QListWidgetItem, QSystemTrayIcon, QMenu, QSizeGrip,
                              QGraphicsDropShadowEffect, QPushButton,
                              QInputDialog, QMessageBox, QStyledItemDelegate, QStyle, QFileDialog,
-                             QCheckBox, QWidgetAction, QScrollArea, QLabel, QFrame)
+                             QCheckBox, QWidgetAction, QScrollArea, QLabel, QFrame, QDialog)
 from PySide6.QtCore import (Qt, Signal, Slot, QObject,
                           QTimer, QEvent, QRect, QProcess)
 from PySide6.QtGui import QIcon, QAction, QCursor, QPixmap, QPainter, QColor, QPalette, QActionGroup
@@ -42,8 +42,9 @@ except ImportError:
 import builtins
 # Dependency Injection
 from core.config import *
+from core.template_renderer import TemplateRenderer, TemplateRenderError
 from ui.search_popup import SearchPopup
-from ui.components import HotkeyDialog, DisclaimerDialog, ScrollableMessageBox, get_disclaimer_html_text, EditDialog
+from ui.components import HotkeyDialog, DisclaimerDialog, ScrollableMessageBox, get_disclaimer_html_text, EditDialog, TemplateInputDialog
 from services.hotkey_manager import NativeHotkeyManager
 from services.shortcut_listener import ShortcutListener
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
@@ -81,8 +82,8 @@ class MainController(QObject):
     # 新增：用于从 watchdog 线程安全地触发重载的信号
     thread_safe_reload_signal = Signal()
 
-    def __init__(self, app, word_manager, settings_manager):
-        super().__init__(); self.app = app; self.word_manager = word_manager; self.settings = settings_manager; self.menu = None; self.auto_library_menu = None
+    def __init__(self, app, word_manager, settings_manager, ranking_state_manager=None, template_renderer=None):
+        super().__init__(); self.app = app; self.word_manager = word_manager; self.settings = settings_manager; self.ranking_state = ranking_state_manager; self.template_renderer = template_renderer or TemplateRenderer(); self.menu = None; self.auto_library_menu = None
         self.popup = SearchPopup(self.word_manager, self.settings)
         self.popup.controller = self # 将 controller 实例传递给 popup
         self.show_popup_signal.connect(self.popup.show_and_focus)
@@ -323,6 +324,14 @@ class MainController(QObject):
             # 如果找不到块，作为备用方案，按旧方式处理
             content_to_paste = text.replace('- ', '', 1)
 
+        rendered_content = self.render_template_output(content_to_paste)
+        if rendered_content is None:
+            log("模板输出已取消或失败，本次不执行粘贴。")
+            return
+
+        content_to_paste = rendered_content
+        self.record_entry_usage(found_block)
+
         self.ignore_next_clipboard_change = True
         pyperclip.copy(content_to_paste)
         log(f"已复制处理后的内容到剪贴板，并设置忽略标志。")
@@ -372,6 +381,75 @@ class MainController(QObject):
                     log(f"CRITICAL: PowerShell 粘贴命令 ({mode}) 派发失败，startDetached 返回 False。")
             except Exception as e:
                 log(f"CRITICAL: 启动 PowerShell 粘贴进程时发生严重错误: {e}")
+
+    def record_entry_usage(self, block):
+        """仅记录真正完成输出的普通词条使用行为。"""
+        if not block or block.get('is_clipboard'):
+            return
+        if not self.ranking_state:
+            return
+
+        entry_id = block.get('entry_id')
+        if not entry_id:
+            return
+
+        self.ranking_state.record_use(entry_id)
+        self.word_manager.refresh_ranking_metadata()
+
+    def toggle_block_favorite(self, block):
+        """切换普通词条的收藏状态，并刷新当前结果。"""
+        if not block or block.get('is_clipboard'):
+            return
+        if not self.ranking_state:
+            return
+
+        entry_id = block.get('entry_id')
+        if not entry_id:
+            return
+
+        new_state = self.ranking_state.toggle_favorite(entry_id)
+        self.word_manager.refresh_ranking_metadata()
+        state_text = "已收藏" if new_state else "已取消收藏"
+        log(f"{state_text}: {block.get('parent', '')}")
+        if self.popup.isVisible():
+            self.popup.update_list(self.popup.search_box.text())
+
+    def render_template_output(self, content_to_paste):
+        """在最终输出前执行中文模板渲染。"""
+        if not self.template_renderer or not self.template_renderer.contains_template(content_to_paste):
+            return content_to_paste
+
+        try:
+            prepared_template = self.template_renderer.prepare(content_to_paste)
+        except TemplateRenderError as e:
+            QMessageBox.warning(self.popup, "模板错误", str(e))
+            return None
+
+        input_values = {}
+        if prepared_template.input_fields:
+            dialog = TemplateInputDialog(
+                self.popup,
+                prepared_template.input_fields,
+                THEMES[self.settings.theme],
+                self.settings.font_size
+            )
+            if dialog.exec() != QDialog.Accepted:
+                return None
+            input_values = dialog.get_values()
+
+        clipboard = self.app.clipboard()
+        clipboard_text = clipboard.text() if clipboard.mimeData().hasText() else ""
+
+        try:
+            return self.template_renderer.render(
+                prepared_template,
+                input_values=input_values,
+                clipboard_text=clipboard_text,
+            )
+        except TemplateRenderError as e:
+            QMessageBox.warning(self.popup, "模板错误", str(e))
+            return None
+
     @Slot(str, str)
     def add_entry(self, text, target_path=None):
         # 如果没有指定目标词库，则弹出选择框
