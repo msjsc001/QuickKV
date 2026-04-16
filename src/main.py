@@ -83,7 +83,13 @@ if __name__ == "__main__":
     ranking_state_manager = RankingStateManager(RANKING_STATE_FILE)
     template_renderer = TemplateRenderer()
     word_manager = WordManager(settings_manager, ranking_state_manager)
-    controller = MainController(app, word_manager, settings_manager, ranking_state_manager, template_renderer)
+    controller = MainController(
+        app,
+        word_manager,
+        settings_manager,
+        ranking_state_manager,
+        template_renderer,
+    )
     
     # --- 首次启动与版本更新检查 ---
     current_device_id = get_device_id()
@@ -165,20 +171,20 @@ if __name__ == "__main__":
     paste_mode_group.setExclusive(True)
 
     paste_ctrl_v_action = QAction("Ctrl+V (默认)", checkable=True)
-    paste_ctrl_v_action.setChecked(settings_manager.paste_mode == 'ctrl_v')
-    paste_ctrl_v_action.triggered.connect(lambda: controller.set_paste_mode('ctrl_v'))
+    paste_ctrl_v_action.setChecked(settings_manager.paste_mode == PASTE_MODE_CTRL_V)
+    paste_ctrl_v_action.triggered.connect(lambda: controller.set_paste_mode(PASTE_MODE_CTRL_V))
     paste_mode_menu.addAction(paste_ctrl_v_action)
     paste_mode_group.addAction(paste_ctrl_v_action)
     paste_mode_menu.addSeparator()
     paste_ctrl_shift_v_action = QAction("Ctrl+Shift+V", checkable=True)
-    paste_ctrl_shift_v_action.setChecked(settings_manager.paste_mode == 'ctrl_shift_v')
-    paste_ctrl_shift_v_action.triggered.connect(lambda: controller.set_paste_mode('ctrl_shift_v'))
+    paste_ctrl_shift_v_action.setChecked(settings_manager.paste_mode == PASTE_MODE_CTRL_SHIFT_V)
+    paste_ctrl_shift_v_action.triggered.connect(lambda: controller.set_paste_mode(PASTE_MODE_CTRL_SHIFT_V))
     paste_mode_menu.addAction(paste_ctrl_shift_v_action)
     paste_mode_group.addAction(paste_ctrl_shift_v_action)
     paste_mode_menu.addSeparator()
     paste_typing_action = QAction("输入模式", checkable=True)
-    paste_typing_action.setChecked(settings_manager.paste_mode == 'typing')
-    paste_typing_action.triggered.connect(lambda: controller.set_paste_mode('typing'))
+    paste_typing_action.setChecked(settings_manager.paste_mode == PASTE_MODE_TYPING)
+    paste_typing_action.triggered.connect(lambda: controller.set_paste_mode(PASTE_MODE_TYPING))
     paste_mode_menu.addAction(paste_typing_action)
     paste_mode_group.addAction(paste_typing_action)
 

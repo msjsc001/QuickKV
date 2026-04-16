@@ -100,7 +100,16 @@ RANKING_STATE_FILE = os.path.join(USER_DATA_DIR, "ranking_state.json")
 ICON_PATH = resource_path("icon.png")
 
 DEBUG_MODE = True
-VERSION = "1.3.4" # 元命令语法兼容性优化与文档更新
+VERSION = "1.3.5" # 默认输入主链稳定化回退
+
+PASTE_MODE_CTRL_V = "ctrl_v"
+PASTE_MODE_CTRL_SHIFT_V = "ctrl_shift_v"
+PASTE_MODE_TYPING = "typing"
+SUPPORTED_PASTE_MODES = {
+    PASTE_MODE_CTRL_V,
+    PASTE_MODE_CTRL_SHIFT_V,
+    PASTE_MODE_TYPING,
+}
 
 def log(message):
     if DEBUG_MODE:

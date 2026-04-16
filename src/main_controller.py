@@ -82,6 +82,14 @@ class MainController(QObject):
     # 新增：用于从 watchdog 线程安全地触发重载的信号
     thread_safe_reload_signal = Signal()
 
+    MODIFIER_VKS = {
+        'ctrl': 0x11,
+        'shift': 0x10,
+        'alt': 0x12,
+        'lwin': 0x5B,
+        'rwin': 0x5C,
+    }
+
     def __init__(self, app, word_manager, settings_manager, ranking_state_manager=None, template_renderer=None):
         super().__init__(); self.app = app; self.word_manager = word_manager; self.settings = settings_manager; self.ranking_state = ranking_state_manager; self.template_renderer = template_renderer or TemplateRenderer(); self.menu = None; self.auto_library_menu = None
         self.popup = SearchPopup(self.word_manager, self.settings)
@@ -135,6 +143,18 @@ class MainController(QObject):
 
         self.ignore_next_clipboard_change = False # 用于防止记录自己的输出
         self.app.clipboard().dataChanged.connect(self.on_clipboard_changed)
+        self.user32 = ctypes.windll.user32
+        self.quickkv_pid = os.getpid()
+        self.last_popup_target_hwnd = 0
+        self.pending_paste_request = None
+        self.popup_paste_grace_ms = 50
+        self.shortcut_paste_grace_ms = 50
+        self.shortcut_erase_grace_ms = 25
+        self.paste_poll_interval_ms = 20
+        self.paste_timeout_ms = 650
+        self.pending_paste_timer = QTimer(self)
+        self.pending_paste_timer.setInterval(self.paste_poll_interval_ms)
+        self.pending_paste_timer.timeout.connect(self._poll_pending_paste)
 
     @Slot()
     def on_clipboard_changed(self):
@@ -194,13 +214,118 @@ class MainController(QObject):
             success, pid = bool(result), None
         return bool(success), pid
 
+    def _get_foreground_hwnd(self):
+        try:
+            return int(self.user32.GetForegroundWindow())
+        except Exception:
+            return 0
+
+    def _get_window_process_id(self, hwnd):
+        if not hwnd:
+            return 0
+
+        pid = wintypes.DWORD()
+        try:
+            self.user32.GetWindowThreadProcessId(wintypes.HWND(hwnd), ctypes.byref(pid))
+        except Exception:
+            return 0
+        return int(pid.value)
+
+    def _capture_target_hwnd(self):
+        hwnd = self._get_foreground_hwnd()
+        log(f"捕获目标窗口 hwnd={hwnd}")
+        return hwnd
+
+    def _is_quickkv_foreground(self, hwnd):
+        return bool(hwnd) and self._get_window_process_id(hwnd) == self.quickkv_pid
+
+    def _get_pressed_modifiers(self):
+        pressed = []
+        for name, vk in self.MODIFIER_VKS.items():
+            try:
+                if self.user32.GetAsyncKeyState(vk) & 0x8000:
+                    pressed.append(name)
+            except Exception:
+                continue
+        return pressed
+
+    def schedule_paste(self, target_hwnd, origin='popup', grace_ms=None):
+        if grace_ms is None:
+            grace_ms = self.popup_paste_grace_ms if origin == 'popup' else self.shortcut_paste_grace_ms
+
+        self.pending_paste_request = {
+            'target_hwnd': int(target_hwnd or 0),
+            'origin': origin,
+            'scheduled_at': time.monotonic(),
+            'grace_ms': int(grace_ms),
+            'stable_hits': 0,
+            'last_foreground_hwnd': None,
+        }
+        if not self.pending_paste_timer.isActive():
+            self.pending_paste_timer.start()
+
+        log(
+            f"已调度粘贴 | origin={origin} target_hwnd={int(target_hwnd or 0)} "
+            f"grace_ms={int(grace_ms)} timeout_ms={self.paste_timeout_ms}"
+        )
+
+    def _poll_pending_paste(self):
+        request = self.pending_paste_request
+        if not request:
+            self.pending_paste_timer.stop()
+            return
+
+        foreground_hwnd = self._get_foreground_hwnd()
+        elapsed_ms = int((time.monotonic() - request['scheduled_at']) * 1000)
+
+        if request['target_hwnd'] and foreground_hwnd == request['target_hwnd']:
+            if request['last_foreground_hwnd'] == foreground_hwnd:
+                request['stable_hits'] += 1
+            else:
+                request['stable_hits'] = 1
+        else:
+            request['stable_hits'] = 0
+        request['last_foreground_hwnd'] = foreground_hwnd
+
+        pressed_modifiers = self._get_pressed_modifiers()
+        quickkv_foreground = self._is_quickkv_foreground(foreground_hwnd)
+        grace_ready = elapsed_ms >= request['grace_ms']
+        target_stable = request['target_hwnd'] and request['stable_hits'] >= 2
+
+        if grace_ready and not quickkv_foreground and not pressed_modifiers and target_stable:
+            self.pending_paste_request = None
+            self.pending_paste_timer.stop()
+            self.perform_paste_now(
+                origin=request['origin'],
+                target_hwnd=request['target_hwnd'],
+                foreground_hwnd=foreground_hwnd,
+                elapsed_ms=elapsed_ms,
+                forced=False,
+                modifiers=pressed_modifiers,
+            )
+            return
+
+        if elapsed_ms >= self.paste_timeout_ms:
+            self.pending_paste_request = None
+            self.pending_paste_timer.stop()
+            self.perform_paste_now(
+                origin=request['origin'],
+                target_hwnd=request['target_hwnd'],
+                foreground_hwnd=foreground_hwnd,
+                elapsed_ms=elapsed_ms,
+                forced=True,
+                modifiers=pressed_modifiers,
+            )
+
     def on_hotkey_triggered(self):
         # 这个信号现在是从 NativeHotkeyManager 线程发出的
         if not self.settings.hotkeys_enabled: return
         if self.popup.isVisible():
             log("热键触发：关闭窗口。"); self.hide_popup_signal.emit()
         else:
-            log("热键触发：打开窗口。"); self.show_popup_signal.emit()
+            self.last_popup_target_hwnd = self._capture_target_hwnd()
+            log(f"热键触发：打开窗口。目标 hwnd={self.last_popup_target_hwnd}")
+            self.show_popup_signal.emit()
 
     @Slot(str)
     def on_hotkey_registration_failed(self, message):
@@ -291,38 +416,28 @@ class MainController(QObject):
         # 重新构建菜单（特别是自动加载菜单）以反映变化
         self.rebuild_auto_library_menu()
         log("--- 全量重载完成 ---")
-    @Slot(str)
-    def on_suggestion_selected(self, text):
-        log(f"已选择词条块: '{text}'")
-        
-        content_to_paste = "" # 初始化为空
-        
-        # text 是 full_content，我们需要通过它找到原始块
-        found_block = None
-        all_blocks = self.word_manager.clipboard_history + self.word_manager.word_blocks
-        for block in all_blocks:
+    def _find_block_by_full_content(self, text):
+        search_pool = self.word_manager.clipboard_history + self.word_manager.word_blocks
+        for block in search_pool:
             if block['full_content'] == text:
-                found_block = block
-                break
-        
-        # 剪贴板内容也可能是选择的目标
-        if not found_block:
-             for block in self.word_manager.clipboard_history:
-                if block['full_content'] == text:
-                    found_block = block
-                    break
+                return block
+        return None
 
-        if found_block:
-            if found_block['exclude_parent']:
-                # 只输出子内容
-                content_to_paste = '\n'.join(found_block['raw_lines'][1:])
-            else:
-                # 输出父级（使用解析过的纯净文本）+ 子内容
-                first_line = found_block['parent']
-                content_to_paste = '\n'.join([first_line] + found_block['raw_lines'][1:])
-        else:
-            # 如果找不到块，作为备用方案，按旧方式处理
-            content_to_paste = text.replace('- ', '', 1)
+    def _build_output_content(self, selected_text, found_block):
+        if not found_block:
+            return selected_text.replace('- ', '', 1)
+
+        if found_block['exclude_parent']:
+            return '\n'.join(found_block['raw_lines'][1:])
+
+        first_line = found_block['parent']
+        return '\n'.join([first_line] + found_block['raw_lines'][1:])
+
+    @Slot(str)
+    def on_suggestion_selected(self, text, target_hwnd=None, origin='popup'):
+        log(f"已选择词条块: '{text}'")
+        found_block = self._find_block_by_full_content(text)
+        content_to_paste = self._build_output_content(text, found_block)
 
         rendered_content = self.render_template_output(content_to_paste)
         if rendered_content is None:
@@ -334,53 +449,61 @@ class MainController(QObject):
 
         self.ignore_next_clipboard_change = True
         pyperclip.copy(content_to_paste)
-        log(f"已复制处理后的内容到剪贴板，并设置忽略标志。")
-        
-        # 无论何种模式，都执行粘贴
-        QTimer.singleShot(150, self.perform_paste)
+        log("已复制处理后的内容到剪贴板，并设置忽略标志。")
+
+        resolved_target_hwnd = int(target_hwnd or self.last_popup_target_hwnd or 0)
+        self.schedule_paste(resolved_target_hwnd, origin=origin)
 
     def perform_paste(self):
+        self.perform_paste_now(origin='manual')
+
+    def perform_paste_now(self, origin='manual', target_hwnd=0, foreground_hwnd=0, elapsed_ms=0, forced=False, modifiers=None):
         """
         根据用户设置，通过 PowerShell 执行不同的粘贴操作。
-        【已加固】显式检查 detached 进程派发结果，避免静默失败。
+        保持默认主链尽量窄，只保留全局手动模式。
         """
         mode = self.settings.paste_mode
-        log(f"准备执行粘贴，模式: {mode}")
+        modifiers = modifiers or []
+        log(
+            f"准备执行粘贴 | origin={origin} mode={mode} target_hwnd={int(target_hwnd or 0)} "
+            f"foreground_hwnd={int(foreground_hwnd or 0)} elapsed_ms={elapsed_ms} "
+            f"forced={forced} modifiers={','.join(modifiers) or 'none'}"
+        )
 
         ps_script = ""
-        if mode == 'ctrl_v':
+        if mode == PASTE_MODE_CTRL_V:
             ps_script = (
-                "Start-Sleep -Milliseconds 100; "
                 "Add-Type -AssemblyName System.Windows.Forms; "
                 "[System.Windows.Forms.SendKeys]::SendWait('^v')"
             )
-        elif mode == 'ctrl_shift_v':
+        elif mode == PASTE_MODE_CTRL_SHIFT_V:
             ps_script = (
-                "Start-Sleep -Milliseconds 100; "
                 "Add-Type -AssemblyName System.Windows.Forms; "
                 "[System.Windows.Forms.SendKeys]::SendWait('+^v')"
             )
-        elif mode == 'typing':
+        elif mode == PASTE_MODE_TYPING:
             ps_script = (
-                "Start-Sleep -Milliseconds 100; "
                 "Add-Type -AssemblyName System.Windows.Forms; "
                 "$clipboardText = Get-Clipboard -Raw; "
                 "$escapedText = $clipboardText -replace '([\\+\\^\\%\\~\\(\\)\\[\\]\\{\\}])', '{$1}'; "
                 "[System.Windows.Forms.SendKeys]::SendWait($escapedText)"
             )
 
-        if ps_script:
-            try:
-                success, pid = self._start_detached_process(
-                    "powershell.exe",
-                    ["-NoProfile", "-WindowStyle", "Hidden", "-Command", ps_script]
-                )
-                if success:
-                    log(f"PowerShell 粘贴命令 ({mode}) 已成功派发。PID={pid}")
-                else:
-                    log(f"CRITICAL: PowerShell 粘贴命令 ({mode}) 派发失败，startDetached 返回 False。")
-            except Exception as e:
-                log(f"CRITICAL: 启动 PowerShell 粘贴进程时发生严重错误: {e}")
+        if not ps_script:
+            log(f"CRITICAL: 未识别的粘贴模式: {mode}")
+            return
+
+        try:
+            success, pid = self._start_detached_process(
+                "powershell.exe",
+                ["-NoProfile", "-WindowStyle", "Hidden", "-Command", ps_script]
+            )
+            if success:
+                log(f"PowerShell 粘贴命令 ({mode}) 已成功派发。PID={pid}")
+            else:
+                log(f"CRITICAL: PowerShell 粘贴命令 ({mode}) 派发失败，startDetached 返回 False。")
+        except Exception as e:
+            log(f"CRITICAL: 启动 PowerShell 粘贴进程时发生严重错误: {e}")
 
     def record_entry_usage(self, block):
         """仅记录真正完成输出的普通词条使用行为。"""
@@ -793,15 +916,19 @@ class MainController(QObject):
     @Slot(str, str)
     def on_shortcut_matched(self, full_content, shortcut_code):
         """处理快捷码匹配成功的事件"""
-        log(f"主控制器收到快捷码匹配信号: {shortcut_code}")
-        
-        # 1. 删除用户输入的快捷码
+        target_hwnd = self._capture_target_hwnd()
+        log(f"主控制器收到快捷码匹配信号: {shortcut_code} | target_hwnd={target_hwnd}")
+        QTimer.singleShot(
+            self.shortcut_erase_grace_ms,
+            lambda content=full_content, code=shortcut_code, hwnd=target_hwnd: self._commit_shortcut_match(content, code, hwnd)
+        )
+
+    def _commit_shortcut_match(self, full_content, shortcut_code, target_hwnd):
         for _ in range(len(shortcut_code)):
             self.shortcut_listener.keyboard_controller.press(keyboard.Key.backspace)
             self.shortcut_listener.keyboard_controller.release(keyboard.Key.backspace)
 
-        # 2. 粘贴内容 (复用 on_suggestion_selected 的逻辑)
-        self.on_suggestion_selected(full_content)
+        self.on_suggestion_selected(full_content, target_hwnd=target_hwnd, origin='shortcut')
 
     @Slot()
     def cleanup_and_exit(self):
@@ -815,6 +942,8 @@ class MainController(QObject):
     @Slot()
     def set_paste_mode(self, mode):
         """设置新的粘贴模式并保存"""
+        if mode not in SUPPORTED_PASTE_MODES:
+            return
         if self.settings.paste_mode != mode:
             self.settings.paste_mode = mode
             self.settings.save()

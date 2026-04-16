@@ -115,7 +115,11 @@ class SettingsManager:
             self.string_trigger_enabled = self.config.getboolean('General', 'string_trigger_enabled', fallback=False)
             self.string_trigger_str = self.config.get('General', 'string_trigger_str', fallback='//')
             
-            self.paste_mode = self.config.get('Paste', 'mode', fallback='ctrl_v')
+            self.paste_mode = self.config.get('Paste', 'mode', fallback=PASTE_MODE_CTRL_V)
+            if self.paste_mode == 'smart_compat':
+                self.paste_mode = PASTE_MODE_CTRL_V
+            if self.paste_mode not in SUPPORTED_PASTE_MODES:
+                self.paste_mode = PASTE_MODE_CTRL_V
             self.width = self.config.getint('Window', 'width', fallback=450)
             self.height = self.config.getint('Window', 'height', fallback=300)
             self.theme = self.config.get('Theme', 'mode', fallback='dark')

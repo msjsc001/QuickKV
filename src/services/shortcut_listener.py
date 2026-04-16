@@ -10,6 +10,7 @@ import re
 import itertools
 import threading
 import ctypes
+import time
 from ctypes import wintypes
 from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLineEdit,
                              QListWidget, QListWidgetItem, QSystemTrayIcon, QMenu, QSizeGrip,
@@ -44,6 +45,53 @@ from core.config import *
 class ShortcutListener(QObject):
     shortcut_matched = Signal(str, str) # 发送匹配到的词条内容和快捷码本身
 
+    MODIFIER_KEYS = {
+        keyboard.Key.shift,
+        keyboard.Key.shift_l,
+        keyboard.Key.shift_r,
+        keyboard.Key.ctrl,
+        keyboard.Key.ctrl_l,
+        keyboard.Key.ctrl_r,
+        keyboard.Key.alt,
+        keyboard.Key.alt_l,
+        keyboard.Key.alt_r,
+        keyboard.Key.alt_gr,
+        keyboard.Key.cmd,
+        keyboard.Key.cmd_l,
+        keyboard.Key.cmd_r,
+    }
+
+    RESET_KEYS = {
+        keyboard.Key.backspace,
+        keyboard.Key.delete,
+        keyboard.Key.enter,
+        keyboard.Key.tab,
+        keyboard.Key.esc,
+        keyboard.Key.left,
+        keyboard.Key.right,
+        keyboard.Key.up,
+        keyboard.Key.down,
+        keyboard.Key.home,
+        keyboard.Key.end,
+        keyboard.Key.page_up,
+        keyboard.Key.page_down,
+    }
+
+    VK_CHAR_FALLBACKS = {
+        32: ' ',
+        186: (';', ':'),
+        187: ('=', '+'),
+        188: (',', '<'),
+        189: ('-', '_'),
+        190: ('.', '>'),
+        191: ('/', '?'),
+        192: ('`', '~'),
+        219: ('[', '{'),
+        220: ('\\', '|'),
+        221: (']', '}'),
+        222: ("'", '"'),
+    }
+
     def __init__(self, word_manager):
         super().__init__()
         self.word_manager = word_manager
@@ -53,6 +101,11 @@ class ShortcutListener(QObject):
         self.thread = None
         self._running = False
         self.keyboard_controller = keyboard.Controller()
+        self.user32 = ctypes.windll.user32
+        self.max_buffer_length = 8
+        self.sorted_codes = []
+        self.idle_reset_seconds = 1.0
+        self.last_input_monotonic = 0.0
 
     def update_shortcuts(self):
         """从词库更新快捷码映射"""
@@ -61,7 +114,49 @@ class ShortcutListener(QObject):
         for block in all_blocks:
             if block.get('shortcut_code'):
                 self.shortcut_map[block['shortcut_code'].lower()] = block
+        self.sorted_codes = sorted(self.shortcut_map.keys(), key=len, reverse=True)
+        longest_code = max((len(code) for code in self.shortcut_map.keys()), default=0)
+        self.max_buffer_length = max(8, longest_code + 4)
         log(f"快捷码监听器已更新，共 {len(self.shortcut_map)} 个快捷码。")
+
+    def _is_shift_pressed(self):
+        return bool(self.user32.GetAsyncKeyState(0x10) & 0x8000)
+
+    def _get_key_vk(self, key):
+        vk = getattr(key, 'vk', None)
+        if vk is not None:
+            return vk
+        value = getattr(key, 'value', None)
+        if value is not None:
+            return getattr(value, 'vk', None)
+        return None
+
+    def _normalize_key_to_char(self, key):
+        char = getattr(key, 'char', None)
+        if isinstance(char, str) and len(char) == 1:
+            return char.lower()
+        if key == keyboard.Key.space:
+            return ' '
+
+        vk = self._get_key_vk(key)
+        if vk is None:
+            return None
+
+        if 65 <= vk <= 90:
+            return chr(vk).lower()
+        if 48 <= vk <= 57:
+            return chr(vk)
+
+        symbol = self.VK_CHAR_FALLBACKS.get(vk)
+        if symbol is None:
+            return None
+        if isinstance(symbol, tuple):
+            return symbol[1] if self._is_shift_pressed() else symbol[0]
+        return symbol
+
+    def _trim_buffer(self):
+        if len(self.typed_buffer) > self.max_buffer_length:
+            self.typed_buffer = self.typed_buffer[-self.max_buffer_length:]
 
     def _on_press(self, key):
         """
@@ -72,32 +167,31 @@ class ShortcutListener(QObject):
             if not self._running:
                 return False # 停止监听
 
-            char = None
-            if hasattr(key, 'char'):
-                char = key.char
-            elif key == keyboard.Key.space:
-                char = ' '
-            
-            if char:
-                self.typed_buffer += char
-                buffer_lower = self.typed_buffer.lower()
-                # 从最长的快捷码开始匹配，避免短码提前触发
-                # (这是一个小的优化，但对健壮性有好处)
-                sorted_codes = sorted(self.shortcut_map.keys(), key=len, reverse=True)
-                for code in sorted_codes:
-                    if buffer_lower.endswith(code):
-                        log(f"快捷码 '{code}' 匹配成功!")
-                        block = self.shortcut_map[code]
-                        self.shortcut_matched.emit(block['full_content'], code)
-                        self.typed_buffer = "" # 重置缓冲区
-                        return # 匹配成功后立即返回
-            else:
-                # 任何非字符键（如Ctrl, Shift, Enter）都会重置缓冲区
+            now = time.monotonic()
+            if self.last_input_monotonic and now - self.last_input_monotonic > self.idle_reset_seconds:
                 self.typed_buffer = ""
+            self.last_input_monotonic = now
 
-            # 限制缓冲区长度，防止内存无限增长
-            if len(self.typed_buffer) > 50:
-                self.typed_buffer = self.typed_buffer[-50:]
+            if key in self.MODIFIER_KEYS:
+                return
+
+            char = self._normalize_key_to_char(key)
+            if char is None:
+                if key in self.RESET_KEYS:
+                    self.typed_buffer = ""
+                return
+
+            self.typed_buffer += char
+            self._trim_buffer()
+
+            for code in self.sorted_codes:
+                if self.typed_buffer.endswith(code):
+                    log(f"快捷码 '{code}' 匹配成功! buffer='{self.typed_buffer}'")
+                    block = self.shortcut_map[code]
+                    self.shortcut_matched.emit(block['full_content'], code)
+                    self.typed_buffer = "" # 重置缓冲区
+                    return # 匹配成功后立即返回
+
 
         except Exception as e:
             # 【关键】捕获所有未知异常，记录日志，并重置状态，但绝不让线程退出
